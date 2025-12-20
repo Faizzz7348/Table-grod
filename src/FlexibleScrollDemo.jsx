@@ -6,6 +6,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { CustomerService } from './service/CustomerService';
+import CustomLightbox from './components/CustomLightbox';
 
 export default function FlexibleScrollDemo() {
     const [routes, setRoutes] = useState([]);
@@ -21,17 +22,32 @@ export default function FlexibleScrollDemo() {
         code: true,
         location: true,
         delivery: true,
-        image: true,
-        action: true
+        image: true
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
-    const [imageLoadingStates, setImageLoadingStates] = useState({});
-    const [galleryVisible, setGalleryVisible] = useState(false);
-    const [currentGalleryImages, setCurrentGalleryImages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [originalData, setOriginalData] = useState([]);
+    const [originalDialogData, setOriginalDialogData] = useState([]);
+    
+    // Custom Lightbox State
+    const [lightboxVisible, setLightboxVisible] = useState(false);
+    const [lightboxImages, setLightboxImages] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
-        CustomerService.getRoutes().then((data) => setRoutes(data));
+        console.log('Component mounted - Loading data...');
+        CustomerService.getRoutes()
+            .then((data) => {
+                console.log('Data loaded:', data);
+                setRoutes(data);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error('Error loading data:', error);
+                setLoading(false);
+            });
     }, []);
 
     useEffect(() => {
@@ -40,12 +56,53 @@ export default function FlexibleScrollDemo() {
     }, [darkMode]);
 
     const dialogFooterTemplate = () => {
-        return <Button 
-            label="Ok" 
-            icon="pi pi-check" 
-            onClick={() => setDialogVisible(false)} 
-            style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
-        />;
+        return (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div>
+                    {hasUnsavedChanges && (
+                        <span style={{
+                            color: '#f59e0b',
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}>
+                            <i className="pi pi-info-circle"></i>
+                            You have unsaved changes
+                        </span>
+                    )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Button 
+                        label="Close" 
+                        icon="pi pi-times" 
+                        onClick={() => setDialogVisible(false)} 
+                        outlined
+                        disabled={saving}
+                    />
+                    {editMode && (
+                        <>
+                            <Button 
+                                label="Cancel Changes" 
+                                icon="pi pi-undo" 
+                                onClick={handleCancelChanges} 
+                                severity="danger"
+                                outlined
+                                disabled={!hasUnsavedChanges || saving}
+                            />
+                            <Button 
+                                label={saving ? "Saving..." : "Save Changes"} 
+                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"} 
+                                onClick={handleSaveChanges} 
+                                severity="success"
+                                disabled={!hasUnsavedChanges || saving}
+                            />
+                        </>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     const handleUpdateRow = (rowId, field, value) => {
@@ -53,6 +110,7 @@ export default function FlexibleScrollDemo() {
             route.id === rowId ? { ...route, [field]: value } : route
         );
         setRoutes(updatedRoutes);
+        setHasUnsavedChanges(true);
         console.log('Updated:', rowId, field, value);
     };
 
@@ -61,6 +119,7 @@ export default function FlexibleScrollDemo() {
             data.id === rowId ? { ...data, [field]: value } : data
         );
         setDialogData(sortDialogData(updatedData));
+        setHasUnsavedChanges(true);
         console.log('Dialog Updated:', rowId, field, value);
     };
 
@@ -69,6 +128,7 @@ export default function FlexibleScrollDemo() {
             data.id === rowId ? { ...data, powerMode: mode } : data
         );
         setDialogData(sortDialogData(updatedData));
+        setHasUnsavedChanges(true);
         console.log('Power mode changed:', rowId, mode);
     };
 
@@ -116,7 +176,47 @@ export default function FlexibleScrollDemo() {
 
     const handleRowReorder = (e) => {
         setDialogData(e.value);
+        setHasUnsavedChanges(true);
         console.log('Row reordered');
+    };
+
+    const handleSaveChanges = () => {
+        setSaving(true);
+        // Simulate API call
+        setTimeout(() => {
+            console.log('Saving changes...', { routes, dialogData });
+            setOriginalData([...routes]);
+            setOriginalDialogData([...dialogData]);
+            setHasUnsavedChanges(false);
+            setSaving(false);
+            alert('✅ Changes saved successfully!');
+        }, 1500);
+    };
+
+    const handleCancelChanges = () => {
+        if (hasUnsavedChanges) {
+            const confirmed = window.confirm('⚠️ You have unsaved changes. Are you sure you want to cancel?');
+            if (!confirmed) return;
+        }
+        setRoutes([...originalData]);
+        setDialogData([...originalDialogData]);
+        setHasUnsavedChanges(false);
+        console.log('Changes cancelled');
+    };
+
+    const handleToggleEditMode = () => {
+        if (editMode && hasUnsavedChanges) {
+            const confirmed = window.confirm('⚠️ You have unsaved changes. Do you want to save before exiting edit mode?');
+            if (confirmed) {
+                handleSaveChanges();
+            }
+        }
+        if (!editMode) {
+            // Entering edit mode - save original data
+            setOriginalData([...routes]);
+            setOriginalDialogData([...dialogData]);
+        }
+        setEditMode(!editMode);
     };
 
     const handleAddDialogRow = () => {
@@ -131,12 +231,14 @@ export default function FlexibleScrollDemo() {
             powerMode: 'Daily'
         };
         setDialogData(sortDialogData([...dialogData, newRow]));
+        setHasUnsavedChanges(true);
         console.log('Added new dialog row:', newRow);
     };
 
     const handleDeleteDialogRow = (rowId) => {
         const updatedData = dialogData.filter(data => data.id !== rowId);
         setDialogData(sortDialogData(updatedData));
+        setHasUnsavedChanges(true);
         console.log('Deleted dialog row:', rowId);
     };
 
@@ -149,12 +251,14 @@ export default function FlexibleScrollDemo() {
             warehouse: 'New Warehouse'
         };
         setRoutes([...routes, newRow]);
+        setHasUnsavedChanges(true);
         console.log('Added new row:', newRow);
     };
 
     const handleDeleteRow = (rowId) => {
         const updatedRoutes = routes.filter(route => route.id !== rowId);
         setRoutes(updatedRoutes);
+        setHasUnsavedChanges(true);
         console.log('Deleted row:', rowId);
     };
 
@@ -223,6 +327,23 @@ export default function FlexibleScrollDemo() {
         );
     };
 
+    // Loading state
+    if (loading) {
+        return (
+            <div style={{ 
+                minHeight: '100vh',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                fontSize: '1.5rem',
+                fontWeight: 'bold'
+            }}>
+                Loading application...
+            </div>
+        );
+    }
+
     return (
         <div style={{ 
             minHeight: '100vh',
@@ -249,7 +370,45 @@ export default function FlexibleScrollDemo() {
                     fontSize: '1.75rem',
                     fontWeight: '700'
                 }}>Route Management</h2>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    {editMode && hasUnsavedChanges && (
+                        <span style={{
+                            backgroundColor: darkMode ? '#fbbf24' : '#fef3c7',
+                            color: darkMode ? '#000000' : '#92400e',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}>
+                            <i className="pi pi-exclamation-triangle"></i>
+                            Unsaved Changes
+                        </span>
+                    )}
+                    {editMode && (
+                        <>
+                            <Button 
+                                icon="pi pi-times" 
+                                label="Cancel"
+                                onClick={handleCancelChanges}
+                                severity="danger"
+                                size="small"
+                                outlined
+                                disabled={saving}
+                            />
+                            <Button 
+                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"} 
+                                label={saving ? "Saving..." : "Save"}
+                                onClick={handleSaveChanges}
+                                severity="success"
+                                size="small"
+                                raised
+                                disabled={!hasUnsavedChanges || saving}
+                            />
+                        </>
+                    )}
                     <Button 
                         icon={darkMode ? "pi pi-sun" : "pi pi-moon"} 
                         label={darkMode ? "Light" : "Dark"}
@@ -260,11 +419,12 @@ export default function FlexibleScrollDemo() {
                     />
                     <Button 
                         icon={editMode ? "pi pi-eye" : "pi pi-pencil"} 
-                        label={editMode ? "View" : "Edit"}
-                        onClick={() => setEditMode(!editMode)}
+                        label={editMode ? "View Mode" : "Edit Mode"}
+                        onClick={handleToggleEditMode}
                         severity={editMode ? "success" : "info"}
                         size="small"
                         raised
+                        disabled={saving}
                     />
                 </div>
             </div>
@@ -518,6 +678,7 @@ export default function FlexibleScrollDemo() {
                         )}
                         {visibleColumns.image && (
                             <Column 
+                                columnKey="image"
                                 header="Image" 
                                 align="center" 
                                 alignHeader="center"
@@ -526,13 +687,26 @@ export default function FlexibleScrollDemo() {
                                         return <span style={{ color: '#999', fontSize: '0.75rem' }}>No Image</span>;
                                     }
                                     
+                                    const openLightbox = () => {
+                                        setLightboxImages(rowData.images);
+                                        setCurrentImageIndex(0);
+                                        setLightboxVisible(true);
+                                    };
+                                    
                                     return (
-                                        <div style={{ 
-                                            position: 'relative', 
-                                            display: 'inline-block',
-                                            width: '60px',
-                                            height: '45px'
-                                        }}>
+                                        <div 
+                                            style={{ 
+                                                position: 'relative', 
+                                                display: 'inline-block',
+                                                width: '60px',
+                                                height: '45px',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openLightbox();
+                                            }}
+                                        >
                                             <img 
                                                 src={rowData.images[0]} 
                                                 alt="Preview"
@@ -541,14 +715,7 @@ export default function FlexibleScrollDemo() {
                                                 style={{ 
                                                     borderRadius: '8px', 
                                                     objectFit: 'cover',
-                                                    cursor: 'pointer',
                                                     display: 'block'
-                                                }}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCurrentGalleryImages(rowData.images);
-                                                    setCurrentImageIndex(0);
-                                                    setGalleryVisible(true);
                                                 }}
                                             />
                                             {rowData.images.length > 1 && (
@@ -574,6 +741,7 @@ export default function FlexibleScrollDemo() {
                             />
                         )}
                         <Column 
+                            columnKey="action"
                             header="Action" 
                             align="center" 
                             alignHeader="center"
@@ -674,137 +842,63 @@ export default function FlexibleScrollDemo() {
                     )}
                 </Dialog>
 
-                {/* Image Gallery Dialog */}
-                <Dialog 
-                    visible={galleryVisible}
-                    onHide={() => setGalleryVisible(false)}
-                    modal
-                    dismissableMask
-                    style={{ width: '90vw', maxWidth: '1200px' }}
-                    contentStyle={{ 
-                        padding: '0',
-                        backgroundColor: darkMode ? '#000000' : '#ffffff'
+                {/* Custom Lightbox */}
+                <CustomLightbox 
+                    images={lightboxImages}
+                    visible={lightboxVisible}
+                    currentIndex={currentImageIndex}
+                    onHide={() => setLightboxVisible(false)}
+                    onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length)}
+                    onNext={(idx) => {
+                        if (typeof idx === 'number') {
+                            setCurrentImageIndex(idx);
+                        } else {
+                            setCurrentImageIndex((prev) => (prev + 1) % lightboxImages.length);
+                        }
                     }}
-                    headerStyle={{ display: 'none' }}
-                >
-                    <div style={{ 
-                        position: 'relative',
-                        backgroundColor: darkMode ? '#000000' : '#ffffff',
-                        minHeight: '500px',
+                />
+
+                {/* Saving Overlay */}
+                {saving && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
                         display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
                         justifyContent: 'center',
-                        padding: '2rem'
+                        alignItems: 'center',
+                        zIndex: 10000,
+                        backdropFilter: 'blur(4px)'
                     }}>
-                        {/* Close Button */}
-                        <Button 
-                            icon="pi pi-times"
-                            rounded
-                            text
-                            severity="secondary"
-                            onClick={() => setGalleryVisible(false)}
-                            style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '10px',
-                                zIndex: 1000
-                            }}
-                        />
-                        
-                        {/* Main Image */}
-                        {currentGalleryImages.length > 0 && (
-                            <div style={{ 
-                                width: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '1rem'
-                            }}>
-                                <img 
-                                    src={currentGalleryImages[currentImageIndex]}
-                                    alt={`Image ${currentImageIndex + 1}`}
-                                    style={{
-                                        maxWidth: '100%',
-                                        maxHeight: '70vh',
-                                        objectFit: 'contain',
-                                        borderRadius: '8px'
-                                    }}
-                                />
-                                
-                                {/* Navigation Buttons */}
-                                {currentGalleryImages.length > 1 && (
-                                    <div style={{ 
-                                        display: 'flex',
-                                        gap: '1rem',
-                                        alignItems: 'center'
-                                    }}>
-                                        <Button 
-                                            icon="pi pi-chevron-left"
-                                            rounded
-                                            outlined
-                                            onClick={() => setCurrentImageIndex(prev => 
-                                                prev > 0 ? prev - 1 : currentGalleryImages.length - 1
-                                            )}
-                                            disabled={currentGalleryImages.length <= 1}
-                                        />
-                                        <span style={{ 
-                                            color: darkMode ? '#e5e5e5' : '#000000',
-                                            fontWeight: 'bold',
-                                            minWidth: '80px',
-                                            textAlign: 'center'
-                                        }}>
-                                            {currentImageIndex + 1} / {currentGalleryImages.length}
-                                        </span>
-                                        <Button 
-                                            icon="pi pi-chevron-right"
-                                            rounded
-                                            outlined
-                                            onClick={() => setCurrentImageIndex(prev => 
-                                                prev < currentGalleryImages.length - 1 ? prev + 1 : 0
-                                            )}
-                                            disabled={currentGalleryImages.length <= 1}
-                                        />
-                                    </div>
-                                )}
-                                
-                                {/* Thumbnails */}
-                                {currentGalleryImages.length > 1 && (
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: '0.5rem',
-                                        flexWrap: 'wrap',
-                                        justifyContent: 'center',
-                                        maxWidth: '100%',
-                                        overflowX: 'auto',
-                                        padding: '0.5rem'
-                                    }}>
-                                        {currentGalleryImages.map((img, index) => (
-                                            <img 
-                                                key={index}
-                                                src={img}
-                                                alt={`Thumbnail ${index + 1}`}
-                                                style={{
-                                                    width: '60px',
-                                                    height: '45px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    border: index === currentImageIndex 
-                                                        ? '3px solid #3b82f6' 
-                                                        : '2px solid transparent',
-                                                    opacity: index === currentImageIndex ? 1 : 0.6,
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onClick={() => setCurrentImageIndex(index)}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <div style={{
+                            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                            padding: '3rem',
+                            borderRadius: '20px',
+                            textAlign: 'center',
+                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                            border: `2px solid ${darkMode ? '#1a3a52' : '#3b82f6'}`
+                        }}>
+                            <i className="pi pi-spin pi-spinner" style={{ 
+                                fontSize: '3rem', 
+                                color: '#3b82f6',
+                                marginBottom: '1rem'
+                            }}></i>
+                            <h3 style={{ 
+                                margin: '1rem 0 0.5rem 0',
+                                color: darkMode ? '#e5e5e5' : '#000000',
+                                fontSize: '1.5rem'
+                            }}>Saving Changes...</h3>
+                            <p style={{ 
+                                margin: 0,
+                                color: darkMode ? '#9ca3af' : '#6b7280',
+                                fontSize: '0.875rem'
+                            }}>Please wait while we save your data</p>
+                        </div>
                     </div>
-                </Dialog>
+                )}
             </div>
         </div>
     );
