@@ -1,0 +1,403 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 0.875rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light Mode */
+body.light-mode {
+  background-color: #f5f5f5;
+  color: #000000;
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background-color: #0f0f0f;
+  color: #e5e5e5;
+}
+
+.card {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* DataTable Light Mode */
+body.light-mode .p-datatable {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #1a3a52;
+}
+
+body.light-mode .p-datatable .p-datatable-wrapper {
+  border: none;
+}
+
+body.light-mode .p-datatable table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+body.light-mode .p-datatable .p-datatable-thead > tr > th {
+  background-color: #1a3a52;
+  color: white;
+  text-align: center !important;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 1rem;
+  border: 0 !important;
+  outline: none !important;
+}
+
+body.light-mode .p-datatable .p-datatable-thead > tr > th:first-child {
+  border-top-left-radius: 10px;
+}
+
+body.light-mode .p-datatable .p-datatable-thead > tr > th:last-child {
+  border-top-right-radius: 10px;
+}
+
+body.light-mode .p-datatable .p-datatable-tbody > tr {
+  border: 0 !important;
+  outline: none !important;
+}
+
+body.light-mode .p-datatable .p-datatable-tbody > tr > td {
+  background-color: #ffffff;
+  color: #000000;
+  text-align: center !important;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0.5rem;
+  border: 0 !important;
+  outline: none !important;
+}
+
+body.light-mode .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* DataTable Dark Mode */
+body.dark-mode .p-datatable {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  border: 2px solid #1a3a52;
+}
+
+body.dark-mode .p-datatable .p-datatable-wrapper {
+  border: none;
+}
+
+body.dark-mode .p-datatable table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+body.dark-mode .p-datatable .p-datatable-thead > tr > th {
+  background-color: #1a3a52;
+  color: white;
+  text-align: center !important;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 1rem;
+  border: 0 !important;
+  outline: none !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-thead > tr > th:first-child {
+  border-top-left-radius: 10px;
+}
+
+body.dark-mode .p-datatable .p-datatable-thead > tr > th:last-child {
+  border-top-right-radius: 10px;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr {
+  border: 0 !important;
+  outline: none !important;
+  background-color: #1a1a1a;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr > td {
+  background-color: #1a1a1a;
+  color: #e5e5e5;
+  text-align: center !important;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0.5rem;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #252525;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr:hover > td {
+  background-color: #252525;
+}
+
+/* Disabled row styling */
+.p-datatable .p-datatable-tbody > tr.row-disabled {
+  opacity: 0.5;
+}
+
+body.light-mode .p-datatable .p-datatable-tbody > tr.row-disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr.row-disabled {
+  background-color: #151515;
+  color: #6b7280;
+}
+
+/* Dialog Light Mode */
+body.light-mode .p-dialog {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 2px solid #1a3a52;
+}
+
+body.light-mode .p-dialog .p-dialog-header {
+  background-color: #1a3a52;
+  color: white;
+  border-radius: 14px 14px 0 0;
+  padding: 1.25rem;
+}
+
+body.light-mode .p-dialog .p-dialog-content {
+  background-color: #ffffff;
+  color: #000000;
+  padding: 1.25rem;
+}
+
+body.light-mode .p-dialog .p-dialog-footer {
+  background-color: #ffffff;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Dialog Dark Mode */
+body.dark-mode .p-dialog {
+  background-color: #1a1a1a;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  border: 2px solid #1a3a52;
+}
+
+body.dark-mode .p-dialog .p-dialog-header {
+  background-color: #1a3a52;
+  color: white;
+  border-radius: 14px 14px 0 0;
+  padding: 1.25rem;
+}
+
+body.dark-mode .p-dialog .p-dialog-content {
+  background-color: #1a1a1a;
+  color: #e5e5e5;
+  padding: 1.25rem;
+}
+
+body.dark-mode .p-dialog .p-dialog-footer {
+  background-color: #1a1a1a;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #404040;
+}
+
+/* Button Styling */
+.p-button {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* Dropdown Light Mode */
+body.light-mode .p-dropdown {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #000000;
+}
+
+body.light-mode .p-dropdown:hover {
+  border-color: #3b82f6;
+}
+
+/* Dropdown Dark Mode */
+body.dark-mode .p-dropdown {
+  background-color: #252525;
+  border: 1px solid #404040;
+  color: #e5e5e5;
+}
+
+body.dark-mode .p-dropdown:hover {
+  border-color: #3b82f6;
+  background-color: #2a2a2a;
+}
+
+/* Input Light Mode */
+body.light-mode .p-inputtext {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #000000;
+}
+
+body.light-mode .p-inputtext:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Input Dark Mode */
+body.dark-mode .p-inputtext {
+  background-color: #252525;
+  border: 1px solid #404040;
+  color: #e5e5e5;
+}
+
+body.dark-mode .p-inputtext:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  background-color: #2a2a2a;
+}
+
+/* Scrollbar Light Mode */
+body.light-mode ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body.light-mode ::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+body.light-mode ::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 8px;
+}
+
+body.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Scrollbar Dark Mode */
+body.dark-mode ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 8px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
+
+/* Remove all table borders and lines */
+body.dark-mode .p-datatable .p-datatable-thead > tr,
+body.dark-mode .p-datatable .p-datatable-tbody > tr,
+body.dark-mode .p-datatable .p-datatable-thead > tr > th,
+body.dark-mode .p-datatable .p-datatable-tbody > tr > td {
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+body.light-mode .p-datatable .p-datatable-thead > tr,
+body.light-mode .p-datatable .p-datatable-tbody > tr,
+body.light-mode .p-datatable .p-datatable-thead > tr > th,
+body.light-mode .p-datatable .p-datatable-tbody > tr > td {
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Dropdown Panel Dark Mode */
+body.dark-mode .p-dropdown-panel {
+  background-color: #1a1a1a;
+  border: 1px solid #404040;
+}
+
+/* Dialog Mask/Backdrop with blue tint */
+.p-dialog-mask {
+  background-color: rgba(10, 25, 41, 0.7) !important;
+  backdrop-filter: blur(2px);
+}
+
+body.dark-mode .p-dialog-mask {
+  background-color: rgba(10, 25, 41, 0.8) !important;
+  backdrop-filter: blur(3px);
+}
+
+body.dark-mode .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  color: #e5e5e5;
+}
+
+body.dark-mode .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+  background-color: #252525;
+}
+
+body.dark-mode .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background-color: #1a3a52;
+  color: #e5e5e5;
+}
+
+/* Button hover effects in dark mode */
+body.dark-mode .p-button:hover {
+  filter: brightness(1.2);
+}
+
+body.dark-mode .p-button.p-button-text:hover {
+  background-color: #252525 !important;
+}
+
+/* Image preview dark mode */
+body.dark-mode .p-image-preview-container {
+  background-color: rgba(0, 0, 0, 0.95);
+}
+
+/* Input icon spacing fix */
+.p-input-icon-left > .p-inputtext {
+  padding-left: 2.5rem !important;
+}
+
+.p-input-icon-left > i {
+  left: 0.75rem;
+}
+
+/* LightGallery z-index fix */
+.lg-backdrop,
+.lg-outer {
+  z-index: 9999 !important;
+}
+
+.lg-outer .lg-inner {
+  z-index: 9999 !important;
+}
+
+.lg-toolbar,
+.lg-actions {
+  z-index: 10000 !important;
+}
