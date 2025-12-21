@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-const USE_LOCALSTORAGE = import.meta.env.DEV; // Use localStorage in development
+// Only use localStorage in development mode
+const USE_LOCALSTORAGE = import.meta.env.DEV === true;
 
 export const CustomerService = {
     // Initialize localStorage with dummy data if not exists
