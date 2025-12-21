@@ -35,6 +35,11 @@ export default function FlexibleScrollDemo() {
     const [lightboxVisible, setLightboxVisible] = useState(false);
     const [lightboxImages, setLightboxImages] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    
+    // Custom Sort State
+    const [customSortMode, setCustomSortMode] = useState(false);
+    const [sortOrders, setSortOrders] = useState({});
+    const [isCustomSorted, setIsCustomSorted] = useState(false); // Track if data is custom sorted
 
     useEffect(() => {
         console.log('Component mounted - Loading data...');
@@ -78,6 +83,7 @@ export default function FlexibleScrollDemo() {
                         label="Close" 
                         icon="pi pi-times" 
                         onClick={() => setDialogVisible(false)} 
+                        size="small"
                         outlined
                         disabled={saving}
                     />
@@ -88,6 +94,7 @@ export default function FlexibleScrollDemo() {
                                 icon="pi pi-undo" 
                                 onClick={handleCancelChanges} 
                                 severity="danger"
+                                size="small"
                                 outlined
                                 disabled={!hasUnsavedChanges || saving}
                             />
@@ -96,6 +103,7 @@ export default function FlexibleScrollDemo() {
                                 icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"} 
                                 onClick={handleSaveChanges} 
                                 severity="success"
+                                size="small"
                                 disabled={!hasUnsavedChanges || saving}
                             />
                         </>
@@ -180,17 +188,49 @@ export default function FlexibleScrollDemo() {
         console.log('Row reordered');
     };
 
-    const handleSaveChanges = () => {
+    const handleSaveChanges = async () => {
         setSaving(true);
-        // Simulate API call
-        setTimeout(() => {
-            console.log('Saving changes...', { routes, dialogData });
+        
+        try {
+            // Save both routes and locations
+            const results = await Promise.all([
+                CustomerService.saveRoutes(routes),
+                CustomerService.saveLocations(dialogData)
+            ]);
+            
+            console.log('Changes saved successfully:', { 
+                routes, 
+                dialogData, 
+                isCustomSorted,
+                results 
+            });
+            
             setOriginalData([...routes]);
             setOriginalDialogData([...dialogData]);
             setHasUnsavedChanges(false);
             setSaving(false);
-            alert('✅ Changes saved successfully!');
-        }, 1500);
+            
+            // Check if using localStorage
+            const isLocalStorage = results[0].message?.includes('localStorage');
+            
+            // Success message with custom sort info
+            let message = isCustomSorted 
+                ? '✅ Changes saved successfully!\n📊 Custom sort order has been saved.'
+                : '✅ Changes saved successfully!';
+            
+            if (isLocalStorage) {
+                message += '\n\n💾 Using localStorage (Development Mode)\nData akan kekal selepas refresh!';
+            } else {
+                message += '\n\n🗄️ Saved to Database\nData permanently stored!';
+            }
+            
+            alert(message);
+            
+        } catch (error) {
+            console.error('Error saving changes:', error);
+            setSaving(false);
+            alert('❌ Error saving changes. Please try again.\n' + error.message);
+        }
     };
 
     const handleCancelChanges = () => {
@@ -217,6 +257,71 @@ export default function FlexibleScrollDemo() {
             setOriginalDialogData([...dialogData]);
         }
         setEditMode(!editMode);
+    };
+    
+    const handleToggleCustomSort = () => {
+        if (customSortMode) {
+            // Exiting custom sort mode
+            setSortOrders({});
+        } else {
+            // Entering custom sort mode - initialize with empty values
+            const initialOrders = {};
+            dialogData.forEach((row) => {
+                initialOrders[row.id] = '';
+            });
+            setSortOrders(initialOrders);
+        }
+        setCustomSortMode(!customSortMode);
+    };
+    
+    const handleSortOrderChange = (rowId, value) => {
+        console.log('handleSortOrderChange called:', {rowId, value, type: typeof value});
+        // Store as string if empty, otherwise as number
+        const newValue = value === '' ? '' : parseInt(value);
+        console.log('Setting new value:', newValue);
+        const updated = {
+            ...sortOrders, 
+            [rowId]: newValue
+        };
+        console.log('Updated sortOrders:', updated);
+        setSortOrders(updated);
+    };
+    
+    const isOrderDuplicate = (rowId, order) => {
+        if (!order) return false;
+        return Object.entries(sortOrders).some(([id, ord]) => 
+            parseInt(id) !== rowId && ord === order
+        );
+    };
+    
+    const applyCustomSort = () => {
+        // Validate that all rows have unique, sequential numbers
+        const orders = Object.values(sortOrders).filter(o => o !== '');
+        const uniqueOrders = new Set(orders);
+        
+        if (orders.length !== dialogData.length) {
+            alert('⚠️ Semua row harus mempunyai nombor urutan!');
+            return;
+        }
+        
+        if (uniqueOrders.size !== orders.length) {
+            alert('⚠️ Nombor tidak boleh duplikat! Sila gunakan nombor yang berbeza untuk setiap row.');
+            return;
+        }
+        
+        // Sort the data based on custom orders
+        const sortedData = [...dialogData].sort((a, b) => {
+            const orderA = sortOrders[a.id] || 999999;
+            const orderB = sortOrders[b.id] || 999999;
+            return orderA - orderB;
+        });
+        
+        setDialogData(sortedData);
+        setHasUnsavedChanges(true);
+        setCustomSortMode(false);
+        setSortOrders({});
+        setIsCustomSorted(true); // Mark as custom sorted
+        alert('✅ Row telah disusun mengikut urutan yang anda tetapkan!');
     };
 
     const handleAddDialogRow = () => {
@@ -293,6 +398,7 @@ export default function FlexibleScrollDemo() {
                         CustomerService.getDetailData().then((data) => {
                             setDialogData(sortDialogData(data));
                             setDialogVisible(true);
+                            setIsCustomSorted(false); // Reset custom sort flag
                         });
                     }} 
                 />
@@ -437,6 +543,7 @@ export default function FlexibleScrollDemo() {
                             icon="pi pi-plus" 
                             onClick={handleAddRow}
                             severity="success"
+                            size="small"
                             raised
                         />
                     </div>
@@ -614,26 +721,233 @@ export default function FlexibleScrollDemo() {
                                 label="Add New Row" 
                                 icon="pi pi-plus" 
                                 severity="success"
+                                size="small"
                                 onClick={handleAddDialogRow}
                                 raised
                             />
                         </div>
                     )}
+                    {/* Data Source Indicator */}
+                    <div style={{ 
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        backgroundColor: isCustomSorted ? '#dbeafe' : '#f0fdf4',
+                        border: isCustomSorted ? '2px solid #3b82f6' : '2px solid #10b981',
+                        borderRadius: '8px',
+                        fontWeight: 'bold'
+                    }}>
+                        <i className={isCustomSorted ? 'pi pi-sort-numeric-up' : 'pi pi-database'} 
+                           style={{ fontSize: '1.2rem', color: isCustomSorted ? '#3b82f6' : '#10b981' }}></i>
+                        <span style={{ color: isCustomSorted ? '#1e40af' : '#065f46' }}>
+                            {isCustomSorted ? '📊 Custom Sorted Data' : '🗄️ Original Database Order'}
+                        </span>
+                        {isCustomSorted && (
+                            <Button 
+                                label="Reset to Database Order" 
+                                icon="pi pi-refresh" 
+                                size="small"
+                                severity="warning"
+                                outlined
+                                onClick={() => {
+                                    CustomerService.getDetailData().then((data) => {
+                                        setDialogData(sortDialogData(data));
+                                        setIsCustomSorted(false);
+                                        setHasUnsavedChanges(true);
+                                        alert('✅ Data telah dikembalikan ke urutan asal dari database!');
+                                    });
+                                }}
+                                style={{ marginLeft: 'auto' }}
+                            />
+                        )}
+                    </div>
+                    
+                    {/* Custom Sort Controls */}
+                    <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Button 
+                            label={customSortMode ? "Cancel Custom Sort" : "Set Order"} 
+                            icon={customSortMode ? "pi pi-times" : "pi pi-sort-numeric-up"} 
+                            severity={customSortMode ? "danger" : "info"}
+                            size="small"
+                            onClick={handleToggleCustomSort}
+                            outlined={!customSortMode}
+                            raised={customSortMode}
+                        />
+                        {customSortMode && (
+                            <Button 
+                                label="Apply Sort" 
+                                icon="pi pi-check" 
+                                severity="success"
+                                size="small"
+                                onClick={applyCustomSort}
+                                raised
+                            />
+                        )}
+                        {customSortMode && (
+                            <div style={{
+                                backgroundColor: darkMode ? '#1e3a5f' : '#dbeafe',
+                                border: '2px solid #3b82f6',
+                                borderRadius: '8px',
+                                padding: '0.5rem 1rem',
+                                color: darkMode ? '#93c5fd' : '#1e40af',
+                                fontWeight: 'bold',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-info-circle"></i>
+                                <span>Masukkan nombor untuk setiap row. Nombor tidak boleh duplikat.</span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Custom Sort Table - Separate from DataTable */}
+                    {customSortMode ? (
+                        <div style={{ 
+                            border: '1px solid #ddd', 
+                            borderRadius: '8px', 
+                            overflow: 'auto',
+                            maxHeight: '600px',
+                            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff'
+                        }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{ 
+                                    position: 'sticky', 
+                                    top: 0, 
+                                    backgroundColor: darkMode ? '#2a2a2a' : '#f5f5f5',
+                                    zIndex: 10
+                                }}>
+                                    <tr>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Urutan</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>No</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Code</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Location</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Delivery</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {dialogData.map((rowData) => {
+                                        const order = sortOrders[rowData.id];
+                                        const isDuplicate = isOrderDuplicate(rowData.id, order);
+                                        return (
+                                            <tr key={rowData.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    <input
+                                                        type="text"
+                                                        value={order === '' || order === undefined ? '' : order}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '' || /^[0-9]+$/.test(val)) {
+                                                                handleSortOrderChange(rowData.id, val);
+                                                            }
+                                                        }}
+                                                        placeholder="#"
+                                                        autoComplete="off"
+                                                        style={{ 
+                                                            width: '70px', 
+                                                            textAlign: 'center',
+                                                            border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
+                                                            backgroundColor: isDuplicate ? '#fee2e2' : '#ffffff',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '6px',
+                                                            fontSize: '1rem'
+                                                        }}
+                                                    />
+                                                    {isDuplicate && (
+                                                        <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                                                            Duplicate!
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.no}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.code}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.location}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.delivery}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
                     <DataTable 
                         value={dialogData} 
                         scrollable 
                         scrollHeight="flex" 
                         tableStyle={{ minWidth: '70rem' }}
                         editMode={editMode ? "cell" : null}
-                        reorderableRows={editMode}
-                        onRowReorder={handleRowReorder}
+                        reorderableRows={false}
+                        onRowReorder={customSortMode ? null : handleRowReorder}
                         globalFilter={globalFilterValue}
                         rowClassName={(rowData) => {
                             const status = getPowerStatus(rowData.powerMode || 'Daily');
                             return status === 'OFF' ? 'row-disabled' : '';
                         }}
                     >
-                        {editMode && <Column rowReorder style={{ width: '3rem' }} />}
+                        {editMode && !customSortMode && <Column rowReorder style={{ width: '3rem' }} />}
+                        {customSortMode && (
+                            <Column 
+                                header="Urutan" 
+                                align="center" 
+                                alignHeader="center"
+                                body={(rowData) => {
+                                    const order = sortOrders[rowData.id];
+                                    const isDuplicate = isOrderDuplicate(rowData.id, order);
+                                    console.log('Rendering input for row:', rowData.id, 'order:', order);
+                                    return (
+                                        <div 
+                                            style={{ padding: '0.5rem' }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onMouseUp={(e) => e.stopPropagation()}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <input
+                                                key={`sort-${rowData.id}`}
+                                                type="text"
+                                                value={order === '' || order === undefined || order === null ? '' : String(order)}
+                                                onChange={(e) => {
+                                                    console.log('Input onChange triggered:', e.target.value);
+                                                    const val = e.target.value;
+                                                    // Only allow numbers
+                                                    if (val === '' || /^[0-9]+$/.test(val)) {
+                                                        handleSortOrderChange(rowData.id, val);
+                                                    }
+                                                }}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onMouseUp={(e) => e.stopPropagation()}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    e.target.focus();
+                                                }}
+                                                onFocus={(e) => {
+                                                    console.log('Input focused');
+                                                    e.stopPropagation();
+                                                }}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                                placeholder="#"
+                                                autoComplete="off"
+                                                style={{ 
+                                                    width: '70px', 
+                                                    textAlign: 'center',
+                                                    border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
+                                                    backgroundColor: isDuplicate ? '#fee2e2' : '#ffffff',
+                                                    padding: '0.5rem',
+                                                    borderRadius: '6px',
+                                                    fontSize: '1rem',
+                                                    cursor: 'text',
+                                                    pointerEvents: 'auto',
+                                                    zIndex: 1000
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                }}
+                                style={{ width: '120px' }}
+                            />
+                        )}
                         {visibleColumns.no && (
                             <Column 
                                 field="no" 
@@ -819,6 +1133,7 @@ export default function FlexibleScrollDemo() {
                             style={{ width: '200px' }}
                         />
                     </DataTable>
+                    )}
                 </Dialog>
 
                 {/* Info Dialog */}
