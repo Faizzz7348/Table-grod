@@ -312,13 +312,19 @@ export default function FlexibleScrollDemo() {
                 results 
             });
             
-            setOriginalData([...routes]);
+            // Check if using localStorage
+            const isLocalStorage = results[0].message?.includes('localStorage');
+            
+            // Refresh data from database to sync with server state
+            console.log('Refreshing data from database...');
+            const freshData = await CustomerService.getRoutes();
+            console.log('Fresh data loaded:', freshData);
+            
+            setRoutes(freshData);
+            setOriginalData([...freshData]);
             setOriginalDialogData([...dialogData]);
             setHasUnsavedChanges(false);
             setSaving(false);
-            
-            // Check if using localStorage
-            const isLocalStorage = results[0].message?.includes('localStorage');
             
             // Success message with custom sort info
             let message = isCustomSorted 
