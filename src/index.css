@@ -5,7 +5,16 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 0.875rem;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light Mode */
@@ -24,6 +33,18 @@ body.dark-mode {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* DataTable Light Mode */
@@ -72,7 +93,7 @@ body.light-mode .p-datatable .p-datatable-thead > tr > th:last-child {
 body.light-mode .p-datatable .p-datatable-tbody > tr {
   border: 0 !important;
   outline: none !important;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.light-mode .p-datatable .p-datatable-tbody > tr > td {
@@ -367,6 +388,18 @@ body.dark-mode .p-dropdown:hover {
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
+/* Dropdown empty message - center it */
+.p-dropdown-empty-message {
+  text-align: center !important;
+  padding: 1rem !important;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+body.dark-mode .p-dropdown-empty-message {
+  color: #6b7280;
+}
+
 /* Input Light Mode */
 body.light-mode .p-inputtext {
   background-color: #ffffff;
@@ -536,6 +569,7 @@ body.dark-mode .p-image-preview-container {
 /* Menu items styling */
 .menu-save-item .p-menuitem-link {
   color: #10b981 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body.dark-mode .menu-save-item .p-menuitem-link {
@@ -544,9 +578,19 @@ body.dark-mode .menu-save-item .p-menuitem-link {
 
 .menu-cancel-item .p-menuitem-link {
   color: #ef4444 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body.dark-mode .menu-cancel-item .p-menuitem-link {
+  color: #ef4444 !important;
+}
+
+.menu-danger-item .p-menuitem-link {
+  color: #ef4444 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.dark-mode .menu-danger-item .p-menuitem-link {
   color: #ef4444 !important;
 }
 
@@ -554,14 +598,17 @@ body.dark-mode .menu-cancel-item .p-menuitem-link {
 body.dark-mode .p-menu {
   background-color: #1a1a1a !important;
   border-color: #374151 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body.dark-mode .p-menu .p-menuitem-link {
   color: #e5e5e5 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body.dark-mode .p-menu .p-menuitem-link:hover {
   background-color: #2d2d2d !important;
+  transform: translateX(4px);
 }
 
 body.dark-mode .p-menu .p-menuitem-separator {
@@ -571,11 +618,13 @@ body.dark-mode .p-menu .p-menuitem-separator {
 /* Light mode dialog header icons (fullscreen, close) */
 body.light-mode .p-dialog .p-dialog-header .p-dialog-header-icon {
   color: #000000 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body.light-mode .p-dialog .p-dialog-header .p-dialog-header-icon:hover {
   color: #374151 !important;
   background-color: #f3f4f6 !important;
+  transform: scale(1.1);
 }
 
 body.light-mode .p-dialog .p-dialog-title {
@@ -791,6 +840,41 @@ body.light-mode .p-datatable .p-button:hover .pi-list::before {
 }
 
 /* Smooth transitions */
+.p-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.p-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.p-button:active {
+  transform: translateY(0);
+}
+
+/* Dialog animations */
+.p-dialog {
+  animation: dialogFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Input smooth focus */
+.p-inputtext:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 .lg-outer * {
   box-sizing: border-box;
 }

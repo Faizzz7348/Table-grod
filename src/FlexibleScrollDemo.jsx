@@ -81,16 +81,34 @@ export default function FlexibleScrollDemo() {
 
     useEffect(() => {
         console.log('Component mounted - Loading data...');
-        CustomerService.getRoutes()
-            .then((data) => {
+        
+        // Simulate smart loading intro
+        const loadData = async () => {
+            try {
+                // Check if we should clear data (for fresh start)
+                const shouldClear = localStorage.getItem('clearDataOnLoad');
+                if (shouldClear === 'true') {
+                    console.log('Clearing localStorage...');
+                    localStorage.removeItem('routes');
+                    localStorage.removeItem('locations');
+                    localStorage.removeItem('clearDataOnLoad');
+                }
+                
+                const data = await CustomerService.getRoutes();
                 console.log('Data loaded:', data);
+                
+                // Smart loading delay for smooth intro
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
                 setRoutes(data);
                 setLoading(false);
-            })
-            .catch((error) => {
+            } catch (error) {
                 console.error('Error loading data:', error);
                 setLoading(false);
-            });
+            }
+        };
+        
+        loadData();
     }, []);
 
     useEffect(() => {
@@ -312,19 +330,13 @@ export default function FlexibleScrollDemo() {
                 results 
             });
             
-            // Check if using localStorage
-            const isLocalStorage = results[0].message?.includes('localStorage');
-            
-            // Refresh data from database to sync with server state
-            console.log('Refreshing data from database...');
-            const freshData = await CustomerService.getRoutes();
-            console.log('Fresh data loaded:', freshData);
-            
-            setRoutes(freshData);
-            setOriginalData([...freshData]);
+            setOriginalData([...routes]);
             setOriginalDialogData([...dialogData]);
             setHasUnsavedChanges(false);
             setSaving(false);
+            
+            // Check if using localStorage
+            const isLocalStorage = results[0].message?.includes('localStorage');
             
             // Success message with custom sort info
             let message = isCustomSorted 
@@ -709,6 +721,17 @@ export default function FlexibleScrollDemo() {
         );
     };
 
+    const handleClearAllData = () => {
+        if (confirm('⚠️ Clear All Data?\n\nThis will delete ALL routes and locations from localStorage.\nYou will start with a fresh empty database.\n\nThis action cannot be undone!')) {
+            localStorage.removeItem('routes');
+            localStorage.removeItem('locations');
+            localStorage.removeItem('editModePassword');
+            localStorage.setItem('clearDataOnLoad', 'true');
+            alert('✅ Data cleared! Reloading page...');
+            window.location.reload();
+        }
+    };
+
     // Menu items configuration
     const menuItems = [
         ...(editMode && hasUnsavedChanges ? [{
@@ -724,7 +747,8 @@ export default function FlexibleScrollDemo() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    border: `2px solid ${darkMode ? '#f59e0b' : '#fbbf24'}`
+                    border: `2px solid ${darkMode ? '#f59e0b' : '#fbbf24'}`,
+                    transition: 'all 0.3s ease'
                 }}>
                     <i className="pi pi-exclamation-triangle"></i>
                     Unsaved Changes
@@ -747,6 +771,14 @@ export default function FlexibleScrollDemo() {
                 label: 'Change Password',
                 icon: 'pi pi-lock',
                 command: () => setChangePasswordDialogVisible(true)
+            },
+            { separator: true },
+            {
+                label: 'Clear All Data',
+                icon: 'pi pi-trash',
+                command: () => handleClearAllData(),
+                className: 'menu-danger-item',
+                style: { color: '#ef4444' }
             }
         ] : []),
         ...(editMode && hasUnsavedChanges ? [
@@ -768,19 +800,58 @@ export default function FlexibleScrollDemo() {
         ] : [])
     ];
 
-    // Loading state
+    // Loading state with smooth animation
     if (loading) {
         return (
             <div style={{ 
                 minHeight: '100vh',
                 display: 'flex',
+                flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                fontSize: '1.5rem',
-                fontWeight: 'bold'
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                animation: 'fadeIn 0.5s ease-in'
             }}>
-                Loading application...
+                <style>
+                    {`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); opacity: 1; }
+                            50% { transform: scale(1.1); opacity: 0.8; }
+                        }
+                        @keyframes slideUp {
+                            from { transform: translateY(20px); opacity: 0; }
+                            to { transform: translateY(0); opacity: 1; }
+                        }
+                    `}
+                </style>
+                <div style={{
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    marginBottom: '2rem'
+                }}>
+                    <i className="pi pi-spin pi-spinner" style={{ 
+                        fontSize: '4rem', 
+                        color: '#ffffff'
+                    }}></i>
+                </div>
+                <h2 style={{
+                    color: '#ffffff',
+                    fontSize: '2rem',
+                    fontWeight: '700',
+                    margin: '0 0 0.5rem 0',
+                    animation: 'slideUp 0.6s ease-out',
+                    textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                }}>Route Management</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: '1.1rem',
+                    margin: 0,
+                    animation: 'slideUp 0.8s ease-out',
+                    textShadow: '0 1px 5px rgba(0,0,0,0.2)'
+                }}>Loading your data...</p>
             </div>
         );
     }
@@ -792,7 +863,8 @@ export default function FlexibleScrollDemo() {
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
                 : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
             color: darkMode ? '#e5e5e5' : '#000000',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: 'fadeIn 0.6s ease-out'
         }}>
             {/* Navigation Header */}
             <div style={{
@@ -803,7 +875,8 @@ export default function FlexibleScrollDemo() {
                 alignItems: 'center',
                 borderBottom: `2px solid ${darkMode ? '#1a3a52' : '#3b82f6'}`,
                 marginBottom: '2rem',
-                boxShadow: darkMode ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)'
+                boxShadow: darkMode ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
             }}>
                 <h2 style={{ 
                     margin: 0, 
