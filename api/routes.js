@@ -17,6 +17,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Check if database is configured
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ 
+      error: 'Database not configured',
+      message: 'Please set up Vercel Postgres database in your project settings'
+    });
+  }
+
   try {
     if (req.method === 'GET') {
       // Get all routes
