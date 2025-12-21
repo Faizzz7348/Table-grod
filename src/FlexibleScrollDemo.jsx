@@ -1309,20 +1309,8 @@ export default function FlexibleScrollDemo() {
                                             }}>
                                                 <i className="pi pi-image" style={{ 
                                                     fontSize: '1.5rem', 
-                                                    color: '#9ca3af',
-                                                    zIndex: 1
+                                                    color: '#9ca3af'
                                                 }}></i>
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '22.5px',
-                                                    left: '30px',
-                                                    transform: 'translate(-50%, -50%) rotate(-45deg)',
-                                                    width: '2px',
-                                                    height: '40px',
-                                                    backgroundColor: '#ef4444',
-                                                    borderRadius: '2px',
-                                                    zIndex: 2
-                                                }}></div>
                                             </div>
                                         );
                                     }
