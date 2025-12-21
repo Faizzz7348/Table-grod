@@ -47,7 +47,10 @@ export default async function handler(req, res) {
             location: location.location,
             delivery: location.delivery,
             powerMode: location.powerMode,
-            images: location.images || []
+            images: location.images || [],
+            latitude: location.latitude !== undefined ? location.latitude : null,
+            longitude: location.longitude !== undefined ? location.longitude : null,
+            address: location.address !== undefined ? location.address : null
           }
         })
       );
@@ -63,7 +66,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       // Create new location
-      const { no, code, location, delivery, powerMode, images, routeId } = req.body;
+      const { no, code, location, delivery, powerMode, images, routeId, latitude, longitude, address } = req.body;
 
       const newLocation = await prisma.location.create({
         data: {
@@ -73,7 +76,10 @@ export default async function handler(req, res) {
           delivery: delivery || 'Daily',
           powerMode: powerMode || 'Daily',
           images: images || [],
-          routeId: routeId || null
+          routeId: routeId || null,
+          latitude: latitude !== undefined ? latitude : null,
+          longitude: longitude !== undefined ? longitude : null,
+          address: address !== undefined ? address : null
         }
       });
 

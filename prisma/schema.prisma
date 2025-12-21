@@ -29,6 +29,9 @@ model Location {
   delivery  String
   powerMode String
   images    String[] // Array of image URLs
+  latitude  Float?   // Latitude for map
+  longitude Float?   // Longitude for map
+  address   String?  // Address caption for map
   routeId   Int?
   route     Route?   @relation(fields: [routeId], references: [id])
   createdAt DateTime @default(now())

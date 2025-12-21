@@ -8,6 +8,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Menu } from 'primereact/menu';
 import { CustomerService } from './service/CustomerService';
 import CustomLightbox from './components/CustomLightbox';
+import MiniMap from './components/MiniMap';
 
 export default function FlexibleScrollDemo() {
     const menuRef = useRef(null);
@@ -59,6 +60,29 @@ export default function FlexibleScrollDemo() {
     const [powerModeDialogVisible, setPowerModeDialogVisible] = useState(false);
     const [selectedPowerMode, setSelectedPowerMode] = useState('Daily');
     const [powerModeRowId, setPowerModeRowId] = useState(null);
+    
+    // Info Modal Edit State
+    const [infoEditMode, setInfoEditMode] = useState(false);
+    const [infoEditData, setInfoEditData] = useState({
+        latitude: null,
+        longitude: null,
+        address: ''
+    });
+    
+    // Password Protection State
+    const [passwordDialogVisible, setPasswordDialogVisible] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    
+    // Change Password Dialog State
+    const [changePasswordDialogVisible, setChangePasswordDialogVisible] = useState(false);
+    const [changePasswordData, setChangePasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [changePasswordError, setChangePasswordError] = useState('');
 
     useEffect(() => {
         console.log('Component mounted - Loading data...');
@@ -106,7 +130,7 @@ export default function FlexibleScrollDemo() {
                         outlined
                         disabled={saving}
                     />
-                    {editMode && (
+                    {editMode && hasUnsavedChanges && (
                         <>
                             <Button 
                                 label="Cancel Changes" 
@@ -115,7 +139,7 @@ export default function FlexibleScrollDemo() {
                                 severity="danger"
                                 size="small"
                                 outlined
-                                disabled={!hasUnsavedChanges || saving}
+                                disabled={saving}
                             />
                             <Button 
                                 label={saving ? "Saving..." : "Save Changes"} 
@@ -123,7 +147,7 @@ export default function FlexibleScrollDemo() {
                                 onClick={handleSaveChanges} 
                                 severity="success"
                                 size="small"
-                                disabled={!hasUnsavedChanges || saving}
+                                disabled={saving}
                             />
                         </>
                     )}
@@ -164,10 +188,14 @@ export default function FlexibleScrollDemo() {
             const statusA = getPowerStatus(a.powerMode || 'Daily');
             const statusB = getPowerStatus(b.powerMode || 'Daily');
             
-            // ON rows first, OFF rows at bottom
-            if (statusA === 'ON' && statusB === 'OFF') return -1;
+            // Power OFF goes to bottom, Power ON stays at top
             if (statusA === 'OFF' && statusB === 'ON') return 1;
-            return 0;
+            if (statusA === 'ON' && statusB === 'OFF') return -1;
+            
+            // If both have same status, sort by code (ascending)
+            const codeA = parseInt(a.code) || 0;
+            const codeB = parseInt(b.code) || 0;
+            return codeA - codeB;
         });
     };
 
@@ -198,13 +226,65 @@ export default function FlexibleScrollDemo() {
 
     const handleShowInfo = (rowData) => {
         setSelectedRowInfo(rowData);
+        setInfoEditData({
+            latitude: rowData.latitude || null,
+            longitude: rowData.longitude || null,
+            address: rowData.address || ''
+        });
+        setInfoEditMode(false);
         setInfoDialogVisible(true);
     };
-
-    const handleRowReorder = (e) => {
-        setDialogData(e.value);
-        setHasUnsavedChanges(true);
-        console.log('Row reordered');
+    
+    const handleSaveInfoEdit = async () => {
+        if (!selectedRowInfo) return;
+        
+        try {
+            // Update the location in dialogData
+            const updatedDialogData = dialogData.map(item => {
+                if (item.id === selectedRowInfo.id) {
+                    return {
+                        ...item,
+                        latitude: infoEditData.latitude,
+                        longitude: infoEditData.longitude,
+                        address: infoEditData.address
+                    };
+                }
+                return item;
+            });
+            
+            setDialogData(updatedDialogData);
+            
+            // Update the location in routes
+            const updatedRoutes = routes.map(route => ({
+                ...route,
+                locations: route.locations.map(loc => {
+                    if (loc.id === selectedRowInfo.id) {
+                        return {
+                            ...loc,
+                            latitude: infoEditData.latitude,
+                            longitude: infoEditData.longitude,
+                            address: infoEditData.address
+                        };
+                    }
+                    return loc;
+                })
+            }));
+            
+            setRoutes(updatedRoutes);
+            setHasUnsavedChanges(true);
+            
+            // Update selectedRowInfo
+            setSelectedRowInfo({
+                ...selectedRowInfo,
+                latitude: infoEditData.latitude,
+                longitude: infoEditData.longitude,
+                address: infoEditData.address
+            });
+            
+            setInfoEditMode(false);
+        } catch (error) {
+            console.error('Error saving info:', error);
+        }
     };
 
     const handleSaveChanges = async () => {
@@ -264,18 +344,84 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleToggleEditMode = () => {
-        if (editMode && hasUnsavedChanges) {
-            const confirmed = window.confirm('⚠️ You have unsaved changes. Do you want to save before exiting edit mode?');
-            if (confirmed) {
-                handleSaveChanges();
+        if (editMode) {
+            // Exiting edit mode
+            if (hasUnsavedChanges) {
+                const confirmed = window.confirm('⚠️ You have unsaved changes. Do you want to save before exiting edit mode?');
+                if (confirmed) {
+                    handleSaveChanges();
+                }
             }
+            setEditMode(false);
+        } else {
+            // Entering edit mode - show password dialog
+            setPasswordInput('');
+            setPasswordError('');
+            setPasswordDialogVisible(true);
         }
-        if (!editMode) {
-            // Entering edit mode - save original data
-            setOriginalData([...routes]);
-            setOriginalDialogData([...dialogData]);
+    };
+    
+    const handlePasswordSubmit = () => {
+        const storedPassword = localStorage.getItem('editModePassword') || '1234';
+        
+        if (passwordInput === storedPassword) {
+            setPasswordLoading(true);
+            setPasswordError('');
+            
+            // Simulate loading
+            setTimeout(() => {
+                setPasswordLoading(false);
+                setPasswordDialogVisible(false);
+                setPasswordInput('');
+                
+                // Enter edit mode
+                setOriginalData([...routes]);
+                setOriginalDialogData([...dialogData]);
+                setHasUnsavedChanges(false);
+                setEditMode(true);
+            }, 800);
+        } else {
+            setPasswordError('Incorrect password. Please try again.');
+            setPasswordInput('');
         }
-        setEditMode(!editMode);
+    };
+    
+    const handleChangePassword = () => {
+        const storedPassword = localStorage.getItem('editModePassword') || '1234';
+        const { currentPassword, newPassword, confirmPassword } = changePasswordData;
+        
+        // Validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            setChangePasswordError('All fields are required');
+            return;
+        }
+        
+        if (currentPassword !== storedPassword) {
+            setChangePasswordError('Current password is incorrect');
+            return;
+        }
+        
+        if (newPassword.length !== 4 || !/^\d+$/.test(newPassword)) {
+            setChangePasswordError('New password must be exactly 4 digits');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            setChangePasswordError('New password and confirm password do not match');
+            return;
+        }
+        
+        // Save new password
+        localStorage.setItem('editModePassword', newPassword);
+        setChangePasswordDialogVisible(false);
+        setChangePasswordData({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+        });
+        setChangePasswordError('');
+        
+        alert('✅ Password changed successfully!');
     };
     
     const handleToggleCustomSort = () => {
@@ -505,7 +651,7 @@ export default function FlexibleScrollDemo() {
         return (
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                 <Button 
-                    icon="pi pi-eye" 
+                    icon="pi pi-list" 
                     size="small"
                     tooltip="Show"
                     tooltipOptions={{ position: 'top' }}
@@ -583,12 +729,19 @@ export default function FlexibleScrollDemo() {
             disabled: saving
         },
         ...(editMode ? [
+            {
+                label: 'Change Password',
+                icon: 'pi pi-lock',
+                command: () => setChangePasswordDialogVisible(true)
+            }
+        ] : []),
+        ...(editMode && hasUnsavedChanges ? [
             { separator: true },
             {
                 label: saving ? 'Saving...' : 'Save Changes',
                 icon: saving ? 'pi pi-spin pi-spinner' : 'pi pi-save',
                 command: () => handleSaveChanges(),
-                disabled: !hasUnsavedChanges || saving,
+                disabled: saving,
                 className: 'menu-save-item'
             },
             {
@@ -641,9 +794,9 @@ export default function FlexibleScrollDemo() {
                 <h2 style={{ 
                     margin: 0, 
                     color: darkMode ? '#e5e5e5' : '#000000',
-                    fontSize: '1.75rem',
+                    fontSize: '25px',
                     fontWeight: '700'
-                }}>Route Management</h2>
+                }}>{editMode ? 'Edit Mode' : 'Route Management'}</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <Menu 
                         model={menuItems} 
@@ -762,6 +915,8 @@ export default function FlexibleScrollDemo() {
                     contentStyle={{ height: '500px' }} 
                     onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
+                    headerStyle={{ color: darkMode ? '#fff' : '#000' }}
+                    headerClassName={darkMode ? '' : 'light-mode-dialog-header'}
                 >
                     {/* Search and Column Visibility Controls */}
                     <div style={{ 
@@ -1018,15 +1173,12 @@ export default function FlexibleScrollDemo() {
                         scrollHeight="flex" 
                         tableStyle={{ minWidth: '70rem' }}
                         editMode={editMode ? "cell" : null}
-                        reorderableRows={false}
-                        onRowReorder={customSortMode ? null : handleRowReorder}
                         globalFilter={globalFilterValue}
                         rowClassName={(rowData) => {
                             const status = getPowerStatus(rowData.powerMode || 'Daily');
                             return status === 'OFF' ? 'row-disabled' : '';
                         }}
                     >
-                        {editMode && !customSortMode && <Column rowReorder style={{ width: '3rem' }} />}
                         {customSortMode && (
                             <Column 
                                 header="Urutan" 
@@ -1089,10 +1241,10 @@ export default function FlexibleScrollDemo() {
                         )}
                         {visibleColumns.no && (
                             <Column 
-                                field="no" 
                                 header="No" 
                                 align="center" 
                                 alignHeader="center"
+                                body={(data, options) => options.rowIndex + 1}
                                 style={{ width: '60px' }}
                             />
                         )}
@@ -1231,12 +1383,12 @@ export default function FlexibleScrollDemo() {
                             headerStyle={{ color: '#ef4444' }}
                             body={(rowData) => (
                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    {/* Info Button */}
+                                    {/* Info Button - Always visible */}
                                     <Button 
                                         icon="pi pi-info-circle" 
                                         size="small"
                                         severity="info"
-                                        tooltip="View Details"
+                                        tooltip="View Location Info"
                                         tooltipOptions={{ position: 'top' }}
                                         text
                                         onClick={() => handleShowInfo(rowData)}
@@ -1309,23 +1461,226 @@ export default function FlexibleScrollDemo() {
 
                 {/* Info Dialog */}
                 <Dialog 
-                    header="Row Information" 
+                    header={
+                        <div style={{ 
+                            textAlign: 'center', 
+                            fontSize: '12px',
+                            padding: '8px 0'
+                        }}>
+                            {selectedRowInfo && `${selectedRowInfo.code} - ${selectedRowInfo.location}`}
+                        </div>
+                    }
                     visible={infoDialogVisible} 
-                    style={{ width: '400px' }} 
+                    style={{ width: '500px' }} 
                     modal
                     dismissableMask
                     closeOnEscape
-                    onHide={() => setInfoDialogVisible(false)}
+                    onHide={() => {
+                        setInfoDialogVisible(false);
+                        setInfoEditMode(false);
+                    }}
+                    footer={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                {!infoEditMode && editMode ? (
+                                    <Button 
+                                        label="Edit Location Info" 
+                                        icon="pi pi-pencil" 
+                                        onClick={() => setInfoEditMode(true)}
+                                        className="p-button-sm"
+                                    />
+                                ) : infoEditMode ? (
+                                    <>
+                                        <Button 
+                                            label="Save" 
+                                            icon="pi pi-check" 
+                                            onClick={handleSaveInfoEdit}
+                                            className="p-button-sm p-button-success"
+                                            style={{ marginRight: '8px' }}
+                                        />
+                                        <Button 
+                                            label="Cancel" 
+                                            icon="pi pi-times" 
+                                            onClick={() => {
+                                                setInfoEditMode(false);
+                                                setInfoEditData({
+                                                    latitude: selectedRowInfo.latitude || null,
+                                                    longitude: selectedRowInfo.longitude || null,
+                                                    address: selectedRowInfo.address || ''
+                                                });
+                                            }}
+                                            className="p-button-sm p-button-secondary"
+                                        />
+                                    </>
+                                ) : null}
+                            </div>
+                            <Button 
+                                label="Close" 
+                                icon="pi pi-times" 
+                                onClick={() => {
+                                    setInfoDialogVisible(false);
+                                    setInfoEditMode(false);
+                                }}
+                                className="p-button-sm p-button-text"
+                            />
+                        </div>
+                    }
                 >
                     {selectedRowInfo && (
-                        <div style={{ padding: '1rem' }}>
-                            <p><strong>No:</strong> {selectedRowInfo.no}</p>
-                            <p><strong>Code:</strong> {selectedRowInfo.code}</p>
-                            <p><strong>Location:</strong> {selectedRowInfo.location}</p>
-                            <p><strong>Delivery:</strong> {selectedRowInfo.delivery}</p>
-                            <p><strong>Power Mode:</strong> {selectedRowInfo.powerMode || 'Daily'}</p>
-                            <p><strong>Current Status:</strong> <span style={{ color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), fontWeight: 'bold' }}>{getPowerStatus(selectedRowInfo.powerMode || 'Daily')}</span></p>
-                            <p><strong>Total Images:</strong> {selectedRowInfo.images ? selectedRowInfo.images.length : 0}</p>
+                        <div style={{ padding: '0' }}>
+                            {/* Mini Map Section */}
+                            {!infoEditMode ? (
+                                <MiniMap 
+                                    latitude={selectedRowInfo.latitude}
+                                    longitude={selectedRowInfo.longitude}
+                                    address={selectedRowInfo.address}
+                                    style={{ marginBottom: '20px' }}
+                                />
+                            ) : (
+                                <div style={{ 
+                                    marginBottom: '20px',
+                                    padding: '15px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    border: '1px solid #dee2e6'
+                                }}>
+                                    <h4 style={{ 
+                                        marginTop: 0, 
+                                        marginBottom: '15px',
+                                        fontSize: '14px',
+                                        color: '#495057'
+                                    }}>
+                                        <i className="pi pi-map-marker" style={{ marginRight: '8px' }}></i>
+                                        Edit Location Information
+                                    </h4>
+                                    
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <label style={{ 
+                                            display: 'block', 
+                                            marginBottom: '5px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            color: '#495057'
+                                        }}>
+                                            Latitude
+                                        </label>
+                                        <InputText 
+                                            value={infoEditData.latitude || ''}
+                                            onChange={(e) => setInfoEditData({
+                                                ...infoEditData,
+                                                latitude: e.target.value ? parseFloat(e.target.value) : null
+                                            })}
+                                            placeholder="Enter latitude (e.g., 3.139)"
+                                            style={{ width: '100%' }}
+                                            type="number"
+                                            step="any"
+                                        />
+                                    </div>
+                                    
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <label style={{ 
+                                            display: 'block', 
+                                            marginBottom: '5px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            color: '#495057'
+                                        }}>
+                                            Longitude
+                                        </label>
+                                        <InputText 
+                                            value={infoEditData.longitude || ''}
+                                            onChange={(e) => setInfoEditData({
+                                                ...infoEditData,
+                                                longitude: e.target.value ? parseFloat(e.target.value) : null
+                                            })}
+                                            placeholder="Enter longitude (e.g., 101.6869)"
+                                            style={{ width: '100%' }}
+                                            type="number"
+                                            step="any"
+                                        />
+                                    </div>
+                                    
+                                    <div style={{ marginBottom: '0' }}>
+                                        <label style={{ 
+                                            display: 'block', 
+                                            marginBottom: '5px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            color: '#495057'
+                                        }}>
+                                            Address / Caption
+                                        </label>
+                                        <InputText 
+                                            value={infoEditData.address || ''}
+                                            onChange={(e) => setInfoEditData({
+                                                ...infoEditData,
+                                                address: e.target.value
+                                            })}
+                                            placeholder="Enter address or location caption"
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Other Information */}
+                            <div style={{ 
+                                backgroundColor: '#ffffff',
+                                borderRadius: '8px',
+                                border: '1px solid #e9ecef'
+                            }}>
+                                <div style={{ 
+                                    padding: '10px 15px',
+                                    borderBottom: '1px solid #e9ecef',
+                                    backgroundColor: '#f8f9fa'
+                                }}>
+                                    <strong style={{ fontSize: '13px', color: '#495057' }}>
+                                        <i className="pi pi-info-circle" style={{ marginRight: '8px' }}></i>
+                                        General Information
+                                    </strong>
+                                </div>
+                                <div style={{ padding: '15px' }}>
+                                    <div style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: '10px',
+                                        fontSize: '13px'
+                                    }}>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>No:</strong>
+                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>Code:</strong>
+                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>Delivery:</strong>
+                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
+                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>Current Status:</strong>
+                                            <div style={{ 
+                                                marginTop: '3px',
+                                                color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), 
+                                                fontWeight: 'bold' 
+                                            }}>
+                                                {getPowerStatus(selectedRowInfo.powerMode || 'Daily')}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ color: '#6c757d' }}>Total Images:</strong>
+                                            <div style={{ marginTop: '3px' }}>
+                                                {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </Dialog>
@@ -1345,6 +1700,251 @@ export default function FlexibleScrollDemo() {
                         }
                     }}
                 />
+
+                {/* Password Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="pi pi-lock" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
+                            <span>Enter Password</span>
+                        </div>
+                    }
+                    visible={passwordDialogVisible}
+                    style={{ width: '400px' }}
+                    modal
+                    closable={!passwordLoading}
+                    onHide={() => {
+                        if (!passwordLoading) {
+                            setPasswordDialogVisible(false);
+                            setPasswordInput('');
+                            setPasswordError('');
+                        }
+                    }}
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <p style={{ marginBottom: '1rem', color: darkMode ? '#9ca3af' : '#6b7280' }}>
+                            Please enter your 4-digit password to access Edit Mode
+                        </p>
+                        
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                Password
+                            </label>
+                            <InputText
+                                type="password"
+                                value={passwordInput}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 4 && /^\d*$/.test(value)) {
+                                        setPasswordInput(value);
+                                        setPasswordError('');
+                                    }
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
+                                        handlePasswordSubmit();
+                                    }
+                                }}
+                                placeholder="Enter 4-digit password"
+                                maxLength={4}
+                                style={{ width: '100%' }}
+                                disabled={passwordLoading}
+                                autoFocus
+                            />
+                        </div>
+                        
+                        {passwordError && (
+                            <div style={{
+                                padding: '0.75rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#991b1b',
+                                borderRadius: '6px',
+                                marginBottom: '1rem',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-times-circle"></i>
+                                {passwordError}
+                            </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={() => {
+                                    setPasswordDialogVisible(false);
+                                    setPasswordInput('');
+                                    setPasswordError('');
+                                }}
+                                className="p-button-text"
+                                disabled={passwordLoading}
+                            />
+                            <Button
+                                label={passwordLoading ? "Verifying..." : "Submit"}
+                                icon={passwordLoading ? "pi pi-spin pi-spinner" : "pi pi-check"}
+                                onClick={handlePasswordSubmit}
+                                disabled={passwordInput.length !== 4 || passwordLoading}
+                                severity="success"
+                            />
+                        </div>
+                    </div>
+                </Dialog>
+
+                {/* Change Password Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="pi pi-key" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
+                            <span>Change Password</span>
+                        </div>
+                    }
+                    visible={changePasswordDialogVisible}
+                    style={{ width: '450px' }}
+                    modal
+                    onHide={() => {
+                        setChangePasswordDialogVisible(false);
+                        setChangePasswordData({
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: ''
+                        });
+                        setChangePasswordError('');
+                    }}
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                Current Password
+                            </label>
+                            <InputText
+                                type="password"
+                                value={changePasswordData.currentPassword}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 4 && /^\d*$/.test(value)) {
+                                        setChangePasswordData({
+                                            ...changePasswordData,
+                                            currentPassword: value
+                                        });
+                                        setChangePasswordError('');
+                                    }
+                                }}
+                                placeholder="Enter current password"
+                                maxLength={4}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                New Password
+                            </label>
+                            <InputText
+                                type="password"
+                                value={changePasswordData.newPassword}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 4 && /^\d*$/.test(value)) {
+                                        setChangePasswordData({
+                                            ...changePasswordData,
+                                            newPassword: value
+                                        });
+                                        setChangePasswordError('');
+                                    }
+                                }}
+                                placeholder="Enter new 4-digit password"
+                                maxLength={4}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                Confirm New Password
+                            </label>
+                            <InputText
+                                type="password"
+                                value={changePasswordData.confirmPassword}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 4 && /^\d*$/.test(value)) {
+                                        setChangePasswordData({
+                                            ...changePasswordData,
+                                            confirmPassword: value
+                                        });
+                                        setChangePasswordError('');
+                                    }
+                                }}
+                                placeholder="Confirm new password"
+                                maxLength={4}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        
+                        {changePasswordError && (
+                            <div style={{
+                                padding: '0.75rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#991b1b',
+                                borderRadius: '6px',
+                                marginBottom: '1rem',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-times-circle"></i>
+                                {changePasswordError}
+                            </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={() => {
+                                    setChangePasswordDialogVisible(false);
+                                    setChangePasswordData({
+                                        currentPassword: '',
+                                        newPassword: '',
+                                        confirmPassword: ''
+                                    });
+                                    setChangePasswordError('');
+                                }}
+                                className="p-button-text"
+                            />
+                            <Button
+                                label="Change Password"
+                                icon="pi pi-check"
+                                onClick={handleChangePassword}
+                                severity="success"
+                            />
+                        </div>
+                    </div>
+                </Dialog>
 
                 {/* Saving Overlay */}
                 {saving && (

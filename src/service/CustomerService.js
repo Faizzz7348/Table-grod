@@ -151,16 +151,16 @@ export const CustomerService = {
 
     getDummyLocations() {
         return [
-            { id: 1, no: 1, code: '34', location: 'Wisma Cimb', delivery: 'Daily', images: ['https://picsum.photos/200/150?random=1'], powerMode: 'Daily' },
-            { id: 2, no: 2, code: '42', location: 'Plaza Rakyat', delivery: 'Weekly', images: ['https://picsum.photos/200/150?random=3'], powerMode: 'Alt 1' },
-            { id: 3, no: 3, code: '51', location: 'KLCC Tower', delivery: 'Daily', images: ['https://picsum.photos/200/150?random=4'], powerMode: 'Alt 2' },
-            { id: 4, no: 4, code: '67', location: 'Menara TM', delivery: 'Monthly', images: ['https://picsum.photos/200/150?random=6'], powerMode: 'Weekday' },
-            { id: 5, no: 5, code: '89', location: 'Pavilion KL', delivery: 'Daily', images: ['https://picsum.photos/200/150?random=7'], powerMode: 'Daily' },
-            { id: 6, no: 6, code: '23', location: 'Suria KLCC', delivery: 'Weekly', images: ['https://picsum.photos/200/150?random=9'], powerMode: 'Alt 1' },
-            { id: 7, no: 7, code: '76', location: 'Mid Valley', delivery: 'Daily', images: ['https://picsum.photos/200/150?random=10'], powerMode: 'Alt 2' },
-            { id: 8, no: 8, code: '94', location: 'Bangsar Village', delivery: 'Weekly', images: ['https://picsum.photos/200/150?random=11'], powerMode: 'Weekday' },
-            { id: 9, no: 9, code: '31', location: 'Nu Sentral', delivery: 'Daily', images: ['https://picsum.photos/200/150?random=13'], powerMode: 'Daily' },
-            { id: 10, no: 10, code: '58', location: 'One Utama', delivery: 'Monthly', images: ['https://picsum.photos/200/150?random=14'], powerMode: 'Alt 1' }
+            { id: 1, no: 1, code: '34', location: 'Wisma Cimb', delivery: 'Daily', images: [], powerMode: 'Daily' },
+            { id: 2, no: 2, code: '42', location: 'Plaza Rakyat', delivery: 'Weekly', images: [], powerMode: 'Alt 1' },
+            { id: 3, no: 3, code: '51', location: 'KLCC Tower', delivery: 'Daily', images: [], powerMode: 'Alt 2' },
+            { id: 4, no: 4, code: '67', location: 'Menara TM', delivery: 'Monthly', images: [], powerMode: 'Weekday' },
+            { id: 5, no: 5, code: '89', location: 'Pavilion KL', delivery: 'Daily', images: [], powerMode: 'Daily' },
+            { id: 6, no: 6, code: '23', location: 'Suria KLCC', delivery: 'Weekly', images: [], powerMode: 'Alt 1' },
+            { id: 7, no: 7, code: '76', location: 'Mid Valley', delivery: 'Daily', images: [], powerMode: 'Alt 2' },
+            { id: 8, no: 8, code: '94', location: 'Bangsar Village', delivery: 'Weekly', images: [], powerMode: 'Weekday' },
+            { id: 9, no: 9, code: '31', location: 'Nu Sentral', delivery: 'Daily', images: [], powerMode: 'Daily' },
+            { id: 10, no: 10, code: '58', location: 'One Utama', delivery: 'Monthly', images: [], powerMode: 'Alt 1' }
         ];
     },
 

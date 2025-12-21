@@ -567,3 +567,28 @@ body.dark-mode .p-menu .p-menuitem-link:hover {
 body.dark-mode .p-menu .p-menuitem-separator {
   border-color: #374151 !important;
 }
+
+/* Light mode dialog header icons (fullscreen, close) */
+body.light-mode .p-dialog .p-dialog-header .p-dialog-header-icon {
+  color: #000000 !important;
+}
+
+body.light-mode .p-dialog .p-dialog-header .p-dialog-header-icon:hover {
+  color: #374151 !important;
+  background-color: #f3f4f6 !important;
+}
+
+body.light-mode .p-dialog .p-dialog-title {
+  color: #000000 !important;
+}
+
+/* Light mode - Route Management table action buttons */
+body.light-mode .p-datatable .p-button-text.pi-list::before,
+body.light-mode .p-datatable .p-button .pi-list::before {
+  color: #1a1a1a !important;
+}
+
+body.light-mode .p-datatable .p-button-text:hover .pi-list::before,
+body.light-mode .p-datatable .p-button:hover .pi-list::before {
+  color: #000000 !important;
+}
