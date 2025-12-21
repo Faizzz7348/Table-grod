@@ -7,7 +7,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Menu } from 'primereact/menu';
 import { CustomerService } from './service/CustomerService';
-import CustomLightbox from './components/CustomLightbox';
+import ImageLightbox from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
 
 export default function FlexibleScrollDemo() {
@@ -33,11 +33,6 @@ export default function FlexibleScrollDemo() {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [originalData, setOriginalData] = useState([]);
     const [originalDialogData, setOriginalDialogData] = useState([]);
-    
-    // Custom Lightbox State
-    const [lightboxVisible, setLightboxVisible] = useState(false);
-    const [lightboxImages, setLightboxImages] = useState([]);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     
     // Custom Sort State
     const [customSortMode, setCustomSortMode] = useState(false);
@@ -105,8 +100,21 @@ export default function FlexibleScrollDemo() {
 
     const dialogFooterTemplate = () => {
         return (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    {/* Data Source Indicator */}
+                    <div style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem'
+                    }}>
+                        <span style={{ color: isCustomSorted ? '#1e40af' : '#065f46' }}>
+                            {isCustomSorted ? '📊 Custom Sorted' : '🗄️ Original Database Order'}
+                        </span>
+                    </div>
                     {hasUnsavedChanges && (
                         <span style={{
                             color: '#f59e0b',
@@ -1021,43 +1029,6 @@ export default function FlexibleScrollDemo() {
                             />
                         </div>
                     )}
-                    {/* Data Source Indicator */}
-                    <div style={{ 
-                        marginBottom: '1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.75rem',
-                        backgroundColor: isCustomSorted ? '#dbeafe' : '#f0fdf4',
-                        border: isCustomSorted ? '2px solid #3b82f6' : '2px solid #10b981',
-                        borderRadius: '8px',
-                        fontWeight: 'bold'
-                    }}>
-                        <i className={isCustomSorted ? 'pi pi-sort-numeric-up' : 'pi pi-database'} 
-                           style={{ fontSize: '1.2rem', color: isCustomSorted ? '#3b82f6' : '#10b981' }}></i>
-                        <span style={{ color: isCustomSorted ? '#1e40af' : '#065f46' }}>
-                            {isCustomSorted ? '📊 Custom Sorted Data' : '🗄️ Original Database Order'}
-                        </span>
-                        {isCustomSorted && (
-                            <Button 
-                                label="Reset to Database Order" 
-                                icon="pi pi-refresh" 
-                                size="small"
-                                severity="warning"
-                                outlined
-                                onClick={() => {
-                                    CustomerService.getDetailData().then((data) => {
-                                        setDialogData(sortDialogData(data));
-                                        setIsCustomSorted(false);
-                                        setHasUnsavedChanges(true);
-                                        alert('✅ Data telah dikembalikan ke urutan asal dari database!');
-                                    });
-                                }}
-                                style={{ marginLeft: 'auto' }}
-                            />
-                        )}
-                    </div>
-                    
                     {/* Custom Sort Controls */}
                     <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <Button 
@@ -1322,54 +1293,12 @@ export default function FlexibleScrollDemo() {
                                         );
                                     }
                                     
-                                    const openLightbox = () => {
-                                        setLightboxImages(rowData.images);
-                                        setCurrentImageIndex(0);
-                                        setLightboxVisible(true);
-                                    };
-                                    
+                                    // Use the new ImageLightbox component
                                     return (
-                                        <div 
-                                            style={{ 
-                                                position: 'relative', 
-                                                display: 'inline-block',
-                                                width: '60px',
-                                                height: '45px',
-                                                cursor: 'pointer'
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                openLightbox();
-                                            }}
-                                        >
-                                            <img 
-                                                src={rowData.images[0]} 
-                                                alt="Preview"
-                                                width="60"
-                                                height="45"
-                                                style={{ 
-                                                    borderRadius: '8px', 
-                                                    objectFit: 'cover',
-                                                    display: 'block'
-                                                }}
-                                            />
-                                            {rowData.images.length > 1 && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    bottom: '4px',
-                                                    right: '4px',
-                                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                                    color: 'white',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 'bold',
-                                                    pointerEvents: 'none'
-                                                }}>
-                                                    +{rowData.images.length - 1}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <ImageLightbox 
+                                            images={rowData.images} 
+                                            rowId={rowData.id}
+                                        />
                                     );
                                 }}
                                 style={{ width: '100px' }}
@@ -1685,21 +1614,7 @@ export default function FlexibleScrollDemo() {
                     )}
                 </Dialog>
 
-                {/* Custom Lightbox */}
-                <CustomLightbox 
-                    images={lightboxImages}
-                    visible={lightboxVisible}
-                    currentIndex={currentImageIndex}
-                    onHide={() => setLightboxVisible(false)}
-                    onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length)}
-                    onNext={(idx) => {
-                        if (typeof idx === 'number') {
-                            setCurrentImageIndex(idx);
-                        } else {
-                            setCurrentImageIndex((prev) => (prev + 1) % lightboxImages.length);
-                        }
-                    }}
-                />
+
 
                 {/* Password Dialog */}
                 <Dialog

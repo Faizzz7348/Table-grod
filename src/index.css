@@ -592,3 +592,214 @@ body.light-mode .p-datatable .p-button-text:hover .pi-list::before,
 body.light-mode .p-datatable .p-button:hover .pi-list::before {
   color: #000000 !important;
 }
+
+/* ============================================ */
+/* LightGallery Custom Styling                 */
+/* ============================================ */
+
+/* LightGallery backdrop with blur effect */
+.lg-backdrop {
+  background-color: rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* LightGallery toolbar */
+.lg-toolbar {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 10px 20px;
+}
+
+/* LightGallery toolbar icons */
+.lg-toolbar .lg-icon {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.lg-toolbar .lg-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff !important;
+}
+
+/* LightGallery sub-html (captions) */
+.lg-sub-html {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 30px 20px 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.lg-sub-html h4 {
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.lg-sub-html p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* LightGallery navigation arrows */
+.lg-prev,
+.lg-next {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.lg-prev:hover,
+.lg-next:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.1);
+}
+
+.lg-prev:after,
+.lg-next:after {
+  color: #ffffff !important;
+  font-size: 28px;
+}
+
+/* LightGallery thumbnails */
+.lg-outer .lg-thumb-outer {
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lg-outer .lg-thumb-item {
+  border-radius: 6px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.lg-outer .lg-thumb-item:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.lg-outer .lg-thumb-item.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+/* LightGallery image container */
+.lg-outer .lg-item {
+  background: transparent;
+}
+
+.lg-outer .lg-img-wrap {
+  padding: 20px;
+}
+
+/* LightGallery image - make it large and centered */
+.lg-outer .lg-image {
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+.lg-outer .lg-inner .lg-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* LightGallery loading animation */
+.lg-outer .lg-loading-spin {
+  border-top-color: #3b82f6;
+  border-right-color: #3b82f6;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  width: 50px;
+  height: 50px;
+}
+
+/* LightGallery progress bar */
+.lg-progress-bar .lg-progress {
+  background-color: #3b82f6;
+  height: 3px;
+}
+
+/* LightGallery zoom controls */
+.lg-outer .lg-zoom-in,
+.lg-outer .lg-zoom-out,
+.lg-outer .lg-actual-size {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.lg-outer .lg-zoom-in:hover,
+.lg-outer .lg-zoom-out:hover,
+.lg-outer .lg-actual-size:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Custom fade animation */
+.lg-custom-theme.lg-css3 .lg-item.lg-prev-slide,
+.lg-custom-theme.lg-css3 .lg-item.lg-next-slide,
+.lg-custom-theme.lg-css3 .lg-item.lg-current {
+  transition-duration: 0.5s !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .lg-toolbar {
+    padding: 5px 10px;
+  }
+  
+  .lg-prev,
+  .lg-next {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .lg-prev:after,
+  .lg-next:after {
+    font-size: 22px;
+  }
+  
+  .lg-sub-html h4 {
+    font-size: 1rem;
+  }
+  
+  .lg-sub-html p {
+    font-size: 0.8rem;
+  }
+  
+  .lg-outer .lg-thumb-outer {
+    max-height: 80px;
+  }
+}
+
+/* Smooth transitions */
+.lg-outer * {
+  box-sizing: border-box;
+}
+
+/* Fix for image quality */
+.lg-outer .lg-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
