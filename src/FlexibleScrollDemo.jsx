@@ -636,12 +636,13 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleAddRow = () => {
-        const newId = routes.length + 1;
+        // Use timestamp for temporary ID (will be replaced by database auto-increment)
+        const tempId = Date.now();
         const newRow = {
-            id: newId,
-            route: `Route ${newId}`,
-            shift: 'AM',
-            warehouse: 'New Warehouse'
+            id: tempId,
+            route: '',
+            shift: '',
+            warehouse: ''
         };
         setRoutes([...routes, newRow]);
         setHasUnsavedChanges(true);

@@ -64,19 +64,54 @@ export const CustomerService = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/routes`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ routes }),
-            });
+            // Get existing routes from database
+            const existingResponse = await fetch(`${API_BASE_URL}/routes`);
+            const existingRoutes = existingResponse.ok ? await existingResponse.json() : [];
+            const existingIds = new Set(existingRoutes.map(r => r.id));
+
+            // Separate new routes (to CREATE) from existing routes (to UPDATE)
+            const newRoutes = routes.filter(route => !existingIds.has(route.id) || route.id > 1000000000); // timestamp IDs are temp
+            const updatedRoutes = routes.filter(route => existingIds.has(route.id) && route.id < 1000000000);
+
+            // Create new routes
+            const createPromises = newRoutes.map(route =>
+                fetch(`${API_BASE_URL}/routes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        route: route.route, 
+                        shift: route.shift, 
+                        warehouse: route.warehouse 
+                    }),
+                })
+            );
+
+            // Update existing routes
+            let updatePromise = Promise.resolve({ ok: true });
+            if (updatedRoutes.length > 0) {
+                updatePromise = fetch(`${API_BASE_URL}/routes`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ routes: updatedRoutes }),
+                });
+            }
+
+            // Execute all saves
+            const results = await Promise.all([...createPromises, updatePromise]);
             
-            if (!response.ok) {
-                throw new Error('Failed to save routes');
+            // Check if all successful
+            const allSuccessful = results.every(r => r.ok);
+            if (!allSuccessful) {
+                throw new Error('Some routes failed to save');
             }
             
-            return await response.json();
+            return { 
+                success: true, 
+                message: 'Routes saved successfully', 
+                count: routes.length,
+                created: newRoutes.length,
+                updated: updatedRoutes.length
+            };
         } catch (error) {
             console.error('Error saving routes:', error);
             throw error;
