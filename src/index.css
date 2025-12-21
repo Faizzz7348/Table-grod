@@ -54,8 +54,11 @@ body.light-mode .p-datatable .p-datatable-thead > tr > th {
   font-size: 13px;
   padding: 1rem;
   border: 0 !important;
+  border-left: 1px solid transparent !important;
+  border-right: 1px solid transparent !important;
   outline: none !important;
   letter-spacing: 0.5px;
+  box-shadow: none !important;
 }
 
 body.light-mode .p-datatable .p-datatable-thead > tr > th:first-child {
@@ -129,8 +132,11 @@ body.dark-mode .p-datatable .p-datatable-thead > tr > th {
   font-size: 13px;
   padding: 1rem;
   border: 0 !important;
+  border-left: 1px solid transparent !important;
+  border-right: 1px solid transparent !important;
   outline: none !important;
   letter-spacing: 0.5px;
+  box-shadow: none !important;
 }
 
 body.dark-mode .p-datatable .p-datatable-thead > tr > th:first-child {
@@ -525,4 +531,39 @@ body.dark-mode .p-image-preview-container {
 .lg-toolbar,
 .lg-actions {
   z-index: 10000 !important;
+}
+
+/* Menu items styling */
+.menu-save-item .p-menuitem-link {
+  color: #10b981 !important;
+}
+
+body.dark-mode .menu-save-item .p-menuitem-link {
+  color: #10b981 !important;
+}
+
+.menu-cancel-item .p-menuitem-link {
+  color: #ef4444 !important;
+}
+
+body.dark-mode .menu-cancel-item .p-menuitem-link {
+  color: #ef4444 !important;
+}
+
+/* Menu styling for dark mode */
+body.dark-mode .p-menu {
+  background-color: #1a1a1a !important;
+  border-color: #374151 !important;
+}
+
+body.dark-mode .p-menu .p-menuitem-link {
+  color: #e5e5e5 !important;
+}
+
+body.dark-mode .p-menu .p-menuitem-link:hover {
+  background-color: #2d2d2d !important;
+}
+
+body.dark-mode .p-menu .p-menuitem-separator {
+  border-color: #374151 !important;
 }

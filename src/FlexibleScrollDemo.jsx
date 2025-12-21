@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
+import { Menu } from 'primereact/menu';
 import { CustomerService } from './service/CustomerService';
 import CustomLightbox from './components/CustomLightbox';
 
 export default function FlexibleScrollDemo() {
+    const menuRef = useRef(null);
     const [routes, setRoutes] = useState([]);
     const [dialogVisible, setDialogVisible] = useState(false);
     const [dialogData, setDialogData] = useState([]);
@@ -40,6 +42,23 @@ export default function FlexibleScrollDemo() {
     const [customSortMode, setCustomSortMode] = useState(false);
     const [sortOrders, setSortOrders] = useState({});
     const [isCustomSorted, setIsCustomSorted] = useState(false); // Track if data is custom sorted
+    
+    // Delete Confirmation State
+    const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteType, setDeleteType] = useState(null); // 'route' or 'location'
+    
+    // Image Management State
+    const [imageDialogVisible, setImageDialogVisible] = useState(false);
+    const [currentRowImages, setCurrentRowImages] = useState([]);
+    const [selectedRowId, setSelectedRowId] = useState(null);
+    const [imageUrlInput, setImageUrlInput] = useState('');
+    const [editingImageIndex, setEditingImageIndex] = useState(null);
+    
+    // Power Mode Modal State
+    const [powerModeDialogVisible, setPowerModeDialogVisible] = useState(false);
+    const [selectedPowerMode, setSelectedPowerMode] = useState('Daily');
+    const [powerModeRowId, setPowerModeRowId] = useState(null);
 
     useEffect(() => {
         console.log('Component mounted - Loading data...');
@@ -341,10 +360,107 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleDeleteDialogRow = (rowId) => {
-        const updatedData = dialogData.filter(data => data.id !== rowId);
+        const rowToDelete = dialogData.find(data => data.id === rowId);
+        setDeleteTarget({ id: rowId, data: rowToDelete });
+        setDeleteType('location');
+        setDeleteConfirmVisible(true);
+    };
+    
+    const confirmDelete = () => {
+        if (deleteType === 'location') {
+            const updatedData = dialogData.filter(data => data.id !== deleteTarget.id);
+            setDialogData(sortDialogData(updatedData));
+            setHasUnsavedChanges(true);
+            console.log('Deleted dialog row:', deleteTarget.id);
+        } else if (deleteType === 'route') {
+            const updatedRoutes = routes.filter(route => route.id !== deleteTarget.id);
+            setRoutes(updatedRoutes);
+            setHasUnsavedChanges(true);
+            console.log('Deleted row:', deleteTarget.id);
+        }
+        setDeleteConfirmVisible(false);
+        setDeleteTarget(null);
+        setDeleteType(null);
+    };
+    
+    const cancelDelete = () => {
+        setDeleteConfirmVisible(false);
+        setDeleteTarget(null);
+        setDeleteType(null);
+    };
+    
+    const handleOpenImageDialog = (rowData) => {
+        setSelectedRowId(rowData.id);
+        setCurrentRowImages(rowData.images || []);
+        setImageDialogVisible(true);
+        setImageUrlInput('');
+        setEditingImageIndex(null);
+    };
+    
+    const handleAddImageUrl = () => {
+        if (imageUrlInput.trim()) {
+            const newImages = [...currentRowImages, imageUrlInput.trim()];
+            setCurrentRowImages(newImages);
+            setImageUrlInput('');
+        }
+    };
+    
+    const handleEditImage = (index) => {
+        setEditingImageIndex(index);
+        setImageUrlInput(currentRowImages[index]);
+    };
+    
+    const handleUpdateImage = () => {
+        if (editingImageIndex !== null && imageUrlInput.trim()) {
+            const newImages = [...currentRowImages];
+            newImages[editingImageIndex] = imageUrlInput.trim();
+            setCurrentRowImages(newImages);
+            setImageUrlInput('');
+            setEditingImageIndex(null);
+        }
+    };
+    
+    const handleDeleteImage = (index) => {
+        const newImages = currentRowImages.filter((_, i) => i !== index);
+        setCurrentRowImages(newImages);
+    };
+    
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const newImages = [...currentRowImages, e.target.result];
+                setCurrentRowImages(newImages);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleSaveImages = () => {
+        const updatedData = dialogData.map(data => 
+            data.id === selectedRowId ? { ...data, images: currentRowImages } : data
+        );
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
-        console.log('Deleted dialog row:', rowId);
+        setImageDialogVisible(false);
+        console.log('Images saved for row:', selectedRowId, currentRowImages);
+    };
+    
+    const handleOpenPowerModeDialog = (rowData) => {
+        setPowerModeRowId(rowData.id);
+        setSelectedPowerMode(rowData.powerMode || 'Daily');
+        setPowerModeDialogVisible(true);
+    };
+    
+    const handleSavePowerMode = () => {
+        const updatedData = dialogData.map(data => 
+            data.id === powerModeRowId ? { ...data, powerMode: selectedPowerMode } : data
+        );
+        setDialogData(sortDialogData(updatedData));
+        setHasUnsavedChanges(true);
+        setPowerModeDialogVisible(false);
+        console.log('Power mode saved for row:', powerModeRowId, selectedPowerMode);
     };
 
     const handleAddRow = () => {
@@ -361,10 +477,10 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleDeleteRow = (rowId) => {
-        const updatedRoutes = routes.filter(route => route.id !== rowId);
-        setRoutes(updatedRoutes);
-        setHasUnsavedChanges(true);
-        console.log('Deleted row:', rowId);
+        const rowToDelete = routes.find(route => route.id === rowId);
+        setDeleteTarget({ id: rowId, data: rowToDelete });
+        setDeleteType('route');
+        setDeleteConfirmVisible(true);
     };
 
     const textEditor = (options) => {
@@ -433,6 +549,58 @@ export default function FlexibleScrollDemo() {
         );
     };
 
+    // Menu items configuration
+    const menuItems = [
+        ...(editMode && hasUnsavedChanges ? [{
+            template: () => (
+                <div style={{
+                    backgroundColor: darkMode ? '#fbbf24' : '#fef3c7',
+                    color: darkMode ? '#000000' : '#92400e',
+                    padding: '0.75rem 1rem',
+                    margin: '0.5rem',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    border: `2px solid ${darkMode ? '#f59e0b' : '#fbbf24'}`
+                }}>
+                    <i className="pi pi-exclamation-triangle"></i>
+                    Unsaved Changes
+                </div>
+            )
+        }] : []),
+        {
+            label: darkMode ? 'Light Mode' : 'Dark Mode',
+            icon: darkMode ? 'pi pi-sun' : 'pi pi-moon',
+            command: () => setDarkMode(!darkMode)
+        },
+        {
+            label: editMode ? 'View Mode' : 'Edit Mode',
+            icon: editMode ? 'pi pi-eye' : 'pi pi-pencil',
+            command: () => handleToggleEditMode(),
+            disabled: saving
+        },
+        ...(editMode ? [
+            { separator: true },
+            {
+                label: saving ? 'Saving...' : 'Save Changes',
+                icon: saving ? 'pi pi-spin pi-spinner' : 'pi pi-save',
+                command: () => handleSaveChanges(),
+                disabled: !hasUnsavedChanges || saving,
+                className: 'menu-save-item'
+            },
+            {
+                label: 'Cancel',
+                icon: 'pi pi-times',
+                command: () => handleCancelChanges(),
+                disabled: saving,
+                className: 'menu-cancel-item'
+            }
+        ] : [])
+    ];
+
     // Loading state
     if (loading) {
         return (
@@ -477,60 +645,25 @@ export default function FlexibleScrollDemo() {
                     fontWeight: '700'
                 }}>Route Management</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    {editMode && hasUnsavedChanges && (
-                        <span style={{
-                            backgroundColor: darkMode ? '#fbbf24' : '#fef3c7',
-                            color: darkMode ? '#000000' : '#92400e',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '8px',
-                            fontSize: '0.875rem',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}>
-                            <i className="pi pi-exclamation-triangle"></i>
-                            Unsaved Changes
-                        </span>
-                    )}
-                    {editMode && (
-                        <>
-                            <Button 
-                                icon="pi pi-times" 
-                                label="Cancel"
-                                onClick={handleCancelChanges}
-                                severity="danger"
-                                size="small"
-                                outlined
-                                disabled={saving}
-                            />
-                            <Button 
-                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"} 
-                                label={saving ? "Saving..." : "Save"}
-                                onClick={handleSaveChanges}
-                                severity="success"
-                                size="small"
-                                raised
-                                disabled={!hasUnsavedChanges || saving}
-                            />
-                        </>
-                    )}
-                    <Button 
-                        icon={darkMode ? "pi pi-sun" : "pi pi-moon"} 
-                        label={darkMode ? "Light" : "Dark"}
-                        onClick={() => setDarkMode(!darkMode)}
-                        severity={darkMode ? "warning" : "secondary"}
-                        size="small"
-                        raised
+                    <Menu 
+                        model={menuItems} 
+                        popup 
+                        ref={menuRef}
+                        style={{ 
+                            minWidth: '250px',
+                            background: darkMode ? '#1a1a1a' : '#ffffff',
+                            border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+                        }}
                     />
                     <Button 
-                        icon={editMode ? "pi pi-eye" : "pi pi-pencil"} 
-                        label={editMode ? "View Mode" : "Edit Mode"}
-                        onClick={handleToggleEditMode}
-                        severity={editMode ? "success" : "info"}
+                        icon="pi pi-bars"
+                        label="Menu"
+                        onClick={(e) => menuRef.current.toggle(e)}
+                        severity="info"
                         size="small"
                         raised
-                        disabled={saving}
+                        badge={editMode && hasUnsavedChanges ? "!" : null}
+                        badgeSeverity="warning"
                     />
                 </div>
             </div>
@@ -609,7 +742,13 @@ export default function FlexibleScrollDemo() {
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
                     />
-                    <Column header="Action" align="center" alignHeader="center" body={actionBodyTemplate} />
+                    <Column 
+                        header="Action" 
+                        align="center" 
+                        alignHeader="center" 
+                        body={actionBodyTemplate}
+                        headerStyle={{ color: '#ef4444' }}
+                    />
                 </DataTable>
 
                 <Dialog 
@@ -807,7 +946,7 @@ export default function FlexibleScrollDemo() {
                     {/* Custom Sort Table - Separate from DataTable */}
                     {customSortMode ? (
                         <div style={{ 
-                            border: '1px solid #ddd', 
+                            border: darkMode ? 'none' : '1px solid #ddd', 
                             borderRadius: '8px', 
                             overflow: 'auto',
                             maxHeight: '600px',
@@ -821,11 +960,11 @@ export default function FlexibleScrollDemo() {
                                     zIndex: 10
                                 }}>
                                     <tr>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Urutan</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>No</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Code</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Location</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '2px solid #ddd' }}>Delivery</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Urutan</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>No</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Code</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Location</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Delivery</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -833,7 +972,7 @@ export default function FlexibleScrollDemo() {
                                         const order = sortOrders[rowData.id];
                                         const isDuplicate = isOrderDuplicate(rowData.id, order);
                                         return (
-                                            <tr key={rowData.id} style={{ borderBottom: '1px solid #eee' }}>
+                                            <tr key={rowData.id} style={{ borderBottom: darkMode ? 'none' : '1px solid #eee' }}>
                                                 <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                     <input
                                                         type="text"
@@ -862,10 +1001,10 @@ export default function FlexibleScrollDemo() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.no}</td>
-                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.code}</td>
-                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.location}</td>
-                                                <td style={{ padding: '1rem', textAlign: 'center' }}>{rowData.delivery}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.no}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.code}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.location}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.delivery}</td>
                                             </tr>
                                         );
                                     })}
@@ -945,7 +1084,7 @@ export default function FlexibleScrollDemo() {
                                         </div>
                                     );
                                 }}
-                                style={{ width: '120px' }}
+                                style={{ width: '60px' }}
                             />
                         )}
                         {visibleColumns.no && (
@@ -965,7 +1104,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 editor={editMode ? textEditor : null}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: '100px' }}
+                                style={{ width: '60px' }}
                             />
                         )}
                         {visibleColumns.location && (
@@ -987,7 +1126,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 editor={editMode ? textEditor : null}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: '120px' }}
+                                style={{ width: '100px' }}
                             />
                         )}
                         {visibleColumns.image && (
@@ -998,7 +1137,37 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 body={(rowData) => {
                                     if (!rowData.images || rowData.images.length === 0) {
-                                        return <span style={{ color: '#999', fontSize: '0.75rem' }}>No Image</span>;
+                                        return (
+                                            <div style={{
+                                                width: '60px',
+                                                height: '45px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                                borderRadius: '8px',
+                                                border: `2px dashed ${darkMode ? '#404040' : '#d1d5db'}`,
+                                                position: 'relative',
+                                                margin: '0 auto'
+                                            }}>
+                                                <i className="pi pi-image" style={{ 
+                                                    fontSize: '1.5rem', 
+                                                    color: '#9ca3af',
+                                                    zIndex: 1
+                                                }}></i>
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '22.5px',
+                                                    left: '30px',
+                                                    transform: 'translate(-50%, -50%) rotate(-45deg)',
+                                                    width: '2px',
+                                                    height: '40px',
+                                                    backgroundColor: '#ef4444',
+                                                    borderRadius: '2px',
+                                                    zIndex: 2
+                                                }}></div>
+                                            </div>
+                                        );
                                     }
                                     
                                     const openLightbox = () => {
@@ -1059,6 +1228,7 @@ export default function FlexibleScrollDemo() {
                             header="Action" 
                             align="center" 
                             alignHeader="center"
+                            headerStyle={{ color: '#ef4444' }}
                             body={(rowData) => (
                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                                     {/* Info Button */}
@@ -1073,34 +1243,21 @@ export default function FlexibleScrollDemo() {
                                         style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
                                     />
 
-                                    {/* Power Mode - Dropdown in Edit Mode, Icon in View Mode */}
+                                    {/* Power Mode - Icon Button in Edit Mode, Icon in View Mode */}
                                     {editMode ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <Dropdown 
-                                                value={rowData.powerMode || 'Daily'} 
-                                                options={[
-                                                    { label: 'Daily', value: 'Daily' },
-                                                    { label: 'Weekday', value: 'Weekday' },
-                                                    { label: 'Alt 1', value: 'Alt 1' },
-                                                    { label: 'Alt 2', value: 'Alt 2' }
-                                                ]}
-                                                onChange={(e) => handlePowerModeChange(rowData.id, e.value)}
-                                                style={{ 
-                                                    width: '120px', 
-                                                    fontSize: '0.75rem',
-                                                    backgroundColor: darkMode ? '#252525' : undefined
-                                                }}
-                                            />
-                                            <span style={{ 
-                                                fontSize: '0.7rem', 
-                                                fontWeight: 'bold',
+                                        <Button 
+                                            icon="pi pi-power-off" 
+                                            size="small"
+                                            severity={getPowerStatus(rowData.powerMode || 'Daily') === 'ON' ? 'success' : 'danger'}
+                                            tooltip={`${rowData.powerMode || 'Daily'} - ${getPowerStatus(rowData.powerMode || 'Daily')}`}
+                                            tooltipOptions={{ position: 'top' }}
+                                            text
+                                            onClick={() => handleOpenPowerModeDialog(rowData)}
+                                            style={{ 
                                                 color: getPowerColor(rowData.powerMode || 'Daily'),
-                                                minWidth: '30px',
-                                                textAlign: 'center'
-                                            }}>
-                                                {getPowerStatus(rowData.powerMode || 'Daily')}
-                                            </span>
-                                        </div>
+                                                backgroundColor: darkMode ? '#1a1a1a' : undefined
+                                            }}
+                                        />
                                     ) : (
                                         <Button 
                                             icon="pi pi-power-off" 
@@ -1112,6 +1269,20 @@ export default function FlexibleScrollDemo() {
                                                 color: getPowerColor(rowData.powerMode || 'Daily'),
                                                 backgroundColor: darkMode ? '#1a1a1a' : undefined
                                             }}
+                                        />
+                                    )}
+
+                                    {/* Image Management Button - Only in Edit Mode */}
+                                    {editMode && (
+                                        <Button 
+                                            icon={rowData.images && rowData.images.length > 0 ? "pi pi-images" : "pi pi-image"}
+                                            size="small"
+                                            severity={rowData.images && rowData.images.length > 0 ? "success" : "secondary"}
+                                            tooltip={rowData.images && rowData.images.length > 0 ? "Manage Images" : "Add Images"}
+                                            tooltipOptions={{ position: 'top' }}
+                                            text
+                                            onClick={() => handleOpenImageDialog(rowData)}
+                                            style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
                                         />
                                     )}
 
@@ -1142,6 +1313,8 @@ export default function FlexibleScrollDemo() {
                     visible={infoDialogVisible} 
                     style={{ width: '400px' }} 
                     modal
+                    dismissableMask
+                    closeOnEscape
                     onHide={() => setInfoDialogVisible(false)}
                 >
                     {selectedRowInfo && (
@@ -1214,6 +1387,455 @@ export default function FlexibleScrollDemo() {
                         </div>
                     </div>
                 )}
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-exclamation-triangle" style={{ color: '#f59e0b', fontSize: '1.5rem' }}></i>
+                            <span>Confirm Delete</span>
+                        </div>
+                    }
+                    visible={deleteConfirmVisible}
+                    style={{ width: '450px' }}
+                    modal
+                    onHide={cancelDelete}
+                    footer={
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={cancelDelete}
+                                severity="secondary"
+                                size="small"
+                                outlined
+                            />
+                            <Button
+                                label="Delete"
+                                icon="pi pi-trash"
+                                onClick={confirmDelete}
+                                severity="danger"
+                                size="small"
+                                raised
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        <p style={{ 
+                            margin: '0 0 1rem 0',
+                            fontSize: '1rem',
+                            color: darkMode ? '#e5e5e5' : '#000000'
+                        }}>
+                            Are you sure you want to delete this {deleteType === 'location' ? 'location' : 'route'}?
+                        </p>
+                        {deleteTarget && deleteTarget.data && (
+                            <div style={{
+                                backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                border: `2px solid ${darkMode ? '#404040' : '#e5e7eb'}`
+                            }}>
+                                {deleteType === 'location' ? (
+                                    <>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>Code:</strong> {deleteTarget.data.code}
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>Location:</strong> {deleteTarget.data.location}
+                                        </div>
+                                        <div>
+                                            <strong>Delivery:</strong> {deleteTarget.data.delivery}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>Route:</strong> {deleteTarget.data.route}
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>Shift:</strong> {deleteTarget.data.shift}
+                                        </div>
+                                        <div>
+                                            <strong>Warehouse:</strong> {deleteTarget.data.warehouse}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        <p style={{ 
+                            margin: '1rem 0 0 0',
+                            fontSize: '0.875rem',
+                            color: '#ef4444',
+                            fontWeight: 'bold'
+                        }}>
+                            ⚠️ This action cannot be undone!
+                        </p>
+                    </div>
+                </Dialog>
+
+                {/* Image Management Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-images" style={{ color: '#3b82f6', fontSize: '1.5rem' }}></i>
+                            <span>Manage Images</span>
+                        </div>
+                    }
+                    visible={imageDialogVisible}
+                    style={{ width: '600px' }}
+                    modal
+                    onHide={() => setImageDialogVisible(false)}
+                    footer={
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={() => setImageDialogVisible(false)}
+                                severity="secondary"
+                                size="small"
+                                outlined
+                            />
+                            <Button
+                                label="Save"
+                                icon="pi pi-check"
+                                onClick={handleSaveImages}
+                                severity="success"
+                                size="small"
+                                raised
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        {/* Add Image by URL */}
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ 
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                {editingImageIndex !== null ? 'Edit Image URL:' : 'Add Image by URL:'}
+                            </label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <InputText
+                                    value={imageUrlInput}
+                                    onChange={(e) => setImageUrlInput(e.target.value)}
+                                    placeholder="Enter image URL..."
+                                    style={{ flex: 1 }}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            editingImageIndex !== null ? handleUpdateImage() : handleAddImageUrl();
+                                        }
+                                    }}
+                                />
+                                {editingImageIndex !== null ? (
+                                    <>
+                                        <Button
+                                            label="Update"
+                                            icon="pi pi-check"
+                                            onClick={handleUpdateImage}
+                                            severity="success"
+                                            size="small"
+                                        />
+                                        <Button
+                                            label="Cancel"
+                                            icon="pi pi-times"
+                                            onClick={() => {
+                                                setEditingImageIndex(null);
+                                                setImageUrlInput('');
+                                            }}
+                                            severity="secondary"
+                                            size="small"
+                                            outlined
+                                        />
+                                    </>
+                                ) : (
+                                    <Button
+                                        label="Add"
+                                        icon="pi pi-plus"
+                                        onClick={handleAddImageUrl}
+                                        severity="info"
+                                        size="small"
+                                    />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Upload Image from File */}
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ 
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                Or Upload Image:
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                style={{
+                                    padding: '0.5rem',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    width: '100%',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        </div>
+
+                        {/* Current Images List */}
+                        <div>
+                            <label style={{ 
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: darkMode ? '#e5e5e5' : '#000000'
+                            }}>
+                                Current Images ({currentRowImages.length}):
+                            </label>
+                            {currentRowImages.length === 0 ? (
+                                <div style={{
+                                    padding: '2rem',
+                                    textAlign: 'center',
+                                    backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                    borderRadius: '8px',
+                                    color: darkMode ? '#9ca3af' : '#6b7280'
+                                }}>
+                                    <i className="pi pi-image" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}></i>
+                                    <p>No images added yet</p>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                                    gap: '1rem'
+                                }}>
+                                    {currentRowImages.map((img, index) => (
+                                        <div key={index} style={{
+                                            position: 'relative',
+                                            border: `2px solid ${darkMode ? '#404040' : '#e5e7eb'}`,
+                                            borderRadius: '8px',
+                                            padding: '0.5rem',
+                                            backgroundColor: darkMode ? '#2a2a2a' : '#ffffff'
+                                        }}>
+                                            <img
+                                                src={img}
+                                                alt={`Image ${index + 1}`}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '80px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '6px',
+                                                    marginBottom: '0.5rem'
+                                                }}
+                                            />
+                                            <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                                                <Button
+                                                    icon="pi pi-pencil"
+                                                    size="small"
+                                                    severity="info"
+                                                    text
+                                                    tooltip="Edit"
+                                                    onClick={() => handleEditImage(index)}
+                                                />
+                                                <Button
+                                                    icon="pi pi-trash"
+                                                    size="small"
+                                                    severity="danger"
+                                                    text
+                                                    tooltip="Delete"
+                                                    onClick={() => handleDeleteImage(index)}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Dialog>
+
+                {/* Power Mode Selection Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-power-off" style={{ color: '#3b82f6', fontSize: '1.5rem' }}></i>
+                            <span>Power Mode Settings</span>
+                        </div>
+                    }
+                    visible={powerModeDialogVisible}
+                    style={{ width: '500px' }}
+                    modal
+                    onHide={() => setPowerModeDialogVisible(false)}
+                    footer={
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={() => setPowerModeDialogVisible(false)}
+                                severity="secondary"
+                                size="small"
+                                outlined
+                            />
+                            <Button
+                                label="Save"
+                                icon="pi pi-check"
+                                onClick={handleSavePowerMode}
+                                severity="success"
+                                size="small"
+                                raised
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        <p style={{ 
+                            marginBottom: '1.5rem',
+                            color: darkMode ? '#9ca3af' : '#6b7280',
+                            fontSize: '0.875rem'
+                        }}>
+                            Select one power mode. Only one mode can be active at a time.
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {[
+                                { 
+                                    value: 'Daily', 
+                                    label: 'Daily', 
+                                    description: 'Always ON - Runs every day',
+                                    icon: 'pi-sun'
+                                },
+                                { 
+                                    value: 'Weekday', 
+                                    label: 'Weekday', 
+                                    description: 'OFF on Friday & Saturday',
+                                    icon: 'pi-calendar'
+                                },
+                                { 
+                                    value: 'Alt 1', 
+                                    label: 'Alternate 1', 
+                                    description: 'ON: Mon, Wed, Fri, Sun',
+                                    icon: 'pi-chart-line'
+                                },
+                                { 
+                                    value: 'Alt 2', 
+                                    label: 'Alternate 2', 
+                                    description: 'ON: Tue, Thu, Sat',
+                                    icon: 'pi-chart-bar'
+                                }
+                            ].map((mode) => {
+                                const isSelected = selectedPowerMode === mode.value;
+                                const status = getPowerStatus(mode.value);
+                                const color = getPowerColor(mode.value);
+                                
+                                return (
+                                    <div
+                                        key={mode.value}
+                                        onClick={() => setSelectedPowerMode(mode.value)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '1rem',
+                                            border: `2px solid ${isSelected ? '#3b82f6' : (darkMode ? '#404040' : '#e5e7eb')}`,
+                                            borderRadius: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            backgroundColor: isSelected 
+                                                ? (darkMode ? '#1e3a5f' : '#dbeafe')
+                                                : (darkMode ? '#2a2a2a' : '#ffffff'),
+                                            transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                                            boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = darkMode ? '#353535' : '#f9fafb';
+                                                e.currentTarget.style.borderColor = '#3b82f6';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = darkMode ? '#2a2a2a' : '#ffffff';
+                                                e.currentTarget.style.borderColor = darkMode ? '#404040' : '#e5e7eb';
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                                            <i 
+                                                className={`pi ${mode.icon}`}
+                                                style={{ 
+                                                    fontSize: '1.5rem',
+                                                    color: isSelected ? '#3b82f6' : (darkMode ? '#9ca3af' : '#6b7280')
+                                                }}
+                                            ></i>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ 
+                                                    fontWeight: 'bold',
+                                                    marginBottom: '0.25rem',
+                                                    color: darkMode ? '#e5e5e5' : '#000000'
+                                                }}>
+                                                    {mode.label}
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '0.75rem',
+                                                    color: darkMode ? '#9ca3af' : '#6b7280'
+                                                }}>
+                                                    {mode.description}
+                                                </div>
+                                            </div>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.75rem'
+                                            }}>
+                                                <span style={{
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 'bold',
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '12px',
+                                                    backgroundColor: status === 'ON' ? '#dcfce7' : '#fee2e2',
+                                                    color: status === 'ON' ? '#166534' : '#991b1b'
+                                                }}>
+                                                    {status}
+                                                </span>
+                                                {/* Custom Switch */}
+                                                <div
+                                                    style={{
+                                                        width: '48px',
+                                                        height: '24px',
+                                                        borderRadius: '12px',
+                                                        backgroundColor: isSelected ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db'),
+                                                        position: 'relative',
+                                                        transition: 'all 0.3s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            width: '20px',
+                                                            height: '20px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: '#ffffff',
+                                                            position: 'absolute',
+                                                            top: '2px',
+                                                            left: isSelected ? '26px' : '2px',
+                                                            transition: 'all 0.3s ease',
+                                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </Dialog>
             </div>
         </div>
     );
