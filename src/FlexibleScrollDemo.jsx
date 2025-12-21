@@ -842,36 +842,6 @@ export default function FlexibleScrollDemo() {
                         />
                     </div>
                 )}
-                {editMode && (
-                    <div style={{ 
-                        backgroundColor: darkMode ? '#064e3b' : '#d1fae5',
-                        border: '2px solid #10b981',
-                        borderRadius: '12px',
-                        padding: '1rem',
-                        marginBottom: '1rem',
-                        textAlign: 'center',
-                        color: darkMode ? '#a7f3d0' : '#065f46',
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
-                    }}>
-                        ✏️ EDIT MODE ACTIVE - Double click on cells to edit! 👆
-                    </div>
-                )}
-                {!editMode && (
-                    <div style={{ 
-                        backgroundColor: darkMode ? '#1e3a8a' : '#e0e7ff',
-                        border: '2px solid #6366f1',
-                        borderRadius: '12px',
-                        padding: '1rem',
-                        marginBottom: '1rem',
-                        textAlign: 'center',
-                        color: darkMode ? '#c7d2fe' : '#3730a3',
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
-                    }}>
-                        👁️ VIEW MODE - Enable Edit Mode to modify data
-                    </div>
-                )}
                 <DataTable 
                     value={routes} 
                     scrollable 
@@ -1002,21 +972,6 @@ export default function FlexibleScrollDemo() {
                             )}
                         </div>
                     </div>
-                    {editMode && (
-                        <div style={{ 
-                            backgroundColor: darkMode ? '#78350f' : '#fef3c7',
-                            border: '2px solid #f59e0b',
-                            borderRadius: '10px',
-                            padding: '0.75rem',
-                            marginBottom: '1rem',
-                            textAlign: 'center',
-                            color: darkMode ? '#fde68a' : '#92400e',
-                            fontWeight: 'bold',
-                            fontSize: '0.875rem'
-                        }}>
-                            ✏️ Edit Mode Active - Double click to edit cells, drag rows to reorder
-                        </div>
-                    )}
                     {editMode && (
                         <div style={{ marginBottom: '1rem' }}>
                             <Button 

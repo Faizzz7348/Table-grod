@@ -40,24 +40,50 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid data format' });
       }
 
-      // Update each route
-      const updates = routes.map(route => 
-        prisma.route.update({
-          where: { id: route.id },
-          data: {
-            route: route.route,
-            shift: route.shift,
-            warehouse: route.warehouse
-          }
-        })
-      );
+      // Validate all routes have IDs
+      const invalidRoutes = routes.filter(route => !route.id);
+      if (invalidRoutes.length > 0) {
+        return res.status(400).json({ 
+          error: 'All routes must have an ID',
+          invalid: invalidRoutes 
+        });
+      }
 
-      await Promise.all(updates);
+      // Update each route with error handling
+      const updates = routes.map(async route => {
+        try {
+          // Check if route exists first
+          const existingRoute = await prisma.route.findUnique({
+            where: { id: route.id }
+          });
+
+          if (!existingRoute) {
+            console.warn(`Route with id ${route.id} not found, skipping`);
+            return null;
+          }
+
+          return await prisma.route.update({
+            where: { id: route.id },
+            data: {
+              route: route.route,
+              shift: route.shift,
+              warehouse: route.warehouse
+            }
+          });
+        } catch (err) {
+          console.error(`Error updating route ${route.id}:`, err);
+          throw err;
+        }
+      });
+
+      const results = await Promise.all(updates);
+      const successCount = results.filter(r => r !== null).length;
 
       return res.status(200).json({ 
         success: true, 
         message: 'Routes updated successfully',
-        count: routes.length
+        count: successCount,
+        total: routes.length
       });
     }
 
@@ -98,9 +124,33 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('API Error:', error);
+    
+    // Handle Prisma specific errors
+    if (error.code === 'P2025') {
+      return res.status(404).json({ 
+        error: 'Record not found',
+        details: error.message 
+      });
+    }
+    
+    if (error.code === 'P2002') {
+      return res.status(409).json({ 
+        error: 'Unique constraint violation',
+        details: error.message 
+      });
+    }
+    
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        error: 'Foreign key constraint violation',
+        details: error.message 
+      });
+    }
+    
     return res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error.message,
+      code: error.code || 'UNKNOWN'
     });
   } finally {
     await prisma.$disconnect();
