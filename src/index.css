@@ -875,6 +875,216 @@ body.light-mode .p-datatable .p-button:hover .pi-list::before {
   box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
+/* Duplicate validation styling */
+.p-inputtext.p-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25) !important;
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Duplicate error message */
+.p-inputtext.p-invalid + small {
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in down animation for duplicate warning label */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Duplicate warning icon pulse animation */
+.pi-exclamation-triangle {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: translateY(-50%) scale(1.1);
+  }
+}
+
+/* Cell with duplicate - highlight row */
+.p-datatable .p-datatable-tbody > tr:has(.p-invalid) {
+  background-color: rgba(239, 68, 68, 0.03) !important;
+  border-left: 3px solid #ef4444 !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr:has(.p-invalid) {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Duplicate warning label styling */
+.p-datatable-tbody td {
+  position: relative;
+}
+
+/* Ensure warning label appears on top */
+.p-datatable .p-cell-editing {
+  z-index: 100 !important;
+  position: relative !important;
+}
+
+/* Row Expansion Transitions for Flex Table */
+.p-datatable .p-datatable-row-expansion {
+  animation: rowExpand 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+  overflow: hidden;
+}
+
+@keyframes rowExpand {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    max-height: 1000px;
+  }
+}
+
+/* Close/Collapse animation */
+.p-datatable .p-datatable-row-expansion.p-row-collapsed {
+  animation: rowCollapse 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes rowCollapse {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+    max-height: 1000px;
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0.8);
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+/* Smooth transition for row expansion content */
+.p-datatable .p-datatable-row-expansion > td {
+  padding: 0 !important;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.p-datatable .p-datatable-row-expansion > td > * {
+  animation: contentFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Content fade out on close */
+.p-datatable .p-datatable-row-expansion.p-row-collapsed > td > * {
+  animation: contentFadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes contentFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Smooth toggle icon rotation */
+.p-datatable .p-row-toggler {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.p-datatable .p-row-toggler:hover {
+  transform: scale(1.1);
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.p-datatable .p-row-toggler:active {
+  transform: scale(0.95);
+}
+
+/* Icon rotation when expanded */
+.p-datatable .p-row-toggler-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Row hover effect with expansion */
+.p-datatable .p-datatable-tbody > tr:not(.p-datatable-row-expansion):hover {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode row expansion */
+body.dark-mode .p-datatable .p-datatable-tbody > tr:not(.p-datatable-row-expansion):hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Expanded row styling */
+.p-datatable .p-datatable-tbody > tr.p-row-expanded {
+  background-color: rgba(59, 130, 246, 0.03) !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr.p-row-expanded {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Smooth height transition for expansion container */
+.p-datatable .p-datatable-row-expansion > td {
+  max-height: 1000px;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.p-datatable .p-datatable-row-expansion.p-row-collapsed > td {
+  max-height: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+}
+
 .lg-outer * {
   box-sizing: border-box;
 }

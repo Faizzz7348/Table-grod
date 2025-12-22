@@ -1,14 +1,33 @@
 import React, { useState } from 'react';
 import { InputText } from 'primereact/inputtext';
 
-export function EditableCell({ value, onSave, editMode }) {
+export function EditableCell({ value, onSave, editMode, allValues = [], fieldName = '', currentRowId = null }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
+  const [error, setError] = useState('');
+
+  const checkDuplicate = (newValue) => {
+    if (!fieldName || !allValues || allValues.length === 0) return false;
+    
+    // Check if value already exists in other rows
+    const isDuplicate = allValues.some(item => 
+      item[fieldName] === newValue && item.id !== currentRowId
+    );
+    
+    return isDuplicate;
+  };
 
   const handleSave = () => {
+    // Check for duplicates
+    if (checkDuplicate(editValue)) {
+      setError('Duplicate value not allowed!');
+      return;
+    }
+    
     if (editValue !== value) {
       onSave(editValue);
     }
+    setError('');
     setIsEditing(false);
   };
 
@@ -26,11 +45,16 @@ export function EditableCell({ value, onSave, editMode }) {
 
   // When editing, show input
   if (isEditing && editMode) {
+    const isDuplicate = checkDuplicate(editValue);
+    
     return (
-      <div style={{ width: '100%', padding: '0.25rem' }}>
+      <div style={{ width: '100%', padding: '0.25rem', position: 'relative' }}>
         <InputText
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={(e) => {
+            setEditValue(e.target.value);
+            setError('');
+          }}
           onBlur={handleSave}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -42,15 +66,42 @@ export function EditableCell({ value, onSave, editMode }) {
             }
           }}
           autoFocus
+          className={isDuplicate ? 'p-invalid' : ''}
           style={{ 
             width: '100%', 
             padding: '0.5rem',
             fontSize: '0.875rem',
             textAlign: 'center',
-            border: '2px solid #3b82f6',
-            borderRadius: '8px'
+            border: isDuplicate ? '2px solid #ef4444' : '2px solid #3b82f6',
+            borderRadius: '8px',
+            backgroundColor: isDuplicate ? 'rgba(239, 68, 68, 0.05)' : 'white'
           }}
         />
+        {isDuplicate && (
+          <small style={{ 
+            color: '#ef4444', 
+            fontSize: '0.75rem',
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            marginTop: '2px',
+            whiteSpace: 'nowrap',
+            fontWeight: 'bold'
+          }}>
+            ⚠️ Duplicate not allowed
+          </small>
+        )}
+        {error && (
+          <small style={{ 
+            color: '#ef4444', 
+            fontSize: '0.75rem',
+            display: 'block',
+            marginTop: '0.25rem',
+            textAlign: 'center'
+          }}>
+            {error}
+          </small>
+        )}
       </div>
     );
   }

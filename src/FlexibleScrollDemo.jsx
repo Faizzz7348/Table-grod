@@ -7,8 +7,66 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Menu } from 'primereact/menu';
 import { CustomerService } from './service/CustomerService';
-import ImageLightbox from './components/ImageLightbox';
+import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
+
+// Custom editor component with duplicate detection
+const DuplicateCheckEditor = ({ options, allData, field, darkMode }) => {
+    const [localValue, setLocalValue] = useState(options.value);
+    const [isDuplicate, setIsDuplicate] = useState(false);
+
+    useEffect(() => {
+        if (field === 'code') {
+            const duplicate = allData.some(item => 
+                item.code === localValue && item.id !== options.rowData.id
+            );
+            setIsDuplicate(duplicate);
+        }
+    }, [localValue, allData, field, options.rowData.id]);
+
+    const handleChange = (e) => {
+        const newValue = e.target.value;
+        setLocalValue(newValue);
+        options.editorCallback(newValue);
+    };
+
+    return (
+        <div style={{ position: 'relative', width: '100%' }}>
+            {isDuplicate && (
+                <div style={{
+                    position: 'absolute',
+                    top: '-22px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#ef4444',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    zIndex: 1000,
+                    animation: 'fadeInDown 0.3s ease-out'
+                }}>
+                    ⚠️ Duplicated
+                </div>
+            )}
+            <InputText 
+                type="text" 
+                value={localValue}
+                onChange={handleChange}
+                style={{ 
+                    width: '100%',
+                    borderColor: isDuplicate ? '#ef4444' : undefined,
+                    backgroundColor: isDuplicate ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                    borderWidth: isDuplicate ? '2px' : undefined
+                }}
+                className={isDuplicate ? 'p-invalid' : ''}
+            />
+        </div>
+    );
+};
 
 export default function FlexibleScrollDemo() {
     const menuRef = useRef(null);
@@ -661,11 +719,34 @@ export default function FlexibleScrollDemo() {
     };
 
     const textEditor = (options) => {
+        // Use duplicate check editor for 'code' field
+        if (options.field === 'code') {
+            return <DuplicateCheckEditor options={options} allData={dialogData} field="code" darkMode={darkMode} />;
+        }
+        // Regular editor for other fields
         return <InputText type="text" value={options.value} onChange={(e) => options.editorCallback(e.target.value)} style={{ width: '100%' }} />;
     };
 
     const onCellEditComplete = (e) => {
         let { rowData, newValue, field } = e;
+        
+        // Check for duplicate 'route' values
+        if (field === 'route' && newValue !== rowData[field]) {
+            const isDuplicate = routes.some(item => 
+                item.route === newValue && item.id !== rowData.id
+            );
+            
+            if (isDuplicate) {
+                toast.current.show({
+                    severity: 'error',
+                    summary: 'Duplicate Route',
+                    detail: `Route "${newValue}" already exists! Please use a unique route name.`,
+                    life: 3000
+                });
+                return; // Prevent save
+            }
+        }
+        
         if (newValue !== rowData[field]) {
             handleUpdateRow(rowData.id, field, newValue);
         }
@@ -673,6 +754,24 @@ export default function FlexibleScrollDemo() {
 
     const onDialogCellEditComplete = (e) => {
         let { rowData, newValue, field } = e;
+        
+        // Check for duplicate 'code' values
+        if (field === 'code' && newValue !== rowData[field]) {
+            const isDuplicate = dialogData.some(item => 
+                item.code === newValue && item.id !== rowData.id
+            );
+            
+            if (isDuplicate) {
+                toast.current.show({
+                    severity: 'error',
+                    summary: 'Duplicate Code',
+                    detail: `Code "${newValue}" already exists! Please use a unique code.`,
+                    life: 3000
+                });
+                return; // Prevent save
+            }
+        }
+        
         if (newValue !== rowData[field]) {
             handleUpdateDialogData(rowData.id, field, newValue);
         }
@@ -1190,6 +1289,8 @@ export default function FlexibleScrollDemo() {
                         tableStyle={{ minWidth: '70rem' }}
                         editMode={editMode ? "cell" : null}
                         globalFilter={globalFilterValue}
+                        resizableColumns
+                        columnResizeMode="expand"
                         rowClassName={(rowData) => {
                             const status = getPowerStatus(rowData.powerMode || 'Daily');
                             return status === 'OFF' ? 'row-disabled' : '';

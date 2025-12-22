@@ -13,7 +13,7 @@ React table component with PrimeReact DataTable featuring flexible scrolling, di
 
 ### Dialog Table (Flex Scroll)
 - **No** - Sequential row number
-- **Code** - Editable code field
+- **Code** - Editable code field with duplicate validation
 - **Location** - Editable location name
 - **Delivery** - Delivery frequency
 - **Action Column**:
@@ -21,6 +21,15 @@ React table component with PrimeReact DataTable featuring flexible scrolling, di
   - ℹ️ **Info Button** - View detailed row information
   - ⚡ **Power Toggle** - ON/OFF switch (Edit Mode only)
   - 🔀 **Draggable Rows** - Reorder by dragging (Edit Mode only)
+
+### Validation Features
+- 🚫 **Duplicate Prevention** - Automatic detection and prevention of duplicate values
+  - Real-time validation while editing
+  - Visual indicators (red border, warning icon)
+  - Toast notification on save attempt
+  - Shake animation for invalid input
+- ✅ **Unique Code Validation** - Ensures all codes in the table are unique
+- 🔒 **Route Name Validation** - Prevents duplicate route names
 
 ### Theme & Mode Controls
 - 🌙 **Dark/Light Mode** - Toggle theme colors
