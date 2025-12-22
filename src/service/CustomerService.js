@@ -35,16 +35,20 @@ export const CustomerService = {
     },
 
     // Get detail locations from API or localStorage
-    async getDetailData() {
+    async getDetailData(routeId = null) {
         if (USE_LOCALSTORAGE) {
             this.initLocalStorage();
             const locations = JSON.parse(localStorage.getItem('locations') || '[]');
             console.log('📦 Loading locations from localStorage:', locations);
-            return locations;
+            // Filter by routeId if provided
+            const filteredLocations = routeId ? locations.filter(loc => loc.routeId === routeId) : locations;
+            console.log(`📦 Filtered locations for routeId ${routeId}:`, filteredLocations);
+            return filteredLocations;
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/locations`);
+            const url = routeId ? `${API_BASE_URL}/locations?routeId=${routeId}` : `${API_BASE_URL}/locations`;
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Failed to fetch locations');
             }
@@ -187,16 +191,19 @@ export const CustomerService = {
 
     getDummyLocations() {
         return [
-            { id: 1, no: 1, code: '34', location: 'Wisma Cimb', delivery: 'Daily', images: [], powerMode: 'Daily' },
-            { id: 2, no: 2, code: '42', location: 'Plaza Rakyat', delivery: 'Weekly', images: [], powerMode: 'Alt 1' },
-            { id: 3, no: 3, code: '51', location: 'KLCC Tower', delivery: 'Daily', images: [], powerMode: 'Alt 2' },
-            { id: 4, no: 4, code: '67', location: 'Menara TM', delivery: 'Monthly', images: [], powerMode: 'Weekday' },
-            { id: 5, no: 5, code: '89', location: 'Pavilion KL', delivery: 'Daily', images: [], powerMode: 'Daily' },
-            { id: 6, no: 6, code: '23', location: 'Suria KLCC', delivery: 'Weekly', images: [], powerMode: 'Alt 1' },
-            { id: 7, no: 7, code: '76', location: 'Mid Valley', delivery: 'Daily', images: [], powerMode: 'Alt 2' },
-            { id: 8, no: 8, code: '94', location: 'Bangsar Village', delivery: 'Weekly', images: [], powerMode: 'Weekday' },
-            { id: 9, no: 9, code: '31', location: 'Nu Sentral', delivery: 'Daily', images: [], powerMode: 'Daily' },
-            { id: 10, no: 10, code: '58', location: 'One Utama', delivery: 'Monthly', images: [], powerMode: 'Alt 1' }
+            // Route 1 (KL 7) locations - routeId: 1
+            { id: 1, no: 1, code: '34', location: 'Wisma Cimb', delivery: 'Daily', images: [], powerMode: 'Daily', routeId: 1 },
+            { id: 2, no: 2, code: '42', location: 'Plaza Rakyat', delivery: 'Weekly', images: [], powerMode: 'Alt 1', routeId: 1 },
+            { id: 3, no: 3, code: '51', location: 'KLCC Tower', delivery: 'Daily', images: [], powerMode: 'Alt 2', routeId: 1 },
+            // Route 2 (KL 8) locations - routeId: 2
+            { id: 4, no: 1, code: '67', location: 'Menara TM', delivery: 'Monthly', images: [], powerMode: 'Weekday', routeId: 2 },
+            { id: 5, no: 2, code: '89', location: 'Pavilion KL', delivery: 'Daily', images: [], powerMode: 'Daily', routeId: 2 },
+            { id: 6, no: 3, code: '23', location: 'Suria KLCC', delivery: 'Weekly', images: [], powerMode: 'Alt 1', routeId: 2 },
+            // Route 3 (SG 1) locations - routeId: 3
+            { id: 7, no: 1, code: '76', location: 'Mid Valley', delivery: 'Daily', images: [], powerMode: 'Alt 2', routeId: 3 },
+            { id: 8, no: 2, code: '94', location: 'Bangsar Village', delivery: 'Weekly', images: [], powerMode: 'Weekday', routeId: 3 },
+            { id: 9, no: 3, code: '31', location: 'Nu Sentral', delivery: 'Daily', images: [], powerMode: 'Daily', routeId: 3 },
+            { id: 10, no: 4, code: '58', location: 'One Utama', delivery: 'Monthly', images: [], powerMode: 'Alt 1', routeId: 3 }
         ];
     },
 

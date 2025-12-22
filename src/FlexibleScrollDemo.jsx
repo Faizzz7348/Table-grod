@@ -15,6 +15,7 @@ export default function FlexibleScrollDemo() {
     const [routes, setRoutes] = useState([]);
     const [dialogVisible, setDialogVisible] = useState(false);
     const [dialogData, setDialogData] = useState([]);
+    const [currentRouteId, setCurrentRouteId] = useState(null);
     const [darkMode, setDarkMode] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
@@ -516,19 +517,21 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleAddDialogRow = () => {
-        const newId = dialogData.length + 1;
+        const tempId = Date.now(); // Use timestamp for temporary ID
+        const newNo = dialogData.length > 0 ? Math.max(...dialogData.map(d => d.no)) + 1 : 1;
         const newRow = {
-            id: newId,
-            no: newId,
-            code: `${newId * 10}`,
+            id: tempId,
+            no: newNo,
+            code: `${newNo * 10}`,
             location: 'New Location',
             delivery: 'Daily',
             images: [],
-            powerMode: 'Daily'
+            powerMode: 'Daily',
+            routeId: currentRouteId // Link to current route
         };
         setDialogData(sortDialogData([...dialogData, newRow]));
         setHasUnsavedChanges(true);
-        console.log('Added new dialog row:', newRow);
+        console.log('Added new dialog row with routeId:', newRow);
     };
 
     const handleDeleteDialogRow = (rowId) => {
@@ -684,8 +687,10 @@ export default function FlexibleScrollDemo() {
                     tooltipOptions={{ position: 'top' }}
                     text
                     onClick={() => {
-                        CustomerService.getDetailData().then((data) => {
+                        setCurrentRouteId(rowData.id);
+                        CustomerService.getDetailData(rowData.id).then((data) => {
                             setDialogData(sortDialogData(data));
+                            setOriginalDialogData(sortDialogData(data));
                             setDialogVisible(true);
                             setIsCustomSorted(false); // Reset custom sort flag
                         });
@@ -701,8 +706,10 @@ export default function FlexibleScrollDemo() {
                             tooltipOptions={{ position: 'top' }}
                             text
                             onClick={() => {
-                                CustomerService.getDetailData().then((data) => {
+                                setCurrentRouteId(rowData.id);
+                                CustomerService.getDetailData(rowData.id).then((data) => {
                                     setDialogData(sortDialogData(data));
+                                    setOriginalDialogData(sortDialogData(data));
                                     setDialogVisible(true);
                                 });
                             }} 
