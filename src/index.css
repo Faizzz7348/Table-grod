@@ -72,7 +72,7 @@ body.light-mode .p-datatable .p-datatable-thead > tr > th {
   color: white;
   text-align: center !important;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 11px;
   padding: 1rem;
   border: 0 !important;
   border-left: 1px solid transparent !important;
@@ -150,7 +150,7 @@ body.dark-mode .p-datatable .p-datatable-thead > tr > th {
   color: white;
   text-align: center !important;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 11px;
   padding: 1rem;
   border: 0 !important;
   border-left: 1px solid transparent !important;
