@@ -55,7 +55,9 @@ export const CustomerService = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching locations:', error);
-            return this.getDummyLocations();
+            // Fallback to dummy data and filter by routeId
+            const dummyLocations = this.getDummyLocations();
+            return routeId ? dummyLocations.filter(loc => loc.routeId === routeId) : dummyLocations;
         }
     },
 

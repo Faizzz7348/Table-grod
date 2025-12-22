@@ -27,8 +27,13 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Get all locations
+      // Get all locations or filter by routeId
+      const { routeId } = req.query;
+      
+      const whereClause = routeId ? { routeId: parseInt(routeId) } : {};
+      
       const locations = await prisma.location.findMany({
+        where: whereClause,
         orderBy: {
           no: 'asc'
         }
