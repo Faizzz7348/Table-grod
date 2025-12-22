@@ -16,6 +16,7 @@ export default function FlexibleScrollDemo() {
     const [dialogVisible, setDialogVisible] = useState(false);
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
+    const [currentRouteName, setCurrentRouteName] = useState('');
     const [darkMode, setDarkMode] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
@@ -688,6 +689,7 @@ export default function FlexibleScrollDemo() {
                     text
                     onClick={() => {
                         setCurrentRouteId(rowData.id);
+                        setCurrentRouteName(rowData.route);
                         CustomerService.getDetailData(rowData.id).then((data) => {
                             setDialogData(sortDialogData(data));
                             setOriginalDialogData(sortDialogData(data));
@@ -707,6 +709,7 @@ export default function FlexibleScrollDemo() {
                             text
                             onClick={() => {
                                 setCurrentRouteId(rowData.id);
+                                setCurrentRouteName(rowData.route);
                                 CustomerService.getDetailData(rowData.id).then((data) => {
                                     setDialogData(sortDialogData(data));
                                     setOriginalDialogData(sortDialogData(data));
@@ -970,7 +973,7 @@ export default function FlexibleScrollDemo() {
                 </DataTable>
 
                 <Dialog 
-                    header="Flex Scroll" 
+                    header={`Route ${currentRouteName}`} 
                     visible={dialogVisible} 
                     style={{ width: '90vw' }} 
                     maximizable
