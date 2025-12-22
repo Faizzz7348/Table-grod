@@ -955,38 +955,45 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr:has(.p-invalid) {
 
 /* Row Expansion Transitions for Flex Table */
 .p-datatable .p-datatable-row-expansion {
-  animation: rowExpand 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: rowExpand 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top;
   overflow: hidden;
+  will-change: opacity, transform, max-height;
 }
 
 @keyframes rowExpand {
-  from {
+  0% {
     opacity: 0;
-    transform: scaleY(0.8);
+    transform: scaleY(0.7) translateY(-10px);
     max-height: 0;
   }
-  to {
+  40% {
+    opacity: 0.3;
+  }
+  100% {
     opacity: 1;
-    transform: scaleY(1);
-    max-height: 1000px;
+    transform: scaleY(1) translateY(0);
+    max-height: 1500px;
   }
 }
 
 /* Close/Collapse animation */
 .p-datatable .p-datatable-row-expansion.p-row-collapsed {
-  animation: rowCollapse 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: rowCollapse 0.3s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
 }
 
 @keyframes rowCollapse {
-  from {
+  0% {
     opacity: 1;
-    transform: scaleY(1);
-    max-height: 1000px;
+    transform: scaleY(1) translateY(0);
+    max-height: 1500px;
   }
-  to {
+  60% {
+    opacity: 0.2;
+  }
+  100% {
     opacity: 0;
-    transform: scaleY(0.8);
+    transform: scaleY(0.7) translateY(-10px);
     max-height: 0;
     padding: 0;
     margin: 0;
@@ -997,19 +1004,23 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr:has(.p-invalid) {
 .p-datatable .p-datatable-row-expansion > td {
   padding: 0 !important;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .p-datatable .p-datatable-row-expansion > td > * {
-  animation: contentFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: contentFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 @keyframes contentFadeIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-15px);
   }
-  to {
+  50% {
+    opacity: 0.5;
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -1017,43 +1028,53 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr:has(.p-invalid) {
 
 /* Content fade out on close */
 .p-datatable .p-datatable-row-expansion.p-row-collapsed > td > * {
-  animation: contentFadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: contentFadeOut 0.25s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
 }
 
 @keyframes contentFadeOut {
-  from {
+  0% {
     opacity: 1;
     transform: translateY(0);
   }
-  to {
+  100% {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-15px);
   }
 }
 
 /* Smooth toggle icon rotation */
 .p-datatable .p-row-toggler {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform-origin: center;
+  will-change: transform, background-color;
 }
 
 .p-datatable .p-row-toggler:hover {
-  transform: scale(1.1);
-  background-color: rgba(59, 130, 246, 0.1) !important;
+  transform: scale(1.15);
+  background-color: rgba(59, 130, 246, 0.12) !important;
 }
 
 .p-datatable .p-row-toggler:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+  transition-duration: 0.1s;
 }
 
 /* Icon rotation when expanded */
 .p-datatable .p-row-toggler-icon {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+
+/* Rotate icon when row is expanded */
+.p-datatable .p-row-toggler[aria-expanded="true"] .p-row-toggler-icon {
+  transform: rotate(90deg);
 }
 
 /* Row hover effect with expansion */
 .p-datatable .p-datatable-tbody > tr:not(.p-datatable-row-expansion):hover {
   background-color: rgba(59, 130, 246, 0.05) !important;
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(2px);
 }
 
 /* Dark mode row expansion */
@@ -1063,26 +1084,44 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr:not(.p-datatable-row-expansi
 
 /* Expanded row styling */
 .p-datatable .p-datatable-tbody > tr.p-row-expanded {
-  background-color: rgba(59, 130, 246, 0.03) !important;
+  background-color: rgba(59, 130, 246, 0.04) !important;
   border-left: 3px solid #3b82f6 !important;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body.dark-mode .p-datatable .p-datatable-tbody > tr.p-row-expanded {
   background-color: rgba(59, 130, 246, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+/* Expansion content styling */
+.p-datatable .p-datatable-row-expansion > td > div {
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.02) 0%, transparent 100%);
+  border-radius: 8px;
+  margin: 0.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.dark-mode .p-datatable .p-datatable-row-expansion > td > div {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
 }
 
 /* Smooth height transition for expansion container */
 .p-datatable .p-datatable-row-expansion > td {
-  max-height: 1000px;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 1500px;
+  transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .p-datatable .p-datatable-row-expansion.p-row-collapsed > td {
   max-height: 0 !important;
   padding: 0 !important;
   opacity: 0;
+}
 }
 
 .lg-outer * {
