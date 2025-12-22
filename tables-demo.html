@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flex Tables Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h2 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-size: 1.75rem;
+        }
+
+        .card p {
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .card ul {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .card ul li {
+            padding: 0.5rem 0;
+            color: #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card ul li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .features {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+        }
+
+        .features h3 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-item {
+            padding: 1.5rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-item h4 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-item p {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 3rem;
+            padding: 2rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Flexible Table Components</h1>
+            <p>Choose from our collection of modern, responsive data tables</p>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h2>Original Flex Table</h2>
+                <p>Feature-rich table with advanced capabilities including route management, image galleries, and real-time data editing.</p>
+                <ul>
+                    <li>Route & Location Management</li>
+                    <li>Image Gallery Integration</li>
+                    <li>Power Mode Scheduling</li>
+                    <li>Custom Sorting</li>
+                    <li>Dark Mode Support</li>
+                </ul>
+                <button class="btn" onclick="window.location.href='/'">View Original Table</button>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">⚡</div>
+                <h2>Alternative Flex Table</h2>
+                <p>Modern, streamlined table with essential features, perfect for general data management tasks.</p>
+                <ul>
+                    <li>Advanced Filtering</li>
+                    <li>Multi-selection</li>
+                    <li>CSV Export</li>
+                    <li>Real-time Statistics</li>
+                    <li>Status Tags</li>
+                </ul>
+                <button class="btn btn-secondary" onclick="openAlternativeTable()">View Alternative Table</button>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">📦</div>
+                <h2>Compact Flex Table</h2>
+                <p>Inventory-focused table with product management features and expandable rows for detailed views.</p>
+                <ul>
+                    <li>Inventory Tracking</li>
+                    <li>Low Stock Alerts</li>
+                    <li>Expandable Rows</li>
+                    <li>Quick Reorder</li>
+                    <li>Value Statistics</li>
+                </ul>
+                <button class="btn btn-success" onclick="openCompactTable()">View Compact Table</button>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>🎨 Common Features</h3>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h4>Responsive Design</h4>
+                    <p>All tables are fully responsive and work seamlessly on desktop and mobile devices.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>Fast Search</h4>
+                    <p>Global search functionality to quickly find any data across all columns.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>Sorting & Filtering</h4>
+                    <p>Sort by any column and apply advanced filters to narrow down your data.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>Pagination</h4>
+                    <p>Efficient pagination with customizable rows per page options.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>Real-time Editing</h4>
+                    <p>Edit data directly in the table with instant feedback and validation.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>Export Data</h4>
+                    <p>Export your data to various formats including CSV for external processing.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Built with React, PrimeReact, and modern web technologies</p>
+            <p style="margin-top: 0.5rem;">© 2024 Table-grod Project</p>
+        </div>
+    </div>
+
+    <script>
+        function openAlternativeTable() {
+            alert('To view the Alternative Flex Table:\n\n1. Update main.jsx to import AlternativeFlexTable\n2. Run: npm run dev\n3. Open the development server URL');
+        }
+
+        function openCompactTable() {
+            alert('To view the Compact Flex Table:\n\n1. Update main.jsx to import CompactFlexTable\n2. Run: npm run dev\n3. Open the development server URL');
+        }
+    </script>
+</body>
+</html>
