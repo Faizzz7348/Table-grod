@@ -48,49 +48,67 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid data format' });
       }
 
-      // Validate all routes have IDs
-      const invalidRoutes = routes.filter(route => !route.id);
-      if (invalidRoutes.length > 0) {
-        return res.status(400).json({ 
-          error: 'All routes must have an ID',
-          invalid: invalidRoutes 
-        });
-      }
+      // Separate new routes (timestamp IDs > 1000000000000) from existing ones
+      const newRoutes = routes.filter(r => r.id > 1000000000000); // Timestamp IDs
+      const existingRoutes = routes.filter(r => r.id <= 1000000000000); // Database IDs
 
-      // Update each route with error handling
-      const updates = routes.map(async route => {
-        try {
-          // Check if route exists first
-          const existingRoute = await prisma.route.findUnique({
-            where: { id: route.id }
-          });
+      const results = {
+        created: 0,
+        updated: 0
+      };
 
-          if (!existingRoute) {
-            console.warn(`Route with id ${route.id} not found, skipping`);
-            return null;
-          }
-
-          return await prisma.route.update({
-            where: { id: route.id },
+      // Create new routes
+      if (newRoutes.length > 0) {
+        const createPromises = newRoutes.map(route =>
+          prisma.route.create({
             data: {
               route: route.route,
               shift: route.shift,
               warehouse: route.warehouse
             }
-          });
-        } catch (err) {
-          console.error(`Error updating route ${route.id}:`, err);
-          throw err;
-        }
-      });
+          })
+        );
+        await Promise.all(createPromises);
+        results.created = newRoutes.length;
+      }
 
-      const results = await Promise.all(updates);
-      const successCount = results.filter(r => r !== null).length;
+      // Update existing routes
+      if (existingRoutes.length > 0) {
+        const updatePromises = existingRoutes.map(async route => {
+          try {
+            // Check if route exists first
+            const existingRoute = await prisma.route.findUnique({
+              where: { id: route.id }
+            });
+
+            if (!existingRoute) {
+              console.warn(`Route with id ${route.id} not found, skipping`);
+              return null;
+            }
+
+            return await prisma.route.update({
+              where: { id: route.id },
+              data: {
+                route: route.route,
+                shift: route.shift,
+                warehouse: route.warehouse
+              }
+            });
+          } catch (err) {
+            console.error(`Error updating route ${route.id}:`, err);
+            throw err;
+          }
+        });
+
+        const updateResults = await Promise.all(updatePromises);
+        results.updated = updateResults.filter(r => r !== null).length;
+      }
 
       return res.status(200).json({ 
         success: true, 
-        message: 'Routes updated successfully',
-        count: successCount,
+        message: 'Routes saved successfully',
+        created: results.created,
+        updated: results.updated,
         total: routes.length
       });
     }

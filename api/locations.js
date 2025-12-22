@@ -50,30 +50,65 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid data format' });
       }
 
-      // Update each location
-      const updates = locations.map(location => 
-        prisma.location.update({
-          where: { id: location.id },
-          data: {
-            no: location.no,
-            code: location.code,
-            location: location.location,
-            delivery: location.delivery,
-            powerMode: location.powerMode,
-            images: location.images || [],
-            latitude: location.latitude !== undefined ? location.latitude : null,
-            longitude: location.longitude !== undefined ? location.longitude : null,
-            address: location.address !== undefined ? location.address : null
-          }
-        })
-      );
+      // Separate new locations (timestamp IDs > 1000000000000) from existing ones
+      const newLocations = locations.filter(loc => loc.id > 1000000000000); // Timestamp IDs
+      const existingLocations = locations.filter(loc => loc.id <= 1000000000000); // Database IDs
 
-      await Promise.all(updates);
+      const results = {
+        created: 0,
+        updated: 0
+      };
+
+      // Create new locations
+      if (newLocations.length > 0) {
+        const createPromises = newLocations.map(location =>
+          prisma.location.create({
+            data: {
+              no: location.no,
+              code: location.code,
+              location: location.location,
+              delivery: location.delivery,
+              powerMode: location.powerMode,
+              images: location.images || [],
+              routeId: location.routeId || null,
+              latitude: location.latitude !== undefined ? location.latitude : null,
+              longitude: location.longitude !== undefined ? location.longitude : null,
+              address: location.address !== undefined ? location.address : null
+            }
+          })
+        );
+        await Promise.all(createPromises);
+        results.created = newLocations.length;
+      }
+
+      // Update existing locations
+      if (existingLocations.length > 0) {
+        const updatePromises = existingLocations.map(location =>
+          prisma.location.update({
+            where: { id: location.id },
+            data: {
+              no: location.no,
+              code: location.code,
+              location: location.location,
+              delivery: location.delivery,
+              powerMode: location.powerMode,
+              images: location.images || [],
+              latitude: location.latitude !== undefined ? location.latitude : null,
+              longitude: location.longitude !== undefined ? location.longitude : null,
+              address: location.address !== undefined ? location.address : null
+            }
+          })
+        );
+        await Promise.all(updatePromises);
+        results.updated = existingLocations.length;
+      }
 
       return res.status(200).json({ 
         success: true, 
-        message: 'Locations updated successfully',
-        count: locations.length
+        message: 'Locations saved successfully',
+        created: results.created,
+        updated: results.updated,
+        total: locations.length
       });
     }
 
