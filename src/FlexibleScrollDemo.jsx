@@ -10,8 +10,15 @@ import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
 
+// CSS untuk remove border dari table header
+const tableStyles = `
+    .no-header-border .p-datatable-thead > tr > th {
+        border: none !important;
+    }
+`;
+
 // Custom editor component with duplicate detection
-const DuplicateCheckEditor = ({ options, allData, field, darkMode }) => {
+const DuplicateCheckEditor = ({ options, allData, field }) => {
     const [localValue, setLocalValue] = useState(options.value);
     const [isDuplicate, setIsDuplicate] = useState(false);
 
@@ -75,18 +82,13 @@ export default function FlexibleScrollDemo() {
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
-    // Initialize dark mode from localStorage or system preference
-    const getInitialDarkMode = () => {
-        // Check localStorage first
-        const savedMode = localStorage.getItem('darkMode');
-        if (savedMode !== null) {
-            return savedMode === 'true';
-        }
-        // Check system preference
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    };
     
-    const [darkMode, setDarkMode] = useState(getInitialDarkMode);
+    // Dark Mode State - Simple implementation
+    const [isDark, setIsDark] = useState(() => {
+        const saved = localStorage.getItem('darkMode');
+        return saved === 'true';
+    });
+    
     const [editMode, setEditMode] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
@@ -191,32 +193,16 @@ export default function FlexibleScrollDemo() {
         
         loadData();
     }, []);
-
-    // Apply dark mode to body and save to localStorage
-    useEffect(() => {
-        document.body.className = darkMode ? 'dark-mode' : 'light-mode';
-        localStorage.setItem('darkMode', darkMode.toString());
-        
-        // Update meta theme-color for mobile browsers
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', darkMode ? '#1a1a1a' : '#ffffff');
-        }
-    }, [darkMode]);
     
-    // Listen for system theme changes
+    // Apply dark mode to body class
     useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = (e) => {
-            // Only auto-switch if user hasn't set preference
-            if (localStorage.getItem('darkMode') === null) {
-                setDarkMode(e.matches);
-            }
-        };
-        
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+        if (isDark) {
+            document.body.classList.add('dark');
+        } else {
+            document.body.classList.remove('dark');
+        }
+        localStorage.setItem('darkMode', isDark.toString());
+    }, [isDark]);
     
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -768,7 +754,7 @@ export default function FlexibleScrollDemo() {
     const textEditor = (options) => {
         // Use duplicate check editor for 'code' field
         if (options.field === 'code') {
-            return <DuplicateCheckEditor options={options} allData={dialogData} field="code" darkMode={darkMode} />;
+            return <DuplicateCheckEditor options={options} allData={dialogData} field="code" />;
         }
         // Regular editor for other fields
         return <InputText type="text" value={options.value} onChange={(e) => options.editorCallback(e.target.value)} style={{ width: '100%' }} />;
@@ -896,8 +882,8 @@ export default function FlexibleScrollDemo() {
         ...(editMode && hasUnsavedChanges ? [{
             template: () => (
                 <div style={{
-                    backgroundColor: darkMode ? '#fbbf24' : '#fef3c7',
-                    color: darkMode ? '#000000' : '#92400e',
+                    backgroundColor: isDark ? '#fbbf24' : '#fef3c7',
+                    color: isDark ? '#000000' : '#92400e',
                     padding: '0.75rem 1rem',
                     margin: '0.5rem',
                     borderRadius: '8px',
@@ -906,7 +892,7 @@ export default function FlexibleScrollDemo() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    border: `2px solid ${darkMode ? '#f59e0b' : '#fbbf24'}`,
+                    border: `2px solid ${isDark ? '#f59e0b' : '#fbbf24'}`,
                     transition: 'all 0.3s ease'
                 }}>
                     <i className="pi pi-exclamation-triangle"></i>
@@ -915,9 +901,9 @@ export default function FlexibleScrollDemo() {
             )
         }] : []),
         {
-            label: darkMode ? 'Light Mode' : 'Dark Mode',
-            icon: darkMode ? 'pi pi-sun' : 'pi pi-moon',
-            command: () => setDarkMode(!darkMode)
+            label: isDark ? 'Light Mode' : 'Dark Mode',
+            icon: isDark ? 'pi pi-sun' : 'pi pi-moon',
+            command: () => setIsDark(!isDark)
         },
         {
             label: editMode ? 'View Mode' : 'Edit Mode',
@@ -1018,28 +1004,29 @@ export default function FlexibleScrollDemo() {
     return (
         <div style={{ 
             minHeight: '100vh',
-            background: darkMode 
+            background: isDark 
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
                 : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            color: darkMode ? '#e5e5e5' : '#000000',
+            color: isDark ? '#e5e5e5' : '#000000',
             transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             animation: 'fadeIn 0.6s ease-out'
         }}>
+            <style>{tableStyles}</style>
             {/* Navigation Header */}
             <div style={{
-                background: darkMode ? '#1a1a1a' : '#ffffff',
+                background: isDark ? '#1a1a1a' : '#ffffff',
                 padding: '1.5rem 2rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: `2px solid ${darkMode ? '#1a3a52' : '#3b82f6'}`,
+                borderBottom: `2px solid ${isDark ? '#1a3a52' : '#3b82f6'}`,
                 marginBottom: '2rem',
-                boxShadow: darkMode ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
             }}>
                 <h2 style={{ 
                     margin: 0, 
-                    color: darkMode ? '#e5e5e5' : '#000000',
+                    color: isDark ? '#e5e5e5' : '#000000',
                     fontSize: '25px',
                     fontWeight: '700'
                 }}>{editMode ? 'Edit Mode' : 'Route Management'}</h2>
@@ -1050,8 +1037,8 @@ export default function FlexibleScrollDemo() {
                         ref={menuRef}
                         style={{ 
                             minWidth: '250px',
-                            background: darkMode ? '#1a1a1a' : '#ffffff',
-                            border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+                            background: isDark ? '#1a1a1a' : '#ffffff',
+                            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
                         }}
                     />
                     <Button 
@@ -1086,6 +1073,7 @@ export default function FlexibleScrollDemo() {
                     scrollHeight="400px" 
                     tableStyle={{ minWidth: '50rem' }}
                     editMode={editMode ? "cell" : null}
+                    className="no-header-border"
                 >
                     <Column 
                         field="route" 
@@ -1131,8 +1119,8 @@ export default function FlexibleScrollDemo() {
                     contentStyle={{ height: '500px' }} 
                     onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
-                    headerStyle={{ color: darkMode ? '#fff' : '#000' }}
-                    headerClassName={darkMode ? '' : 'light-mode-dialog-header'}
+                    headerStyle={{ color: isDark ? '#fff' : '#000' }}
+                    headerClassName={isDark ? '' : 'light-mode-dialog-header'}
                 >
                     {/* Search and Function Button - Side by Side */}
                     <div style={{ 
@@ -1145,7 +1133,7 @@ export default function FlexibleScrollDemo() {
                     }}>
                         <div style={{ flex: '1', minWidth: '200px' }}>
                             <span className="p-input-icon-left" style={{ width: '100%' }}>
-                                <i className="pi pi-search" />
+                                <i className="pi pi-search" style={{ opacity: globalFilterValue ? 0 : 1, transition: 'opacity 0.2s ease' }} />
                                 <InputText
                                     value={globalFilterValue}
                                     onChange={(e) => setGlobalFilterValue(e.target.value)}
@@ -1175,8 +1163,8 @@ export default function FlexibleScrollDemo() {
                                     top: '100%',
                                     right: 0,
                                     marginTop: '0.5rem',
-                                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
-                                    border: `1px solid ${darkMode ? '#404040' : '#d1d5db'}`,
+                                    backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                                    border: `1px solid ${isDark ? '#404040' : '#d1d5db'}`,
                                     borderRadius: '8px',
                                     padding: '0.5rem',
                                     minWidth: '200px',
@@ -1240,7 +1228,7 @@ export default function FlexibleScrollDemo() {
                                                 fontWeight: 'bold', 
                                                 fontSize: '0.875rem', 
                                                 marginBottom: '0.5rem',
-                                                color: darkMode ? '#e5e5e5' : '#000000'
+                                                color: isDark ? '#e5e5e5' : '#000000'
                                             }}>
                                                 Set Order Mode
                                             </div>
@@ -1281,7 +1269,7 @@ export default function FlexibleScrollDemo() {
                                                 fontWeight: 'bold', 
                                                 fontSize: '0.875rem', 
                                                 marginBottom: '0.5rem',
-                                                color: darkMode ? '#e5e5e5' : '#000000'
+                                                color: isDark ? '#e5e5e5' : '#000000'
                                             }}>
                                                 Add New Row Mode
                                             </div>
@@ -1342,15 +1330,15 @@ export default function FlexibleScrollDemo() {
                     {/* Unsaved Changes Indicator - Above table */}
                     {hasUnsavedChanges && editMode && (
                         <div style={{
-                            backgroundColor: darkMode ? '#854d0e' : '#fef3c7',
-                            border: `2px solid ${darkMode ? '#f59e0b' : '#f59e0b'}`,
+                            backgroundColor: isDark ? '#854d0e' : '#fef3c7',
+                            border: `2px solid ${isDark ? '#f59e0b' : '#f59e0b'}`,
                             borderRadius: '8px',
                             padding: '0.75rem 1rem',
                             marginBottom: '1rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            color: darkMode ? '#fbbf24' : '#92400e',
+                            color: isDark ? '#fbbf24' : '#92400e',
                             fontWeight: 'bold',
                             fontSize: '0.875rem'
                         }}>
@@ -1362,11 +1350,11 @@ export default function FlexibleScrollDemo() {
                     {/* Info message for Set Order */}
                     {customSortMode && (
                         <div style={{
-                            backgroundColor: darkMode ? '#1e3a5f' : '#dbeafe',
+                            backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
                             border: '2px solid #3b82f6',
                             borderRadius: '8px',
                             padding: '0.75rem 1rem',
-                            color: darkMode ? '#93c5fd' : '#1e40af',
+                            color: isDark ? '#93c5fd' : '#1e40af',
                             fontWeight: 'bold',
                             fontSize: '0.875rem',
                             display: 'flex',
@@ -1382,17 +1370,17 @@ export default function FlexibleScrollDemo() {
                     {/* Custom Sort Table - Separate from DataTable */}
                     {customSortMode ? (
                         <div style={{ 
-                            border: darkMode ? 'none' : '1px solid #ddd', 
+                            border: isDark ? 'none' : '1px solid #ddd', 
                             borderRadius: '8px', 
                             overflow: 'auto',
                             maxHeight: '600px',
-                            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff'
+                            backgroundColor: isDark ? '#1a1a1a' : '#ffffff'
                         }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead style={{ 
                                     position: 'sticky', 
                                     top: 0, 
-                                    backgroundColor: darkMode ? '#2a2a2a' : '#f5f5f5',
+                                    backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5',
                                     zIndex: 10
                                 }}>
                                     <tr>
@@ -1457,16 +1445,17 @@ export default function FlexibleScrollDemo() {
                         globalFilter={globalFilterValue}
                         resizableColumns
                         columnResizeMode="expand"
+                        className="no-header-border"
                         rowClassName={(rowData) => {
                             let classes = '';
                             
                             // Highlight new rows with light yellow background
                             if (newRows.includes(rowData.id)) {
-                                classes += darkMode ? 'new-row-dark' : 'new-row-light';
+                                classes += isDark ? 'new-row-dark' : 'new-row-light';
                             }
                             // Highlight modified rows with light yellow background
                             else if (modifiedRows.has(rowData.id)) {
-                                classes += darkMode ? 'modified-row-dark' : 'modified-row-light';
+                                classes += isDark ? 'modified-row-dark' : 'modified-row-light';
                             }
                             
                             // Add disabled class for power off status
@@ -1595,9 +1584,9 @@ export default function FlexibleScrollDemo() {
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                                backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
                                                 borderRadius: '8px',
-                                                border: `2px dashed ${darkMode ? '#404040' : '#d1d5db'}`,
+                                                border: `2px dashed ${isDark ? '#404040' : '#d1d5db'}`,
                                                 position: 'relative',
                                                 margin: '0 auto'
                                             }}>
@@ -1637,7 +1626,7 @@ export default function FlexibleScrollDemo() {
                                         tooltipOptions={{ position: 'top' }}
                                         text
                                         onClick={() => handleShowInfo(rowData)}
-                                        style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
+                                        style={{ backgroundColor: isDark ? '#1a1a1a' : undefined }}
                                     />
 
                                     {/* Power Mode - Icon Button in Edit Mode, Icon in View Mode */}
@@ -1652,7 +1641,7 @@ export default function FlexibleScrollDemo() {
                                             onClick={() => handleOpenPowerModeDialog(rowData)}
                                             style={{ 
                                                 color: getPowerColor(rowData.powerMode || 'Daily'),
-                                                backgroundColor: darkMode ? '#1a1a1a' : undefined
+                                                backgroundColor: isDark ? '#1a1a1a' : undefined
                                             }}
                                         />
                                     ) : (
@@ -1664,7 +1653,7 @@ export default function FlexibleScrollDemo() {
                                             text
                                             style={{ 
                                                 color: getPowerColor(rowData.powerMode || 'Daily'),
-                                                backgroundColor: darkMode ? '#1a1a1a' : undefined
+                                                backgroundColor: isDark ? '#1a1a1a' : undefined
                                             }}
                                         />
                                     )}
@@ -1679,7 +1668,7 @@ export default function FlexibleScrollDemo() {
                                             tooltipOptions={{ position: 'top' }}
                                             text
                                             onClick={() => handleOpenImageDialog(rowData)}
-                                            style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
+                                            style={{ backgroundColor: isDark ? '#1a1a1a' : undefined }}
                                         />
                                     )}
 
@@ -1693,7 +1682,7 @@ export default function FlexibleScrollDemo() {
                                             tooltipOptions={{ position: 'top' }}
                                             text
                                             onClick={() => handleDeleteDialogRow(rowData.id)}
-                                            style={{ backgroundColor: darkMode ? '#1a1a1a' : undefined }}
+                                            style={{ backgroundColor: isDark ? '#1a1a1a' : undefined }}
                                         />
                                     )}
                                 </div>
@@ -1953,7 +1942,7 @@ export default function FlexibleScrollDemo() {
                     }}
                 >
                     <div style={{ padding: '1rem' }}>
-                        <p style={{ marginBottom: '1rem', color: darkMode ? '#9ca3af' : '#6b7280' }}>
+                        <p style={{ marginBottom: '1rem', color: isDark ? '#9ca3af' : '#6b7280' }}>
                             Please enter your 4-digit password to access Edit Mode
                         </p>
                         
@@ -1962,7 +1951,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block', 
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 Password
                             </label>
@@ -2056,7 +2045,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block', 
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 Current Password
                             </label>
@@ -2084,7 +2073,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block', 
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 New Password
                             </label>
@@ -2112,7 +2101,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block', 
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 Confirm New Password
                             </label>
@@ -2193,12 +2182,12 @@ export default function FlexibleScrollDemo() {
                         backdropFilter: 'blur(4px)'
                     }}>
                         <div style={{
-                            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
                             padding: '3rem',
                             borderRadius: '20px',
                             textAlign: 'center',
                             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-                            border: `2px solid ${darkMode ? '#1a3a52' : '#3b82f6'}`
+                            border: `2px solid ${isDark ? '#1a3a52' : '#3b82f6'}`
                         }}>
                             <i className="pi pi-spin pi-spinner" style={{ 
                                 fontSize: '3rem', 
@@ -2207,12 +2196,12 @@ export default function FlexibleScrollDemo() {
                             }}></i>
                             <h3 style={{ 
                                 margin: '1rem 0 0.5rem 0',
-                                color: darkMode ? '#e5e5e5' : '#000000',
+                                color: isDark ? '#e5e5e5' : '#000000',
                                 fontSize: '1.5rem'
                             }}>Saving Changes...</h3>
                             <p style={{ 
                                 margin: 0,
-                                color: darkMode ? '#9ca3af' : '#6b7280',
+                                color: isDark ? '#9ca3af' : '#6b7280',
                                 fontSize: '0.875rem'
                             }}>Please wait while we save your data</p>
                         </div>
@@ -2256,16 +2245,16 @@ export default function FlexibleScrollDemo() {
                         <p style={{ 
                             margin: '0 0 1rem 0',
                             fontSize: '1rem',
-                            color: darkMode ? '#e5e5e5' : '#000000'
+                            color: isDark ? '#e5e5e5' : '#000000'
                         }}>
                             Are you sure you want to delete this {deleteType === 'location' ? 'location' : 'route'}?
                         </p>
                         {deleteTarget && deleteTarget.data && (
                             <div style={{
-                                backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
                                 padding: '1rem',
                                 borderRadius: '8px',
-                                border: `2px solid ${darkMode ? '#404040' : '#e5e7eb'}`
+                                border: `2px solid ${isDark ? '#404040' : '#e5e7eb'}`
                             }}>
                                 {deleteType === 'location' ? (
                                     <>
@@ -2345,7 +2334,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block',
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 {editingImageIndex !== null ? 'Edit Image URL:' : 'Add Image by URL:'}
                             </label>
@@ -2400,7 +2389,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block',
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 Or Upload Image:
                             </label>
@@ -2424,7 +2413,7 @@ export default function FlexibleScrollDemo() {
                                 display: 'block',
                                 marginBottom: '0.5rem',
                                 fontWeight: 'bold',
-                                color: darkMode ? '#e5e5e5' : '#000000'
+                                color: isDark ? '#e5e5e5' : '#000000'
                             }}>
                                 Current Images ({currentRowImages.length}):
                             </label>
@@ -2432,9 +2421,9 @@ export default function FlexibleScrollDemo() {
                                 <div style={{
                                     padding: '2rem',
                                     textAlign: 'center',
-                                    backgroundColor: darkMode ? '#2a2a2a' : '#f3f4f6',
+                                    backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
                                     borderRadius: '8px',
-                                    color: darkMode ? '#9ca3af' : '#6b7280'
+                                    color: isDark ? '#9ca3af' : '#6b7280'
                                 }}>
                                     <i className="pi pi-image" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}></i>
                                     <p>No images added yet</p>
@@ -2448,10 +2437,10 @@ export default function FlexibleScrollDemo() {
                                     {currentRowImages.map((img, index) => (
                                         <div key={index} style={{
                                             position: 'relative',
-                                            border: `2px solid ${darkMode ? '#404040' : '#e5e7eb'}`,
+                                            border: `2px solid ${isDark ? '#404040' : '#e5e7eb'}`,
                                             borderRadius: '8px',
                                             padding: '0.5rem',
-                                            backgroundColor: darkMode ? '#2a2a2a' : '#ffffff'
+                                            backgroundColor: isDark ? '#2a2a2a' : '#ffffff'
                                         }}>
                                             <img
                                                 src={img}
@@ -2526,7 +2515,7 @@ export default function FlexibleScrollDemo() {
                     <div style={{ padding: '1rem 0' }}>
                         <p style={{ 
                             marginBottom: '1.5rem',
-                            color: darkMode ? '#9ca3af' : '#6b7280',
+                            color: isDark ? '#9ca3af' : '#6b7280',
                             fontSize: '0.875rem'
                         }}>
                             Select one power mode. Only one mode can be active at a time.
@@ -2572,26 +2561,26 @@ export default function FlexibleScrollDemo() {
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
                                             padding: '1rem',
-                                            border: `2px solid ${isSelected ? '#3b82f6' : (darkMode ? '#404040' : '#e5e7eb')}`,
+                                            border: `2px solid ${isSelected ? '#3b82f6' : (isDark ? '#404040' : '#e5e7eb')}`,
                                             borderRadius: '12px',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s ease',
                                             backgroundColor: isSelected 
-                                                ? (darkMode ? '#1e3a5f' : '#dbeafe')
-                                                : (darkMode ? '#2a2a2a' : '#ffffff'),
+                                                ? (isDark ? '#1e3a5f' : '#dbeafe')
+                                                : (isDark ? '#2a2a2a' : '#ffffff'),
                                             transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                                             boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
                                         }}
                                         onMouseEnter={(e) => {
                                             if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = darkMode ? '#353535' : '#f9fafb';
+                                                e.currentTarget.style.backgroundColor = isDark ? '#353535' : '#f9fafb';
                                                 e.currentTarget.style.borderColor = '#3b82f6';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
                                             if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = darkMode ? '#2a2a2a' : '#ffffff';
-                                                e.currentTarget.style.borderColor = darkMode ? '#404040' : '#e5e7eb';
+                                                e.currentTarget.style.backgroundColor = isDark ? '#2a2a2a' : '#ffffff';
+                                                e.currentTarget.style.borderColor = isDark ? '#404040' : '#e5e7eb';
                                             }
                                         }}
                                     >
@@ -2600,20 +2589,20 @@ export default function FlexibleScrollDemo() {
                                                 className={`pi ${mode.icon}`}
                                                 style={{ 
                                                     fontSize: '1.5rem',
-                                                    color: isSelected ? '#3b82f6' : (darkMode ? '#9ca3af' : '#6b7280')
+                                                    color: isSelected ? '#3b82f6' : (isDark ? '#9ca3af' : '#6b7280')
                                                 }}
                                             ></i>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ 
                                                     fontWeight: 'bold',
                                                     marginBottom: '0.25rem',
-                                                    color: darkMode ? '#e5e5e5' : '#000000'
+                                                    color: isDark ? '#e5e5e5' : '#000000'
                                                 }}>
                                                     {mode.label}
                                                 </div>
                                                 <div style={{ 
                                                     fontSize: '0.75rem',
-                                                    color: darkMode ? '#9ca3af' : '#6b7280'
+                                                    color: isDark ? '#9ca3af' : '#6b7280'
                                                 }}>
                                                     {mode.description}
                                                 </div>
@@ -2639,7 +2628,7 @@ export default function FlexibleScrollDemo() {
                                                         width: '48px',
                                                         height: '24px',
                                                         borderRadius: '12px',
-                                                        backgroundColor: isSelected ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db'),
+                                                        backgroundColor: isSelected ? '#3b82f6' : (isDark ? '#4b5563' : '#d1d5db'),
                                                         position: 'relative',
                                                         transition: 'all 0.3s ease',
                                                         cursor: 'pointer'
@@ -2690,13 +2679,13 @@ export default function FlexibleScrollDemo() {
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     padding: '0.75rem',
-                                    backgroundColor: darkMode ? '#1a1a1a' : '#f9fafb',
+                                    backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
                                     borderRadius: '8px',
-                                    border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+                                    border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
                                 }}>
                                     <span style={{
                                         fontWeight: '600',
-                                        color: darkMode ? '#e5e5e5' : '#000000'
+                                        color: isDark ? '#e5e5e5' : '#000000'
                                     }}>
                                         {col.label}
                                     </span>
@@ -2709,7 +2698,7 @@ export default function FlexibleScrollDemo() {
                                             width: '48px',
                                             height: '24px',
                                             borderRadius: '12px',
-                                            backgroundColor: tempVisibleColumns[col.key] ? '#10b981' : (darkMode ? '#4b5563' : '#d1d5db'),
+                                            backgroundColor: tempVisibleColumns[col.key] ? '#10b981' : (isDark ? '#4b5563' : '#d1d5db'),
                                             position: 'relative',
                                             transition: 'all 0.3s ease',
                                             cursor: 'pointer'

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import FlexibleScrollDemo from './FlexibleScrollDemo.jsx'
-import './index.css'
+import './index-clean.css'
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primeicons/primeicons.css';
 import 'leaflet/dist/leaflet.css';
