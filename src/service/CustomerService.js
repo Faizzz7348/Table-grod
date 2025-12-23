@@ -2,6 +2,37 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Only use localStorage in development mode
 const USE_LOCALSTORAGE = import.meta.env.DEV === true;
 
+// In-memory cache with expiration
+const cache = {
+    routes: { data: null, timestamp: null },
+    locations: { data: null, timestamp: null }
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Cache helper functions
+const isCacheValid = (cacheEntry) => {
+    if (!cacheEntry.data || !cacheEntry.timestamp) return false;
+    return (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
+};
+
+const setCache = (key, data) => {
+    cache[key] = { data, timestamp: Date.now() };
+};
+
+const getCache = (key) => {
+    return isCacheValid(cache[key]) ? cache[key].data : null;
+};
+
+const clearCache = (key = null) => {
+    if (key) {
+        cache[key] = { data: null, timestamp: null };
+    } else {
+        cache.routes = { data: null, timestamp: null };
+        cache.locations = { data: null, timestamp: null };
+    }
+};
+
 export const CustomerService = {
     // Initialize localStorage with dummy data if not exists
     initLocalStorage() {
@@ -13,12 +44,20 @@ export const CustomerService = {
         }
     },
 
-    // Get routes from API or localStorage
+    // Get routes from API or localStorage with caching
     async getRoutes() {
+        // Check in-memory cache first
+        const cachedData = getCache('routes');
+        if (cachedData) {
+            console.log('⚡ Using cached routes from memory');
+            return cachedData;
+        }
+
         if (USE_LOCALSTORAGE) {
             this.initLocalStorage();
             const routes = JSON.parse(localStorage.getItem('routes') || '[]');
             console.log('📦 Loading routes from localStorage:', routes);
+            setCache('routes', routes);
             return routes;
         }
 
@@ -27,15 +66,28 @@ export const CustomerService = {
             if (!response.ok) {
                 throw new Error('Failed to fetch routes');
             }
-            return await response.json();
+            const routes = await response.json();
+            setCache('routes', routes);
+            return routes;
         } catch (error) {
             console.error('Error fetching routes:', error);
-            return this.getDummyRoutes();
+            const dummyRoutes = this.getDummyRoutes();
+            setCache('routes', dummyRoutes);
+            return dummyRoutes;
         }
     },
 
-    // Get detail locations from API or localStorage
+    // Get detail locations from API or localStorage with caching
     async getDetailData(routeId = null) {
+        // For specific routeId, don't cache (data can change frequently)
+        if (!routeId) {
+            const cachedData = getCache('locations');
+            if (cachedData) {
+                console.log('⚡ Using cached locations from memory');
+                return cachedData;
+            }
+        }
+
         if (USE_LOCALSTORAGE) {
             this.initLocalStorage();
             const locations = JSON.parse(localStorage.getItem('locations') || '[]');
@@ -43,6 +95,7 @@ export const CustomerService = {
             // Filter by routeId if provided
             const filteredLocations = routeId ? locations.filter(loc => loc.routeId === routeId) : locations;
             console.log(`📦 Filtered locations for routeId ${routeId}:`, filteredLocations);
+            if (!routeId) setCache('locations', locations);
             return filteredLocations;
         }
 
@@ -52,12 +105,16 @@ export const CustomerService = {
             if (!response.ok) {
                 throw new Error('Failed to fetch locations');
             }
-            return await response.json();
+            const locations = await response.json();
+            if (!routeId) setCache('locations', locations);
+            return locations;
         } catch (error) {
             console.error('Error fetching locations:', error);
             // Fallback to dummy data and filter by routeId
             const dummyLocations = this.getDummyLocations();
-            return routeId ? dummyLocations.filter(loc => loc.routeId === routeId) : dummyLocations;
+            const filteredLocations = routeId ? dummyLocations.filter(loc => loc.routeId === routeId) : dummyLocations;
+            if (!routeId) setCache('locations', dummyLocations);
+            return filteredLocations;
         }
     },
 
@@ -66,6 +123,7 @@ export const CustomerService = {
         if (USE_LOCALSTORAGE) {
             localStorage.setItem('routes', JSON.stringify(routes));
             console.log('💾 Routes saved to localStorage:', routes);
+            clearCache('routes'); // Clear cache after save
             return { success: true, message: 'Routes saved to localStorage', count: routes.length };
         }
 
@@ -111,6 +169,8 @@ export const CustomerService = {
                 throw new Error('Some routes failed to save');
             }
             
+            clearCache('routes'); // Clear cache after successful save
+            
             return { 
                 success: true, 
                 message: 'Routes saved successfully', 
@@ -129,6 +189,7 @@ export const CustomerService = {
         if (USE_LOCALSTORAGE) {
             localStorage.setItem('locations', JSON.stringify(locations));
             console.log('💾 Locations saved to localStorage:', locations);
+            clearCache('locations'); // Clear cache after save
             return { success: true, message: 'Locations saved to localStorage', count: locations.length };
         }
 
@@ -145,6 +206,8 @@ export const CustomerService = {
                 throw new Error('Failed to save locations');
             }
             
+            clearCache('locations'); // Clear cache after successful save
+            
             return await response.json();
         } catch (error) {
             console.error('Error saving locations:', error);
@@ -159,6 +222,7 @@ export const CustomerService = {
             const filtered = locations.filter(loc => loc.id !== id);
             localStorage.setItem('locations', JSON.stringify(filtered));
             console.log('🗑️ Location deleted from localStorage:', id);
+            clearCache('locations'); // Clear cache after delete
             return { success: true, message: 'Location deleted from localStorage' };
         }
 
@@ -174,6 +238,8 @@ export const CustomerService = {
             if (!response.ok) {
                 throw new Error('Failed to delete location');
             }
+            
+            clearCache('locations'); // Clear cache after successful delete
             
             return await response.json();
         } catch (error) {

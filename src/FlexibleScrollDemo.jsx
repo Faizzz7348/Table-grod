@@ -75,7 +75,18 @@ export default function FlexibleScrollDemo() {
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
-    const [darkMode, setDarkMode] = useState(false);
+    // Initialize dark mode from localStorage or system preference
+    const getInitialDarkMode = () => {
+        // Check localStorage first
+        const savedMode = localStorage.getItem('darkMode');
+        if (savedMode !== null) {
+            return savedMode === 'true';
+        }
+        // Check system preference
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    };
+    
+    const [darkMode, setDarkMode] = useState(getInitialDarkMode);
     const [editMode, setEditMode] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
@@ -138,24 +149,34 @@ export default function FlexibleScrollDemo() {
         confirmPassword: ''
     });
     const [changePasswordError, setChangePasswordError] = useState('');
+    
+    // Function Dropdown State
+    const [functionDropdownVisible, setFunctionDropdownVisible] = useState(false);
+    const [activeFunction, setActiveFunction] = useState(null); // 'setOrder' or 'addRow'
+    
+    // Column Visibility Modal State
+    const [columnModalVisible, setColumnModalVisible] = useState(false);
+    const [tempVisibleColumns, setTempVisibleColumns] = useState({});
+    
+    // Add Row Mode State
+    const [addRowMode, setAddRowMode] = useState(false);
+    const [newRows, setNewRows] = useState([]);
+    
+    // Track modified rows
+    const [modifiedRows, setModifiedRows] = useState(new Set());
 
     useEffect(() => {
-        console.log('Component mounted - Loading data...');
-        
-        // Simulate smart loading intro
         const loadData = async () => {
             try {
                 // Check if we should clear data (for fresh start)
                 const shouldClear = localStorage.getItem('clearDataOnLoad');
                 if (shouldClear === 'true') {
-                    console.log('Clearing localStorage...');
                     localStorage.removeItem('routes');
                     localStorage.removeItem('locations');
                     localStorage.removeItem('clearDataOnLoad');
                 }
                 
                 const data = await CustomerService.getRoutes();
-                console.log('Data loaded:', data);
                 
                 // Smart loading delay for smooth intro
                 await new Promise(resolve => setTimeout(resolve, 800));
@@ -171,16 +192,50 @@ export default function FlexibleScrollDemo() {
         loadData();
     }, []);
 
+    // Apply dark mode to body and save to localStorage
     useEffect(() => {
-        // Apply dark/light mode class to body
         document.body.className = darkMode ? 'dark-mode' : 'light-mode';
+        localStorage.setItem('darkMode', darkMode.toString());
+        
+        // Update meta theme-color for mobile browsers
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', darkMode ? '#1a1a1a' : '#ffffff');
+        }
     }, [darkMode]);
+    
+    // Listen for system theme changes
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e) => {
+            // Only auto-switch if user hasn't set preference
+            if (localStorage.getItem('darkMode') === null) {
+                setDarkMode(e.matches);
+            }
+        };
+        
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, []);
+    
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (functionDropdownVisible && !event.target.closest('.function-dropdown-container')) {
+                setFunctionDropdownVisible(false);
+            }
+        };
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [functionDropdownVisible]);
 
     const dialogFooterTemplate = () => {
         return (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    {/* Data Source Indicator */}
                     <div style={{ 
                         display: 'flex',
                         alignItems: 'center',
@@ -193,19 +248,6 @@ export default function FlexibleScrollDemo() {
                             {isCustomSorted ? '📊 Custom Sorted' : '🗄️ Original Database Order'}
                         </span>
                     </div>
-                    {hasUnsavedChanges && (
-                        <span style={{
-                            color: '#f59e0b',
-                            fontSize: '0.875rem',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}>
-                            <i className="pi pi-info-circle"></i>
-                            You have unsaved changes
-                        </span>
-                    )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <Button 
@@ -214,29 +256,7 @@ export default function FlexibleScrollDemo() {
                         onClick={() => setDialogVisible(false)} 
                         size="small"
                         outlined
-                        disabled={saving}
                     />
-                    {editMode && hasUnsavedChanges && (
-                        <>
-                            <Button 
-                                label="Cancel Changes" 
-                                icon="pi pi-undo" 
-                                onClick={handleCancelChanges} 
-                                severity="danger"
-                                size="small"
-                                outlined
-                                disabled={saving}
-                            />
-                            <Button 
-                                label={saving ? "Saving..." : "Save Changes"} 
-                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"} 
-                                onClick={handleSaveChanges} 
-                                severity="success"
-                                size="small"
-                                disabled={saving}
-                            />
-                        </>
-                    )}
                 </div>
             </div>
         );
@@ -248,7 +268,6 @@ export default function FlexibleScrollDemo() {
         );
         setRoutes(updatedRoutes);
         setHasUnsavedChanges(true);
-        console.log('Updated:', rowId, field, value);
     };
 
     const handleUpdateDialogData = (rowId, field, value) => {
@@ -257,7 +276,9 @@ export default function FlexibleScrollDemo() {
         );
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
-        console.log('Dialog Updated:', rowId, field, value);
+        
+        // Mark row as modified
+        setModifiedRows(prev => new Set(prev).add(rowId));
     };
 
     const handlePowerModeChange = (rowId, mode) => {
@@ -266,7 +287,9 @@ export default function FlexibleScrollDemo() {
         );
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
-        console.log('Power mode changed:', rowId, mode);
+        
+        // Mark row as modified
+        setModifiedRows(prev => new Set(prev).add(rowId));
     };
 
     const sortDialogData = (data) => {
@@ -383,16 +406,16 @@ export default function FlexibleScrollDemo() {
                 CustomerService.saveLocations(dialogData)
             ]);
             
-            console.log('Changes saved successfully:', { 
-                routes, 
-                dialogData, 
-                isCustomSorted,
-                results 
-            });
-            
             setOriginalData([...routes]);
             setOriginalDialogData([...dialogData]);
             setHasUnsavedChanges(false);
+            setSaving(false);
+            
+            // Clear modified rows tracking
+            setModifiedRows(new Set());
+            setNewRows([]);
+            
+            // CasUnsavedChanges(false);
             setSaving(false);
             
             // Check if using localStorage
@@ -426,7 +449,6 @@ export default function FlexibleScrollDemo() {
         setRoutes([...originalData]);
         setDialogData([...originalDialogData]);
         setHasUnsavedChanges(false);
-        console.log('Changes cancelled');
     };
 
     const handleToggleEditMode = () => {
@@ -526,15 +548,11 @@ export default function FlexibleScrollDemo() {
     };
     
     const handleSortOrderChange = (rowId, value) => {
-        console.log('handleSortOrderChange called:', {rowId, value, type: typeof value});
-        // Store as string if empty, otherwise as number
         const newValue = value === '' ? '' : parseInt(value);
-        console.log('Setting new value:', newValue);
         const updated = {
             ...sortOrders, 
             [rowId]: newValue
         };
-        console.log('Updated sortOrders:', updated);
         setSortOrders(updated);
     };
     
@@ -546,51 +564,80 @@ export default function FlexibleScrollDemo() {
     };
     
     const applyCustomSort = () => {
-        // Validate that all rows have unique, sequential numbers
-        const orders = Object.values(sortOrders).filter(o => o !== '');
-        const uniqueOrders = new Set(orders);
+        const filledOrders = Object.entries(sortOrders).filter(([_, order]) => order !== '');
         
-        if (orders.length !== dialogData.length) {
-            alert('⚠️ Semua row harus mempunyai nombor urutan!');
+        if (filledOrders.length === 0) {
+            alert('⚠️ Please enter at least one row order number!');
             return;
         }
+        
+        // Check for duplicates
+        const orders = filledOrders.map(([_, order]) => order);
+        const uniqueOrders = new Set(orders);
         
         if (uniqueOrders.size !== orders.length) {
             alert('⚠️ Nombor tidak boleh duplikat! Sila gunakan nombor yang berbeza untuk setiap row.');
             return;
         }
         
-        // Sort the data based on custom orders
-        const sortedData = [...dialogData].sort((a, b) => {
-            const orderA = sortOrders[a.id] || 999999;
-            const orderB = sortOrders[b.id] || 999999;
-            return orderA - orderB;
+        // Separate rows: those with order and those without
+        const rowsWithOrder = [];
+        const rowsWithoutOrder = [];
+        
+        dialogData.forEach(row => {
+            const order = sortOrders[row.id];
+            if (order !== '' && order !== undefined) {
+                rowsWithOrder.push({ ...row, customOrder: order });
+            } else {
+                rowsWithoutOrder.push(row);
+            }
         });
+        
+        // Sort rows with custom order by their order number
+        rowsWithOrder.sort((a, b) => a.customOrder - b.customOrder);
+        
+        // Sort rows without order by code (default)
+        rowsWithoutOrder.sort((a, b) => {
+            const codeA = parseInt(a.code) || 0;
+            const codeB = parseInt(b.code) || 0;
+            return codeA - codeB;
+        });
+        
+        // Combine: custom ordered rows first, then default sorted rows
+        const sortedData = [...rowsWithOrder, ...rowsWithoutOrder];
         
         setDialogData(sortedData);
         setHasUnsavedChanges(true);
         setCustomSortMode(false);
         setSortOrders({});
-        setIsCustomSorted(true); // Mark as custom sorted
-        alert('✅ Row telah disusun mengikut urutan yang anda tetapkan!');
+        setIsCustomSorted(true);
+        setActiveFunction(null);
+        setFunctionDropdownVisible(false);
+        
+        const message = filledOrders.length === dialogData.length
+            ? '✅ All rows have been sorted according to your order!'
+            : `✅ ${filledOrders.length} row(s) sorted by your order, remaining ${rowsWithoutOrder.length} row(s) sorted by code!`;
+        
+        alert(message);
     };
 
     const handleAddDialogRow = () => {
-        const tempId = Date.now(); // Use timestamp for temporary ID
-        const newNo = dialogData.length > 0 ? Math.max(...dialogData.map(d => d.no)) + 1 : 1;
+        const tempId = `new_${Date.now()}`; // Use string prefix for new rows
         const newRow = {
             id: tempId,
-            no: newNo,
-            code: `${newNo * 10}`,
-            location: 'New Location',
+            no: '-',
+            code: '-',
+            location: '-',
             delivery: 'Daily',
             images: [],
             powerMode: 'Daily',
-            routeId: currentRouteId // Link to current route
+            routeId: currentRouteId,
+            isNew: true
         };
-        setDialogData(sortDialogData([...dialogData, newRow]));
+        // Add new row at the top
+        setDialogData([newRow, ...dialogData]);
+        setNewRows([...newRows, tempId]);
         setHasUnsavedChanges(true);
-        console.log('Added new dialog row with routeId:', newRow);
     };
 
     const handleDeleteDialogRow = (rowId) => {
@@ -780,24 +827,7 @@ export default function FlexibleScrollDemo() {
     const actionBodyTemplate = (rowData) => {
         return (
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                <Button 
-                    icon="pi pi-list" 
-                    size="small"
-                    tooltip="Show"
-                    tooltipOptions={{ position: 'top' }}
-                    text
-                    onClick={() => {
-                        setCurrentRouteId(rowData.id);
-                        setCurrentRouteName(rowData.route);
-                        CustomerService.getDetailData(rowData.id).then((data) => {
-                            setDialogData(sortDialogData(data));
-                            setOriginalDialogData(sortDialogData(data));
-                            setDialogVisible(true);
-                            setIsCustomSorted(false); // Reset custom sort flag
-                        });
-                    }} 
-                />
-                {editMode && (
+                {editMode ? (
                     <>
                         <Button 
                             icon="pi pi-pencil" 
@@ -813,6 +843,7 @@ export default function FlexibleScrollDemo() {
                                     setDialogData(sortDialogData(data));
                                     setOriginalDialogData(sortDialogData(data));
                                     setDialogVisible(true);
+                                    setIsCustomSorted(false);
                                 });
                             }} 
                         />
@@ -826,6 +857,24 @@ export default function FlexibleScrollDemo() {
                             onClick={() => handleDeleteRow(rowData.id)} 
                         />
                     </>
+                ) : (
+                    <Button 
+                        icon="pi pi-list" 
+                        size="small"
+                        tooltip="Show"
+                        tooltipOptions={{ position: 'top' }}
+                        text
+                        onClick={() => {
+                            setCurrentRouteId(rowData.id);
+                            setCurrentRouteName(rowData.route);
+                            CustomerService.getDetailData(rowData.id).then((data) => {
+                                setDialogData(sortDialogData(data));
+                                setOriginalDialogData(sortDialogData(data));
+                                setDialogVisible(true);
+                                setIsCustomSorted(false);
+                            });
+                        }} 
+                    />
                 )}
             </div>
         );
@@ -1085,13 +1134,14 @@ export default function FlexibleScrollDemo() {
                     headerStyle={{ color: darkMode ? '#fff' : '#000' }}
                     headerClassName={darkMode ? '' : 'light-mode-dialog-header'}
                 >
-                    {/* Search and Column Visibility Controls */}
+                    {/* Search and Function Button - Side by Side */}
                     <div style={{ 
                         display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                         gap: '1rem', 
                         marginBottom: '1rem',
-                        flexWrap: 'wrap',
-                        alignItems: 'flex-start'
+                        flexWrap: 'wrap'
                     }}>
                         <div style={{ flex: '1', minWidth: '200px' }}>
                             <span className="p-input-icon-left" style={{ width: '100%' }}>
@@ -1104,17 +1154,22 @@ export default function FlexibleScrollDemo() {
                                 />
                             </span>
                         </div>
-                        <div style={{ position: 'relative' }}>
+                        
+                        {/* Function Dropdown */}
+                        <div className="function-dropdown-container" style={{ position: 'relative' }}>
                             <Button 
-                                icon="pi pi-eye" 
-                                label="Columns" 
+                                label={
+                                    activeFunction === 'setOrder' ? 'Set Order' :
+                                    activeFunction === 'addRow' ? 'Add New Row' :
+                                    'Function'
+                                }
+                                icon="pi pi-bars"
+                                severity={activeFunction ? 'success' : 'info'}
                                 size="small"
-                                outlined
-                                onClick={() => setShowColumnPanel(!showColumnPanel)}
-                                badge={String(Object.values(visibleColumns).filter(v => v).length)}
-                                badgeClassName="p-badge-info"
+                                onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
+                                raised
                             />
-                            {showColumnPanel && (
+                            {functionDropdownVisible && (
                                 <div style={{
                                     position: 'absolute',
                                     top: '100%',
@@ -1123,96 +1178,207 @@ export default function FlexibleScrollDemo() {
                                     backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
                                     border: `1px solid ${darkMode ? '#404040' : '#d1d5db'}`,
                                     borderRadius: '8px',
-                                    padding: '1rem',
+                                    padding: '0.5rem',
                                     minWidth: '200px',
                                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                                     zIndex: 1000
                                 }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        {[
-                                            { key: 'no', label: 'No' },
-                                            { key: 'code', label: 'Code' },
-                                            { key: 'location', label: 'Location' },
-                                            { key: 'delivery', label: 'Delivery' },
-                                            { key: 'image', label: 'Image' }
-                                        ].map(col => (
-                                            <label key={col.key} style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: '0.5rem',
-                                                cursor: 'pointer',
-                                                color: darkMode ? '#e5e5e5' : '#000000'
-                                            }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={visibleColumns[col.key]}
-                                                    onChange={(e) => setVisibleColumns({...visibleColumns, [col.key]: e.target.checked})}
-                                                    style={{ 
-                                                        cursor: 'pointer',
-                                                        width: '16px',
-                                                        height: '16px'
+                                    {/* Main Menu - Show when no active function */}
+                                    {activeFunction !== 'setOrder' && activeFunction !== 'addRow' && (
+                                        <>
+                                            <Button 
+                                                label="Set Order" 
+                                                icon="pi pi-sort-numeric-up"
+                                                severity="info"
+                                                size="small"
+                                                text
+                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem' }}
+                                                onClick={() => {
+                                                    setActiveFunction('setOrder');
+                                                    setCustomSortMode(true);
+                                                    const initialOrders = {};
+                                                    dialogData.forEach((row) => {
+                                                        initialOrders[row.id] = '';
+                                                    });
+                                                    setSortOrders(initialOrders);
+                                                }}
+                                            />
+                                            {editMode && (
+                                                <Button 
+                                                    label="Add New Row" 
+                                                    icon="pi pi-plus"
+                                                    severity="success"
+                                                    size="small"
+                                                    text
+                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem' }}
+                                                    onClick={() => {
+                                                        setActiveFunction('addRow');
+                                                        setAddRowMode(true);
                                                     }}
                                                 />
-                                                <span>{col.label}</span>
-                                            </label>
-                                        ))}
-                                    </div>
+                                            )}
+                                            <Button 
+                                                label="Columns" 
+                                                icon="pi pi-th-large"
+                                                severity="secondary"
+                                                size="small"
+                                                text
+                                                style={{ width: '100%', justifyContent: 'flex-start' }}
+                                                onClick={() => {
+                                                    setTempVisibleColumns({...visibleColumns});
+                                                    setColumnModalVisible(true);
+                                                    setFunctionDropdownVisible(false);
+                                                }}
+                                            />
+                                        </>
+                                    )}
+                                    
+                                    {/* Set Order Actions */}
+                                    {activeFunction === 'setOrder' && (
+                                        <>
+                                            <div style={{ 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.875rem', 
+                                                marginBottom: '0.5rem',
+                                                color: darkMode ? '#e5e5e5' : '#000000'
+                                            }}>
+                                                Set Order Mode
+                                            </div>
+                                            <Button 
+                                                label="Apply" 
+                                                icon="pi pi-check"
+                                                severity="success"
+                                                size="small"
+                                                style={{ 
+                                                    width: '100%', 
+                                                    marginBottom: '0.25rem',
+                                                    backgroundColor: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#9ca3af'
+                                                }}
+                                                onClick={applyCustomSort}
+                                                disabled={!Object.values(sortOrders).some(o => o !== '')}
+                                            />
+                                            <Button 
+                                                label="Cancel" 
+                                                icon="pi pi-times"
+                                                severity="danger"
+                                                size="small"
+                                                outlined
+                                                style={{ width: '100%' }}
+                                                onClick={() => {
+                                                    setActiveFunction(null);
+                                                    setCustomSortMode(false);
+                                                    setSortOrders({});
+                                                    setFunctionDropdownVisible(false);
+                                                }}
+                                            />
+                                        </>
+                                    )}
+                                    
+                                    {/* Add Row Actions - Only in Edit Mode */}
+                                    {activeFunction === 'addRow' && editMode && (
+                                        <>
+                                            <div style={{ 
+                                                fontWeight: 'bold', 
+                                                fontSize: '0.875rem', 
+                                                marginBottom: '0.5rem',
+                                                color: darkMode ? '#e5e5e5' : '#000000'
+                                            }}>
+                                                Add New Row Mode
+                                            </div>
+                                            <Button 
+                                                label="Add Row" 
+                                                icon="pi pi-plus"
+                                                severity="success"
+                                                size="small"
+                                                style={{ width: '100%', marginBottom: '0.25rem' }}
+                                                onClick={handleAddDialogRow}
+                                            />
+                                            <Button 
+                                                label="Save Changes" 
+                                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"}
+                                                severity={hasUnsavedChanges ? "success" : "secondary"}
+                                                size="small"
+                                                style={{ 
+                                                    width: '100%', 
+                                                    marginBottom: '0.25rem',
+                                                    backgroundColor: hasUnsavedChanges ? '#10b981' : undefined,
+                                                    borderColor: hasUnsavedChanges ? '#10b981' : undefined
+                                                }}
+                                                onClick={() => {
+                                                    handleSaveChanges();
+                                                    setActiveFunction(null);
+                                                    setAddRowMode(false);
+                                                    setNewRows([]);
+                                                    setFunctionDropdownVisible(false);
+                                                }}
+                                                disabled={!hasUnsavedChanges || saving}
+                                            />
+                                            <Button 
+                                                label="Cancel" 
+                                                icon="pi pi-times"
+                                                severity="danger"
+                                                size="small"
+                                                outlined
+                                                style={{ width: '100%' }}
+                                                onClick={() => {
+                                                    const filteredData = dialogData.filter(row => !newRows.includes(row.id));
+                                                    setDialogData(filteredData);
+                                                    setActiveFunction(null);
+                                                    setAddRowMode(false);
+                                                    setNewRows([]);
+                                                    setFunctionDropdownVisible(false);
+                                                    if (newRows.length > 0) {
+                                                        setHasUnsavedChanges(false);
+                                                    }
+                                                }}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
-                    {editMode && (
-                        <div style={{ marginBottom: '1rem' }}>
-                            <Button 
-                                label="Add New Row" 
-                                icon="pi pi-plus" 
-                                severity="success"
-                                size="small"
-                                onClick={handleAddDialogRow}
-                                raised
-                            />
+                    
+                    {/* Unsaved Changes Indicator - Above table */}
+                    {hasUnsavedChanges && editMode && (
+                        <div style={{
+                            backgroundColor: darkMode ? '#854d0e' : '#fef3c7',
+                            border: `2px solid ${darkMode ? '#f59e0b' : '#f59e0b'}`,
+                            borderRadius: '8px',
+                            padding: '0.75rem 1rem',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: darkMode ? '#fbbf24' : '#92400e',
+                            fontWeight: 'bold',
+                            fontSize: '0.875rem'
+                        }}>
+                            <i className="pi pi-exclamation-triangle"></i>
+                            <span>You have unsaved changes</span>
                         </div>
                     )}
-                    {/* Custom Sort Controls */}
-                    <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <Button 
-                            label={customSortMode ? "Cancel Custom Sort" : "Set Order"} 
-                            icon={customSortMode ? "pi pi-times" : "pi pi-sort-numeric-up"} 
-                            severity={customSortMode ? "danger" : "info"}
-                            size="small"
-                            onClick={handleToggleCustomSort}
-                            outlined={!customSortMode}
-                            raised={customSortMode}
-                        />
-                        {customSortMode && (
-                            <Button 
-                                label="Apply Sort" 
-                                icon="pi pi-check" 
-                                severity="success"
-                                size="small"
-                                onClick={applyCustomSort}
-                                raised
-                            />
-                        )}
-                        {customSortMode && (
-                            <div style={{
-                                backgroundColor: darkMode ? '#1e3a5f' : '#dbeafe',
-                                border: '2px solid #3b82f6',
-                                borderRadius: '8px',
-                                padding: '0.5rem 1rem',
-                                color: darkMode ? '#93c5fd' : '#1e40af',
-                                fontWeight: 'bold',
-                                fontSize: '0.875rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
-                                <i className="pi pi-info-circle"></i>
-                                <span>Masukkan nombor untuk setiap row. Nombor tidak boleh duplikat.</span>
-                            </div>
-                        )}
-                    </div>
                     
+                    {/* Info message for Set Order */}
+                    {customSortMode && (
+                        <div style={{
+                            backgroundColor: darkMode ? '#1e3a5f' : '#dbeafe',
+                            border: '2px solid #3b82f6',
+                            borderRadius: '8px',
+                            padding: '0.75rem 1rem',
+                            color: darkMode ? '#93c5fd' : '#1e40af',
+                            fontWeight: 'bold',
+                            fontSize: '0.875rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '1rem'
+                        }}>
+                            <i className="pi pi-info-circle"></i>
+                            <span>Enter numbers for rows you want to reorder. Remaining rows will be sorted by code.</span>
+                        </div>
+                    )}
+                        
                     {/* Custom Sort Table - Separate from DataTable */}
                     {customSortMode ? (
                         <div style={{ 
@@ -1230,11 +1396,11 @@ export default function FlexibleScrollDemo() {
                                     zIndex: 10
                                 }}>
                                     <tr>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Urutan</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>No</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Code</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Location</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', borderBottom: darkMode ? 'none' : '2px solid #ddd', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Delivery</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Urutan</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>No</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Code</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Location</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Delivery</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1242,8 +1408,8 @@ export default function FlexibleScrollDemo() {
                                         const order = sortOrders[rowData.id];
                                         const isDuplicate = isOrderDuplicate(rowData.id, order);
                                         return (
-                                            <tr key={rowData.id} style={{ borderBottom: darkMode ? 'none' : '1px solid #eee' }}>
-                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                            <tr key={rowData.id} style={{ border: 'none' }}>
+                                                <td style={{ padding: '1rem', textAlign: 'center', border: 'none' }}>
                                                     <input
                                                         type="text"
                                                         value={order === '' || order === undefined ? '' : order}
@@ -1271,10 +1437,10 @@ export default function FlexibleScrollDemo() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.no}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.code}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.location}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600' }}>{rowData.delivery}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.no}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.code}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.location}</td>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.delivery}</td>
                                             </tr>
                                         );
                                     })}
@@ -1292,8 +1458,24 @@ export default function FlexibleScrollDemo() {
                         resizableColumns
                         columnResizeMode="expand"
                         rowClassName={(rowData) => {
+                            let classes = '';
+                            
+                            // Highlight new rows with light yellow background
+                            if (newRows.includes(rowData.id)) {
+                                classes += darkMode ? 'new-row-dark' : 'new-row-light';
+                            }
+                            // Highlight modified rows with light yellow background
+                            else if (modifiedRows.has(rowData.id)) {
+                                classes += darkMode ? 'modified-row-dark' : 'modified-row-light';
+                            }
+                            
+                            // Add disabled class for power off status
                             const status = getPowerStatus(rowData.powerMode || 'Daily');
-                            return status === 'OFF' ? 'row-disabled' : '';
+                            if (status === 'OFF') {
+                                classes += (classes ? ' ' : '') + 'row-disabled';
+                            }
+                            
+                            return classes;
                         }}
                     >
                         {customSortMode && (
@@ -2482,6 +2664,97 @@ export default function FlexibleScrollDemo() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                </Dialog>
+                
+                {/* Column Visibility Modal */}
+                <Dialog
+                    visible={columnModalVisible}
+                    onHide={() => setColumnModalVisible(false)}
+                    header="Column Visibility"
+                    style={{ width: '400px' }}
+                    modal
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {[
+                                { key: 'no', label: 'No' },
+                                { key: 'code', label: 'Code' },
+                                { key: 'location', label: 'Location' },
+                                { key: 'delivery', label: 'Delivery' },
+                                { key: 'image', label: 'Image' }
+                            ].map(col => (
+                                <div key={col.key} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '0.75rem',
+                                    backgroundColor: darkMode ? '#1a1a1a' : '#f9fafb',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+                                }}>
+                                    <span style={{
+                                        fontWeight: '600',
+                                        color: darkMode ? '#e5e5e5' : '#000000'
+                                    }}>
+                                        {col.label}
+                                    </span>
+                                    <div
+                                        onClick={() => setTempVisibleColumns({
+                                            ...tempVisibleColumns,
+                                            [col.key]: !tempVisibleColumns[col.key]
+                                        })}
+                                        style={{
+                                            width: '48px',
+                                            height: '24px',
+                                            borderRadius: '12px',
+                                            backgroundColor: tempVisibleColumns[col.key] ? '#10b981' : (darkMode ? '#4b5563' : '#d1d5db'),
+                                            position: 'relative',
+                                            transition: 'all 0.3s ease',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: '20px',
+                                                height: '20px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#ffffff',
+                                                position: 'absolute',
+                                                top: '2px',
+                                                left: tempVisibleColumns[col.key] ? '26px' : '2px',
+                                                transition: 'all 0.3s ease',
+                                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div style={{ 
+                            display: 'flex', 
+                            gap: '0.5rem', 
+                            justifyContent: 'flex-end',
+                            marginTop: '1.5rem'
+                        }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                severity="secondary"
+                                outlined
+                                onClick={() => setColumnModalVisible(false)}
+                            />
+                            <Button
+                                label="Apply"
+                                icon="pi pi-check"
+                                severity="success"
+                                onClick={() => {
+                                    setVisibleColumns(tempVisibleColumns);
+                                    setColumnModalVisible(false);
+                                }}
+                            />
                         </div>
                     </div>
                 </Dialog>
