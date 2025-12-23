@@ -194,14 +194,31 @@ export default function FlexibleScrollDemo() {
         loadData();
     }, []);
     
-    // Apply dark mode to body class
+    // Apply dark mode to body class and PrimeReact theme
     useEffect(() => {
+        // Apply body class
         if (isDark) {
             document.body.classList.add('dark');
         } else {
             document.body.classList.remove('dark');
         }
         localStorage.setItem('darkMode', isDark.toString());
+        
+        // Switch PrimeReact theme dynamically
+        const themeLink = document.getElementById('app-theme');
+        const theme = isDark ? 'lara-dark-cyan' : 'lara-light-cyan';
+        const themePath = `https://unpkg.com/primereact/resources/themes/${theme}/theme.css`;
+        
+        if (themeLink) {
+            themeLink.href = themePath;
+        } else {
+            // Create theme link if it doesn't exist
+            const newThemeLink = document.createElement('link');
+            newThemeLink.id = 'app-theme';
+            newThemeLink.rel = 'stylesheet';
+            newThemeLink.href = themePath;
+            document.head.appendChild(newThemeLink);
+        }
     }, [isDark]);
     
     // Close dropdown when clicking outside
