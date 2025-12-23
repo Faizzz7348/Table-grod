@@ -166,6 +166,77 @@ export default function FlexibleScrollDemo() {
     
     // Track modified rows
     const [modifiedRows, setModifiedRows] = useState(new Set());
+    
+    // Auto Column Width State
+    const [columnWidths, setColumnWidths] = useState({
+        code: 80,
+        location: 200,
+        delivery: 100,
+        image: 100
+    });
+
+    // Calculate optimal column widths based on content
+    const calculateColumnWidths = (data) => {
+        if (!data || data.length === 0) return;
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = '11px system-ui, -apple-system, sans-serif'; // Match table font
+        
+        const minWidths = {
+            code: 80,      // Minimum width
+            location: 150,
+            delivery: 100
+        };
+        
+        const maxWidths = {
+            code: 150,     // Maximum width to prevent too wide
+            location: 400,
+            delivery: 150
+        };
+        
+        const padding = 32; // Cell padding (left + right)
+        
+        const widths = {
+            code: minWidths.code,
+            location: minWidths.location,
+            delivery: minWidths.delivery,
+            image: 100 // Fixed for image column
+        };
+        
+        // Find longest content in each column
+        data.forEach(row => {
+            ['code', 'location', 'delivery'].forEach(field => {
+                const text = String(row[field] || '');
+                const textWidth = context.measureText(text).width + padding;
+                widths[field] = Math.max(widths[field], textWidth);
+            });
+        });
+        
+        // Also check header text width
+        const headers = {
+            code: 'Code',
+            location: 'Location',
+            delivery: 'Delivery'
+        };
+        
+        Object.keys(headers).forEach(field => {
+            const headerWidth = context.measureText(headers[field]).width + padding + 20; // Extra for sort icons
+            widths[field] = Math.max(widths[field], headerWidth);
+        });
+        
+        // Apply min/max constraints
+        Object.keys(widths).forEach(field => {
+            if (minWidths[field]) {
+                widths[field] = Math.max(widths[field], minWidths[field]);
+            }
+            if (maxWidths[field]) {
+                widths[field] = Math.min(widths[field], maxWidths[field]);
+            }
+        });
+        
+        setColumnWidths(widths);
+    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -193,6 +264,13 @@ export default function FlexibleScrollDemo() {
         
         loadData();
     }, []);
+    
+    // Calculate column widths when dialogData changes
+    useEffect(() => {
+        if (dialogData && dialogData.length > 0) {
+            calculateColumnWidths(dialogData);
+        }
+    }, [dialogData]);
     
     // Apply dark mode to body class and PrimeReact theme
     useEffect(() => {
@@ -282,6 +360,11 @@ export default function FlexibleScrollDemo() {
         
         // Mark row as modified
         setModifiedRows(prev => new Set(prev).add(rowId));
+        
+        // Recalculate column widths if content field changed
+        if (['code', 'location', 'delivery'].includes(field)) {
+            calculateColumnWidths(updatedData);
+        }
     };
 
     const handlePowerModeChange = (rowId, mode) => {
@@ -403,11 +486,17 @@ export default function FlexibleScrollDemo() {
         setSaving(true);
         
         try {
+            console.log('💾 Starting save operation...');
+            console.log('📊 Routes to save:', routes.length, routes);
+            console.log('📍 Locations to save:', dialogData.length, dialogData);
+            
             // Save both routes and locations
             const results = await Promise.all([
                 CustomerService.saveRoutes(routes),
                 CustomerService.saveLocations(dialogData)
             ]);
+            
+            console.log('✅ Save completed successfully:', results);
             
             setOriginalData([...routes]);
             setOriginalDialogData([...dialogData]);
@@ -417,9 +506,6 @@ export default function FlexibleScrollDemo() {
             // Clear modified rows tracking
             setModifiedRows(new Set());
             setNewRows([]);
-            
-            // CasUnsavedChanges(false);
-            setSaving(false);
             
             // Check if using localStorage
             const isLocalStorage = results[0].message?.includes('localStorage');
@@ -432,15 +518,15 @@ export default function FlexibleScrollDemo() {
             if (isLocalStorage) {
                 message += '\n\n💾 Using localStorage (Development Mode)\nData akan kekal selepas refresh!';
             } else {
-                message += '\n\n🗄️ Saved to Database\nData permanently stored!';
+                message += `\n\n🗄️ Saved to Database\n✅ Routes: ${results[0].created} created, ${results[0].updated} updated\n✅ Locations: ${results[1].created} created, ${results[1].updated} updated`;
             }
             
             alert(message);
             
         } catch (error) {
-            console.error('Error saving changes:', error);
+            console.error('❌ Error saving changes:', error);
             setSaving(false);
-            alert('❌ Error saving changes. Please try again.\n' + error.message);
+            alert('❌ Error saving changes. Please try again.\n\n' + error.message + '\n\nCheck browser console for details.');
         }
     };
 
@@ -625,12 +711,13 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleAddDialogRow = () => {
-        const tempId = `new_${Date.now()}`; // Use string prefix for new rows
+        const tempId = Date.now(); // Use numeric timestamp for new rows (must be > 1000000000000)
+        const highestNo = dialogData.length > 0 ? Math.max(...dialogData.map(d => typeof d.no === 'number' ? d.no : 0)) : 0;
         const newRow = {
             id: tempId,
-            no: '-',
-            code: '-',
-            location: '-',
+            no: highestNo + 1,
+            code: '',
+            location: '',
             delivery: 'Daily',
             images: [],
             powerMode: 'Daily',
@@ -638,9 +725,14 @@ export default function FlexibleScrollDemo() {
             isNew: true
         };
         // Add new row at the top
-        setDialogData([newRow, ...dialogData]);
+        const updatedData = [newRow, ...dialogData];
+        setDialogData(updatedData);
         setNewRows([...newRows, tempId]);
         setHasUnsavedChanges(true);
+        console.log('✅ Added new location with temp ID:', tempId, 'for route:', currentRouteId);
+        
+        // Recalculate column widths
+        calculateColumnWidths(updatedData);
     };
 
     const handleDeleteDialogRow = (rowId) => {
@@ -656,6 +748,9 @@ export default function FlexibleScrollDemo() {
             setDialogData(sortDialogData(updatedData));
             setHasUnsavedChanges(true);
             console.log('Deleted dialog row:', deleteTarget.id);
+            
+            // Recalculate column widths after delete
+            calculateColumnWidths(updatedData);
         } else if (deleteType === 'route') {
             const updatedRoutes = routes.filter(route => route.id !== deleteTarget.id);
             setRoutes(updatedRoutes);
@@ -749,7 +844,8 @@ export default function FlexibleScrollDemo() {
 
     const handleAddRow = () => {
         // Use timestamp for temporary ID (will be replaced by database auto-increment)
-        const tempId = Date.now();
+        // Must be > 1000000000000 to be detected as new row by API
+        const tempId = Date.now(); // This will be ~13 digits (e.g., 1734953400000)
         const newRow = {
             id: tempId,
             route: '',
@@ -758,7 +854,8 @@ export default function FlexibleScrollDemo() {
         };
         setRoutes([...routes, newRow]);
         setHasUnsavedChanges(true);
-        console.log('Added new row:', newRow);
+        setNewRows([...newRows, tempId]); // Track new rows
+        console.log('✅ Added new route with temp ID:', tempId);
     };
 
     const handleDeleteRow = (rowId) => {
@@ -843,10 +940,13 @@ export default function FlexibleScrollDemo() {
                                 setCurrentRouteId(rowData.id);
                                 setCurrentRouteName(rowData.route);
                                 CustomerService.getDetailData(rowData.id).then((data) => {
-                                    setDialogData(sortDialogData(data));
-                                    setOriginalDialogData(sortDialogData(data));
+                                    const sortedData = sortDialogData(data);
+                                    setDialogData(sortedData);
+                                    setOriginalDialogData(sortedData);
                                     setDialogVisible(true);
                                     setIsCustomSorted(false);
+                                    // Calculate column widths for new data
+                                    calculateColumnWidths(sortedData);
                                 });
                             }} 
                         />
@@ -871,10 +971,13 @@ export default function FlexibleScrollDemo() {
                             setCurrentRouteId(rowData.id);
                             setCurrentRouteName(rowData.route);
                             CustomerService.getDetailData(rowData.id).then((data) => {
-                                setDialogData(sortDialogData(data));
-                                setOriginalDialogData(sortDialogData(data));
+                                const sortedData = sortDialogData(data);
+                                setDialogData(sortedData);
+                                setOriginalDialogData(sortedData);
                                 setDialogVisible(true);
                                 setIsCustomSorted(false);
+                                // Calculate column widths for new data
+                                calculateColumnWidths(sortedData);
                             });
                         }} 
                     />
@@ -1052,6 +1155,8 @@ export default function FlexibleScrollDemo() {
                         model={menuItems} 
                         popup 
                         ref={menuRef}
+                        dismissable
+                        appendTo="self"
                         style={{ 
                             minWidth: '250px',
                             background: isDark ? '#1a1a1a' : '#ffffff',
@@ -1138,6 +1243,7 @@ export default function FlexibleScrollDemo() {
                     footer={dialogFooterTemplate}
                     headerStyle={{ color: isDark ? '#fff' : '#000' }}
                     headerClassName={isDark ? '' : 'light-mode-dialog-header'}
+                    transitionOptions={{ timeout: 300 }}
                 >
                     {/* Search and Function Button - Side by Side */}
                     <div style={{ 
@@ -1561,7 +1667,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 editor={editMode ? textEditor : null}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: '60px' }}
+                                style={{ width: `${columnWidths.code}px`, minWidth: '80px' }}
                             />
                         )}
                         {visibleColumns.location && (
@@ -1572,7 +1678,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 editor={editMode ? textEditor : null}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: '200px' }}
+                                style={{ width: `${columnWidths.location}px`, minWidth: '150px' }}
                             />
                         )}
                         {visibleColumns.delivery && (
@@ -1583,7 +1689,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 editor={editMode ? textEditor : null}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: '100px' }}
+                                style={{ width: `${columnWidths.delivery}px`, minWidth: '100px' }}
                             />
                         )}
                         {visibleColumns.image && (
@@ -1726,6 +1832,7 @@ export default function FlexibleScrollDemo() {
                     modal
                     dismissableMask
                     closeOnEscape
+                    transitionOptions={{ timeout: 300 }}
                     onHide={() => {
                         setInfoDialogVisible(false);
                         setInfoEditMode(false);
@@ -1950,6 +2057,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '400px' }}
                     modal
                     closable={!passwordLoading}
+                    transitionOptions={{ timeout: 300 }}
                     onHide={() => {
                         if (!passwordLoading) {
                             setPasswordDialogVisible(false);
@@ -2046,6 +2154,8 @@ export default function FlexibleScrollDemo() {
                     visible={changePasswordDialogVisible}
                     style={{ width: '450px' }}
                     modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
                     onHide={() => {
                         setChangePasswordDialogVisible(false);
                         setChangePasswordData({
@@ -2236,6 +2346,8 @@ export default function FlexibleScrollDemo() {
                     visible={deleteConfirmVisible}
                     style={{ width: '450px' }}
                     modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
                     onHide={cancelDelete}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -2322,6 +2434,8 @@ export default function FlexibleScrollDemo() {
                     visible={imageDialogVisible}
                     style={{ width: '600px' }}
                     modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
                     onHide={() => setImageDialogVisible(false)}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -2507,6 +2621,8 @@ export default function FlexibleScrollDemo() {
                     visible={powerModeDialogVisible}
                     style={{ width: '500px' }}
                     modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
                     onHide={() => setPowerModeDialogVisible(false)}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -2681,6 +2797,8 @@ export default function FlexibleScrollDemo() {
                     header="Column Visibility"
                     style={{ width: '400px' }}
                     modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
                 >
                     <div style={{ padding: '1rem 0' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -128,14 +128,20 @@ export const CustomerService = {
         }
 
         try {
+            console.log('💾 Saving routes to database:', routes);
+            
             // Get existing routes from database
             const existingResponse = await fetch(`${API_BASE_URL}/routes`);
             const existingRoutes = existingResponse.ok ? await existingResponse.json() : [];
             const existingIds = new Set(existingRoutes.map(r => r.id));
 
             // Separate new routes (to CREATE) from existing routes (to UPDATE)
-            const newRoutes = routes.filter(route => !existingIds.has(route.id) || route.id > 1000000000); // timestamp IDs are temp
-            const updatedRoutes = routes.filter(route => existingIds.has(route.id) && route.id < 1000000000);
+            // Date.now() returns ~13 digits (e.g., 1734953400000)
+            const newRoutes = routes.filter(route => route.id > 1000000000000); // timestamp IDs > 13 digits
+            const updatedRoutes = routes.filter(route => route.id <= 1000000000000 && existingIds.has(route.id));
+            
+            console.log('➕ New routes to create:', newRoutes.length, newRoutes);
+            console.log('✏️ Existing routes to update:', updatedRoutes.length, updatedRoutes);
 
             // Create new routes
             const createPromises = newRoutes.map(route =>
@@ -166,10 +172,13 @@ export const CustomerService = {
             // Check if all successful
             const allSuccessful = results.every(r => r.ok);
             if (!allSuccessful) {
-                throw new Error('Some routes failed to save');
+                const failedResults = results.filter(r => !r.ok);
+                console.error('❌ Failed to save some routes:', failedResults);
+                throw new Error(`Failed to save ${failedResults.length} route(s)`);
             }
             
             clearCache('routes'); // Clear cache after successful save
+            console.log('✅ Routes saved successfully to database');
             
             return { 
                 success: true, 
@@ -179,7 +188,7 @@ export const CustomerService = {
                 updated: updatedRoutes.length
             };
         } catch (error) {
-            console.error('Error saving routes:', error);
+            console.error('❌ Error saving routes:', error);
             throw error;
         }
     },
@@ -194,6 +203,8 @@ export const CustomerService = {
         }
 
         try {
+            console.log('💾 Saving locations to database:', locations);
+            
             const response = await fetch(`${API_BASE_URL}/locations`, {
                 method: 'PUT',
                 headers: {
@@ -203,14 +214,18 @@ export const CustomerService = {
             });
             
             if (!response.ok) {
-                throw new Error('Failed to save locations');
+                const errorText = await response.text();
+                console.error('❌ Failed to save locations:', response.status, errorText);
+                throw new Error(`Failed to save locations: ${response.status} ${errorText}`);
             }
             
             clearCache('locations'); // Clear cache after successful save
+            const result = await response.json();
+            console.log('✅ Locations saved successfully to database:', result);
             
-            return await response.json();
+            return result;
         } catch (error) {
-            console.error('Error saving locations:', error);
+            console.error('❌ Error saving locations:', error);
             throw error;
         }
     },
