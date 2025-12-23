@@ -167,6 +167,10 @@ export default function FlexibleScrollDemo() {
     // Track modified rows
     const [modifiedRows, setModifiedRows] = useState(new Set());
     
+    // View Mode Dialog State
+    const [viewDialogVisible, setViewDialogVisible] = useState(false);
+    const [selectedViewRoute, setSelectedViewRoute] = useState(null);
+    
     // Auto Column Width State
     const [columnWidths, setColumnWidths] = useState({
         code: 80,
@@ -238,6 +242,20 @@ export default function FlexibleScrollDemo() {
         setColumnWidths(widths);
     };
 
+    // Natural sort function for routes (handles both alphabetic and numeric sorting)
+    const sortRoutes = (routesData) => {
+        return [...routesData].sort((a, b) => {
+            const routeA = String(a.route || '').toLowerCase();
+            const routeB = String(b.route || '').toLowerCase();
+            
+            // Natural sort that handles both letters and numbers correctly
+            return routeA.localeCompare(routeB, undefined, { 
+                numeric: true, 
+                sensitivity: 'base' 
+            });
+        });
+    };
+
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -251,10 +269,22 @@ export default function FlexibleScrollDemo() {
                 
                 const data = await CustomerService.getRoutes();
                 
+                // Fetch all locations to count them for each route
+                const allLocations = await CustomerService.getDetailData();
+                
+                // Add location count to each route
+                const routesWithLocationCount = data.map(route => {
+                    const locationCount = allLocations.filter(loc => loc.routeId === route.id).length;
+                    return { ...route, locationCount };
+                });
+                
+                // Sort routes by default (A-Z, 1-10)
+                const sortedRoutes = sortRoutes(routesWithLocationCount);
+                
                 // Smart loading delay for smooth intro
                 await new Promise(resolve => setTimeout(resolve, 800));
                 
-                setRoutes(data);
+                setRoutes(sortedRoutes);
                 setLoading(false);
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -347,7 +377,8 @@ export default function FlexibleScrollDemo() {
         const updatedRoutes = routes.map(route => 
             route.id === rowId ? { ...route, [field]: value } : route
         );
-        setRoutes(updatedRoutes);
+        // Sort routes after update to maintain A-Z, 1-10 order
+        setRoutes(sortRoutes(updatedRoutes));
         setHasUnsavedChanges(true);
     };
 
@@ -434,6 +465,13 @@ export default function FlexibleScrollDemo() {
         if (!selectedRowInfo) return;
         
         try {
+            console.log('💾 Saving location info:', {
+                id: selectedRowInfo.id,
+                latitude: infoEditData.latitude,
+                longitude: infoEditData.longitude,
+                address: infoEditData.address
+            });
+            
             // Update the location in dialogData
             const updatedDialogData = dialogData.map(item => {
                 if (item.id === selectedRowInfo.id) {
@@ -452,7 +490,7 @@ export default function FlexibleScrollDemo() {
             // Update the location in routes
             const updatedRoutes = routes.map(route => ({
                 ...route,
-                locations: route.locations.map(loc => {
+                locations: route.locations?.map(loc => {
                     if (loc.id === selectedRowInfo.id) {
                         return {
                             ...loc,
@@ -462,7 +500,7 @@ export default function FlexibleScrollDemo() {
                         };
                     }
                     return loc;
-                })
+                }) || []
             }));
             
             setRoutes(updatedRoutes);
@@ -477,8 +515,11 @@ export default function FlexibleScrollDemo() {
             });
             
             setInfoEditMode(false);
+            
+            console.log('✅ Location info updated in state, ready to save');
         } catch (error) {
-            console.error('Error saving info:', error);
+            console.error('❌ Error saving info:', error);
+            alert('Error saving location info: ' + error.message);
         }
     };
 
@@ -498,7 +539,18 @@ export default function FlexibleScrollDemo() {
             
             console.log('✅ Save completed successfully:', results);
             
-            setOriginalData([...routes]);
+            // Refresh location count after save
+            const allLocations = await CustomerService.getDetailData();
+            const routesWithLocationCount = routes.map(route => {
+                const locationCount = allLocations.filter(loc => loc.routeId === route.id).length;
+                return { ...route, locationCount };
+            });
+            
+            // Sort routes to maintain A-Z, 1-10 order
+            const sortedRoutes = sortRoutes(routesWithLocationCount);
+            
+            setRoutes(sortedRoutes);
+            setOriginalData([...sortedRoutes]);
             setOriginalDialogData([...dialogData]);
             setHasUnsavedChanges(false);
             setSaving(false);
@@ -753,7 +805,8 @@ export default function FlexibleScrollDemo() {
             calculateColumnWidths(updatedData);
         } else if (deleteType === 'route') {
             const updatedRoutes = routes.filter(route => route.id !== deleteTarget.id);
-            setRoutes(updatedRoutes);
+            // Sort routes after delete to maintain A-Z, 1-10 order
+            setRoutes(sortRoutes(updatedRoutes));
             setHasUnsavedChanges(true);
             console.log('Deleted row:', deleteTarget.id);
         }
@@ -850,9 +903,11 @@ export default function FlexibleScrollDemo() {
             id: tempId,
             route: '',
             shift: '',
-            warehouse: ''
+            warehouse: '',
+            locationCount: 0
         };
-        setRoutes([...routes, newRow]);
+        const updatedRoutes = sortRoutes([...routes, newRow]);
+        setRoutes(updatedRoutes);
         setHasUnsavedChanges(true);
         setNewRows([...newRows, tempId]); // Track new rows
         console.log('✅ Added new route with temp ID:', tempId);
@@ -961,26 +1016,40 @@ export default function FlexibleScrollDemo() {
                         />
                     </>
                 ) : (
-                    <Button 
-                        icon="pi pi-list" 
-                        size="small"
-                        tooltip="Show"
-                        tooltipOptions={{ position: 'top' }}
-                        text
-                        onClick={() => {
-                            setCurrentRouteId(rowData.id);
-                            setCurrentRouteName(rowData.route);
-                            CustomerService.getDetailData(rowData.id).then((data) => {
-                                const sortedData = sortDialogData(data);
-                                setDialogData(sortedData);
-                                setOriginalDialogData(sortedData);
-                                setDialogVisible(true);
-                                setIsCustomSorted(false);
-                                // Calculate column widths for new data
-                                calculateColumnWidths(sortedData);
-                            });
-                        }} 
-                    />
+                    <>
+                        <Button 
+                            icon="pi pi-info-circle" 
+                            size="small"
+                            severity="info"
+                            tooltip="View Info"
+                            tooltipOptions={{ position: 'top' }}
+                            text
+                            onClick={() => {
+                                setSelectedViewRoute(rowData);
+                                setViewDialogVisible(true);
+                            }} 
+                        />
+                        <Button 
+                            icon="pi pi-list" 
+                            size="small"
+                            tooltip="Show Locations"
+                            tooltipOptions={{ position: 'top' }}
+                            text
+                            onClick={() => {
+                                setCurrentRouteId(rowData.id);
+                                setCurrentRouteName(rowData.route);
+                                CustomerService.getDetailData(rowData.id).then((data) => {
+                                    const sortedData = sortDialogData(data);
+                                    setDialogData(sortedData);
+                                    setOriginalDialogData(sortedData);
+                                    setDialogVisible(true);
+                                    setIsCustomSorted(false);
+                                    // Calculate column widths for new data
+                                    calculateColumnWidths(sortedData);
+                                });
+                            }} 
+                        />
+                    </>
                 )}
             </div>
         );
@@ -1202,6 +1271,7 @@ export default function FlexibleScrollDemo() {
                         header="Route" 
                         align="center" 
                         alignHeader="center"
+                        headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
                     />
@@ -1210,6 +1280,7 @@ export default function FlexibleScrollDemo() {
                         header="Shift" 
                         align="center" 
                         alignHeader="center"
+                        headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
                     />
@@ -1218,15 +1289,43 @@ export default function FlexibleScrollDemo() {
                         header="Warehouse" 
                         align="center" 
                         alignHeader="center"
+                        headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
+                    />
+                    <Column 
+                        header="Location" 
+                        align="center" 
+                        alignHeader="center"
+                        body={(rowData) => {
+                            return (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <i className="pi pi-map-marker" style={{ 
+                                        color: isDark ? '#60a5fa' : '#3b82f6',
+                                        fontSize: '0.875rem'
+                                    }}></i>
+                                    <span style={{
+                                        fontWeight: '600',
+                                        color: isDark ? '#60a5fa' : '#3b82f6'
+                                    }}>
+                                        {rowData.locationCount || 0}
+                                    </span>
+                                </div>
+                            );
+                        }}
+                        headerStyle={{ color: isDark ? '#60a5fa' : '#3b82f6', textAlign: 'center', fontWeight: 'bold' }}
                     />
                     <Column 
                         header="Action" 
                         align="center" 
                         alignHeader="center" 
                         body={actionBodyTemplate}
-                        headerStyle={{ color: '#ef4444' }}
+                        headerStyle={{ color: '#ef4444', textAlign: 'center' }}
                     />
                 </DataTable>
 
@@ -1255,13 +1354,36 @@ export default function FlexibleScrollDemo() {
                         flexWrap: 'wrap'
                     }}>
                         <div style={{ flex: '1', minWidth: '200px' }}>
-                            <span className="p-input-icon-left" style={{ width: '100%' }}>
-                                <i className="pi pi-search" style={{ opacity: globalFilterValue ? 0 : 1, transition: 'opacity 0.2s ease' }} />
+                            <span className="p-input-icon-left" style={{ 
+                                width: '100%',
+                                position: 'relative',
+                                display: 'inline-block'
+                            }}>
+                                <i className="pi pi-search" style={{ 
+                                    opacity: globalFilterValue ? 0 : 1, 
+                                    transition: 'opacity 0.2s ease',
+                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                    position: 'absolute',
+                                    left: '0.75rem',
+                                    top: '50%',
+                                    transform: 'translateY(-1%)',
+                                    pointerEvents: 'none',
+                                    fontSize: '0.875rem'
+                                }} />
                                 <InputText
                                     value={globalFilterValue}
                                     onChange={(e) => setGlobalFilterValue(e.target.value)}
                                     placeholder="Search..."
-                                    style={{ width: '100%' }}
+                                    style={{ 
+                                        width: '100%',
+                                        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
+                                        color: isDark ? '#ffffff' : '#000000',
+                                        border: isDark ? '1px solid #374151' : '1px solid #d1d5db',
+                                        paddingLeft: '2.5rem',
+                                        paddingTop: '0.625rem',
+                                        paddingBottom: '0.625rem',
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 />
                             </span>
                         </div>
@@ -2043,7 +2165,120 @@ export default function FlexibleScrollDemo() {
                     )}
                 </Dialog>
 
-
+                {/* View Mode Route Info Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="pi pi-info-circle" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
+                            <span>Route Information</span>
+                        </div>
+                    }
+                    visible={viewDialogVisible}
+                    style={{ width: '500px' }}
+                    modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
+                    onHide={() => {
+                        setViewDialogVisible(false);
+                        setSelectedViewRoute(null);
+                    }}
+                >
+                    {selectedViewRoute && (
+                        <div style={{ padding: '1rem' }}>
+                            <div style={{ 
+                                backgroundColor: isDark ? '#1f2937' : '#f8f9fa',
+                                borderRadius: '8px',
+                                padding: '1.5rem',
+                                border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`
+                            }}>
+                                <div style={{ 
+                                    display: 'grid', 
+                                    gap: '1rem',
+                                    fontSize: '14px'
+                                }}>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        paddingBottom: '0.75rem',
+                                        borderBottom: `2px solid ${isDark ? '#374151' : '#dee2e6'}`
+                                    }}>
+                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d', fontSize: '13px' }}>Route:</strong>
+                                        <div style={{ 
+                                            fontSize: '16px', 
+                                            fontWeight: 'bold',
+                                            color: isDark ? '#60a5fa' : '#3b82f6'
+                                        }}>
+                                            {selectedViewRoute.route}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Shift:</strong>
+                                        <div style={{ color: isDark ? '#e5e7eb' : '#212529' }}>
+                                            {selectedViewRoute.shift}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Warehouse:</strong>
+                                        <div style={{ color: isDark ? '#e5e7eb' : '#212529' }}>
+                                            {selectedViewRoute.warehouse}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        paddingTop: '0.75rem',
+                                        borderTop: `1px solid ${isDark ? '#374151' : '#dee2e6'}`
+                                    }}>
+                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Total Locations:</strong>
+                                        <div style={{ 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                        }}>
+                                            <i className="pi pi-map-marker" style={{ 
+                                                color: isDark ? '#60a5fa' : '#3b82f6',
+                                                fontSize: '1rem'
+                                            }}></i>
+                                            <span style={{
+                                                fontWeight: 'bold',
+                                                fontSize: '18px',
+                                                color: isDark ? '#60a5fa' : '#3b82f6'
+                                            }}>
+                                                {selectedViewRoute.locationCount || 0}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style={{ 
+                                marginTop: '1rem',
+                                textAlign: 'center'
+                            }}>
+                                <Button 
+                                    label="Close"
+                                    icon="pi pi-times"
+                                    onClick={() => setViewDialogVisible(false)}
+                                    severity="secondary"
+                                    text
+                                />
+                            </div>
+                        </div>
+                    )}
+                </Dialog>
 
                 {/* Password Dialog */}
                 <Dialog
