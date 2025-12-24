@@ -240,12 +240,12 @@ body.dark .p-dialog {
 }
 
 .p-dialog .p-dialog-header {
-  background-color: #f8fafc;
-  color: #1e293b;
+  background-color: #e5e7eb;
+  color: #111827;
   padding: 1.5rem;
   font-size: 1.125rem;
   font-weight: 600;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid #9ca3af;
 }
 
 body.dark .p-dialog .p-dialog-header {
@@ -255,8 +255,8 @@ body.dark .p-dialog .p-dialog-header {
 }
 
 .p-dialog .p-dialog-content {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #f3f4f6;
+  color: #111827;
   padding: 1.5rem;
 }
 
@@ -282,9 +282,9 @@ body.dark .p-dialog .p-dialog-content {
 }
 
 .p-dialog .p-dialog-footer {
-  background-color: #f8fafc;
+  background-color: #e5e7eb;
   padding: 1.25rem 1.5rem;
-  border-top: 1px solid #cbd5e1;
+  border-top: 1px solid #9ca3af;
 }
 
 body.dark .p-dialog .p-dialog-footer {
@@ -346,9 +346,9 @@ body.dark .p-dialog .p-dialog-header-icon:hover {
 
 /* Dropdown */
 .p-dropdown {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #1e293b;
+  background-color: #f3f4f6;
+  border: 1px solid #9ca3af;
+  color: #111827;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -366,8 +366,8 @@ body.dark .p-dropdown {
 
 /* Dropdown Panel */
 .p-dropdown-panel {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  border: 1px solid #9ca3af;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
@@ -378,7 +378,7 @@ body.dark .p-dropdown-panel {
 }
 
 .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
-  color: #1e293b !important;
+  color: #111827 !important;
   padding: 0.75rem 1rem;
 }
 
@@ -387,7 +387,7 @@ body.dark .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
 }
 
 .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
-  background-color: #f3f4f6 !important;
+  background-color: #e5e7eb !important;
 }
 
 body.dark .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
@@ -401,9 +401,9 @@ body.dark .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
 
 /* Input */
 .p-inputtext {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #1e293b;
+  background-color: #f3f4f6;
+  border: 1px solid #9ca3af;
+  color: #111827;
   border-radius: 8px;
   padding: 0.75rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);

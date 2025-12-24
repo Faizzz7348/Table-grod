@@ -17,6 +17,21 @@ const tableStyles = `
         border: none !important;
     }
     
+    /* Table header background matching dialog header */
+    .p-datatable .p-datatable-thead > tr > th {
+        background-color: #e5e7eb !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
+        border-bottom: 1px solid #9ca3af !important;
+        padding: 1rem !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-thead > tr > th {
+        background-color: #0f172a !important;
+        color: #f1f5f9 !important;
+        border-bottom: 1px solid #334155 !important;
+    }
+    
     @keyframes slideDown {
         from {
             opacity: 0;
@@ -1322,20 +1337,20 @@ export default function FlexibleScrollDemo() {
             minHeight: '100vh',
             background: isDark 
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
-                : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            color: isDark ? '#e5e5e5' : '#000000',
+                : 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)',
+            color: isDark ? '#e5e5e5' : '#1f2937',
             transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             animation: 'fadeIn 0.6s ease-out'
         }}>
             <style>{tableStyles}</style>
             {/* Navigation Header */}
             <div style={{
-                background: isDark ? '#1a1a1a' : '#ffffff',
+                background: isDark ? '#0f172a' : '#e5e7eb',
                 padding: '1.5rem 2rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: `2px solid ${isDark ? '#1a3a52' : '#3b82f6'}`,
+                borderBottom: isDark ? '1px solid #334155' : '1px solid #9ca3af',
                 marginBottom: '2rem',
                 boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -1343,7 +1358,7 @@ export default function FlexibleScrollDemo() {
             }}>
                 <h2 style={{ 
                     margin: 0, 
-                    color: isDark ? '#e5e5e5' : '#000000',
+                    color: isDark ? '#f1f5f9' : '#111827',
                     fontSize: '25px',
                     fontWeight: '700'
                 }}>{editMode ? 'Edit Mode' : 'Route Management'}</h2>
@@ -1884,21 +1899,6 @@ export default function FlexibleScrollDemo() {
                                         />
                                     )}
                                     <span style={{ fontSize: deviceInfo.isMobile ? '0.9rem' : '1rem' }}>Route {currentRouteName}</span>
-                                    <span style={{
-                                        marginLeft: 'auto',
-                                        fontSize: '0.7rem',
-                                        padding: '0.25rem 0.5rem',
-                                        borderRadius: '12px',
-                                        backgroundColor: isDark ? '#374151' : '#e5e7eb',
-                                        color: isDark ? '#9ca3af' : '#6b7280',
-                                        fontWeight: '600',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.25rem'
-                                    }}>
-                                        <i className={`pi ${deviceInfo.isMobile ? 'pi-mobile' : deviceInfo.isTablet ? 'pi-tablet' : 'pi-desktop'}`} style={{ fontSize: '0.7rem' }}></i>
-                                        {deviceInfo.deviceType.toUpperCase()}
-                                    </span>
                                 </div>
                             );
                         })()
@@ -2869,6 +2869,7 @@ export default function FlexibleScrollDemo() {
                                     icon="pi pi-times"
                                     onClick={() => setViewDialogVisible(false)}
                                     severity="secondary"
+                                    size="small"
                                     text
                                 />
                             </div>
@@ -2961,6 +2962,7 @@ export default function FlexibleScrollDemo() {
                                     setPasswordError('');
                                 }}
                                 className="p-button-text"
+                                size="small"
                                 disabled={passwordLoading}
                             />
                             <Button
@@ -2969,6 +2971,7 @@ export default function FlexibleScrollDemo() {
                                 onClick={handlePasswordSubmit}
                                 disabled={passwordInput.length !== 4 || passwordLoading}
                                 severity="success"
+                                size="small"
                             />
                         </div>
                     </div>
@@ -3113,12 +3116,14 @@ export default function FlexibleScrollDemo() {
                                     setChangePasswordError('');
                                 }}
                                 className="p-button-text"
+                                size="small"
                             />
                             <Button
                                 label="Change Password"
                                 icon="pi pi-check"
                                 onClick={handleChangePassword}
                                 severity="success"
+                                size="small"
                             />
                         </div>
                     </div>
@@ -3698,6 +3703,7 @@ export default function FlexibleScrollDemo() {
                                 label="Cancel"
                                 icon="pi pi-times"
                                 severity="secondary"
+                                size="small"
                                 outlined
                                 onClick={() => setColumnModalVisible(false)}
                             />
@@ -3705,6 +3711,7 @@ export default function FlexibleScrollDemo() {
                                 label="Apply"
                                 icon="pi pi-check"
                                 severity="success"
+                                size="small"
                                 onClick={() => {
                                     setVisibleColumns(tempVisibleColumns);
                                     setColumnModalVisible(false);
@@ -3722,6 +3729,19 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '70vw' }}
                     maximizable
                     modal
+                    footer={
+                        changelog.length > 0 && (
+                            <div style={{ 
+                                textAlign: 'center',
+                                padding: '1rem 0 0.5rem 0',
+                                borderTop: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
+                                color: isDark ? '#9ca3af' : '#6b7280',
+                                fontSize: '0.875rem'
+                            }}>
+                                Last Modified: {changelog[0]?.timestamp || 'N/A'}
+                            </div>
+                        )
+                    }
                 >
                     {changelog.length === 0 ? (
                         <div style={{
