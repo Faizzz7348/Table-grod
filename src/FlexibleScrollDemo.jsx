@@ -1813,6 +1813,8 @@ export default function FlexibleScrollDemo() {
                         align="center" 
                         alignHeader="center"
                         body={(rowData) => {
+                            const count = rowData.locationCount || 0;
+                            const isOverLimit = count > 15;
                             return (
                                 <div style={{
                                     display: 'flex',
@@ -1821,14 +1823,14 @@ export default function FlexibleScrollDemo() {
                                     gap: '0.5rem'
                                 }}>
                                     <i className="pi pi-map-marker" style={{ 
-                                        color: isDark ? '#60a5fa' : '#3b82f6',
+                                        color: isOverLimit ? '#ef4444' : (isDark ? '#60a5fa' : '#3b82f6'),
                                         fontSize: '0.875rem'
                                     }}></i>
                                     <span style={{
                                         fontWeight: '600',
-                                        color: isDark ? '#60a5fa' : '#3b82f6'
+                                        color: isOverLimit ? '#ef4444' : (isDark ? '#60a5fa' : '#3b82f6')
                                     }}>
-                                        {rowData.locationCount || 0}
+                                        {count}
                                     </span>
                                 </div>
                             );
