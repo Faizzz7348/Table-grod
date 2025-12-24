@@ -1344,3 +1344,39 @@ body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
 body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb:hover {
   background: #3a3a3a;
 }
+
+/* Frozen Row Styling */
+.p-datatable .p-datatable-tbody > tr.frozen-row-highlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%) !important;
+  font-weight: 700 !important;
+  border-top: 2px solid #3b82f6 !important;
+  border-bottom: 2px solid #3b82f6 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+.p-datatable .p-datatable-tbody > tr.frozen-row-highlight > td {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px !important;
+  border: none !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr.frozen-row-highlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%) !important;
+  border-top: 2px solid #60a5fa !important;
+  border-bottom: 2px solid #60a5fa !important;
+}
+
+body.dark-mode .p-datatable .p-datatable-tbody > tr.frozen-row-highlight > td {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%) !important;
+  color: #60a5fa !important;
+}
+
+/* Frozen row should not have hover effect */
+.p-datatable .p-datatable-tbody > tr.frozen-row-highlight:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}

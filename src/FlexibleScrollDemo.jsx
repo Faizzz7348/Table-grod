@@ -15,6 +15,17 @@ const tableStyles = `
     .no-header-border .p-datatable-thead > tr > th {
         border: none !important;
     }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 `;
 
 // Custom editor component with duplicate detection
@@ -82,6 +93,18 @@ export default function FlexibleScrollDemo() {
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
+    
+    // Frozen row data for dialog table
+    const frozenRow = [
+        {
+            id: 'frozen-row',
+            code: 'QLK',
+            location: 'QL Kitchen',
+            delivery: 'Available',
+            images: [],
+            powerMode: 'Daily'
+        }
+    ];
     
     // Dark Mode State - Simple implementation
     const [isDark, setIsDark] = useState(() => {
@@ -171,12 +194,18 @@ export default function FlexibleScrollDemo() {
     const [viewDialogVisible, setViewDialogVisible] = useState(false);
     const [selectedViewRoute, setSelectedViewRoute] = useState(null);
     
+    // Changelog Dialog State
+    const [changelogDialogVisible, setChangelogDialogVisible] = useState(false);
+    
+    // Custom Menu State
+    const [customMenuVisible, setCustomMenuVisible] = useState(false);
+    
     // Auto Column Width State
     const [columnWidths, setColumnWidths] = useState({
-        code: 80,
-        location: 200,
-        delivery: 100,
-        image: 100
+        code: 70,
+        location: 190,
+        delivery: 90,
+        image: 90
     });
     
     // Changelog State
@@ -191,15 +220,15 @@ export default function FlexibleScrollDemo() {
         context.font = '11px system-ui, -apple-system, sans-serif'; // Match table font
         
         const minWidths = {
-            code: 80,      // Minimum width
-            location: 150,
-            delivery: 100
+            code: 70,      // Minimum width
+            location: 140,
+            delivery: 90
         };
         
         const maxWidths = {
-            code: 150,     // Maximum width to prevent too wide
-            location: 400,
-            delivery: 150
+            code: 140,     // Maximum width to prevent too wide
+            location: 390,
+            delivery: 140
         };
         
         const padding = 32; // Cell padding (left + right)
@@ -208,7 +237,7 @@ export default function FlexibleScrollDemo() {
             code: minWidths.code,
             location: minWidths.location,
             delivery: minWidths.delivery,
-            image: 100 // Fixed for image column
+            image: 90 // Fixed for image column
         };
         
         // Find longest content in each column
@@ -1180,6 +1209,13 @@ export default function FlexibleScrollDemo() {
             command: () => setIsDark(!isDark)
         },
         {
+            label: 'Changelog',
+            icon: 'pi pi-history',
+            command: () => setChangelogDialogVisible(true),
+            badge: changelog.length > 0 ? changelog.length.toString() : null,
+            badgeClass: 'p-badge-info'
+        },
+        {
             label: editMode ? 'View Mode' : 'Edit Mode',
             icon: editMode ? 'pi pi-eye' : 'pi pi-pencil',
             command: () => handleToggleEditMode(),
@@ -1296,7 +1332,8 @@ export default function FlexibleScrollDemo() {
                 borderBottom: `2px solid ${isDark ? '#1a3a52' : '#3b82f6'}`,
                 marginBottom: '2rem',
                 boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative'
             }}>
                 <h2 style={{ 
                     margin: 0, 
@@ -1305,22 +1342,10 @@ export default function FlexibleScrollDemo() {
                     fontWeight: '700'
                 }}>{editMode ? 'Edit Mode' : 'Route Management'}</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <Menu 
-                        model={menuItems} 
-                        popup 
-                        ref={menuRef}
-                        dismissable
-                        appendTo="self"
-                        style={{ 
-                            minWidth: '250px',
-                            background: isDark ? '#1a1a1a' : '#ffffff',
-                            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
-                        }}
-                    />
                     <Button 
                         icon="pi pi-bars"
                         label="Menu"
-                        onClick={(e) => menuRef.current.toggle(e)}
+                        onClick={() => setCustomMenuVisible(!customMenuVisible)}
                         severity="info"
                         size="small"
                         raised
@@ -1328,6 +1353,411 @@ export default function FlexibleScrollDemo() {
                         badgeSeverity="warning"
                     />
                 </div>
+                
+                {/* Custom Menu Overlay */}
+                {customMenuVisible && (
+                    <>
+                        <div 
+                            onClick={() => setCustomMenuVisible(false)}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                zIndex: 999,
+                                backdropFilter: 'blur(2px)',
+                                animation: 'fadeIn 0.2s ease-out'
+                            }}
+                        />
+                        <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: '2rem',
+                            marginTop: '0.5rem',
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderRadius: '16px',
+                            boxShadow: isDark ? '0 20px 60px rgba(0, 0, 0, 0.5)' : '0 20px 60px rgba(0, 0, 0, 0.15)',
+                            minWidth: '320px',
+                            zIndex: 1000,
+                            overflow: 'hidden',
+                            animation: 'slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
+                        }}>
+                            {/* Menu Header */}
+                            <div style={{
+                                padding: '1.25rem 1.5rem',
+                                background: isDark 
+                                    ? 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
+                                    : 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem'
+                            }}>
+                                <div style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backdropFilter: 'blur(10px)'
+                                }}>
+                                    <i className="pi pi-cog" style={{ fontSize: '1.5rem' }}></i>
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700' }}>Settings</h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9 }}>Manage your preferences</p>
+                                </div>
+                            </div>
+                            
+                            {/* Unsaved Changes Warning */}
+                            {editMode && hasUnsavedChanges && (
+                                <div style={{
+                                    margin: '1rem',
+                                    padding: '1rem',
+                                    backgroundColor: isDark ? 'rgba(251, 191, 36, 0.1)' : '#fef3c7',
+                                    border: `2px solid ${isDark ? '#f59e0b' : '#fbbf24'}`,
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
+                                }}>
+                                    <i className="pi pi-exclamation-triangle" style={{
+                                        color: '#f59e0b',
+                                        fontSize: '1.25rem'
+                                    }}></i>
+                                    <div>
+                                        <p style={{ margin: 0, fontWeight: '700', color: isDark ? '#fbbf24' : '#92400e', fontSize: '0.875rem' }}>Unsaved Changes</p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#fcd34d' : '#b45309', marginTop: '0.25rem' }}>Don't forget to save your work</p>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Menu Items */}
+                            <div style={{ padding: '0.75rem' }}>
+                                {/* Theme Toggle */}
+                                <div
+                                    onClick={() => {
+                                        setIsDark(!isDark);
+                                        setCustomMenuVisible(false);
+                                    }}
+                                    style={{
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        backgroundColor: 'transparent',
+                                        marginBottom: '0.5rem'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        background: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <i className={isDark ? 'pi pi-sun' : 'pi pi-moon'} style={{
+                                            color: isDark ? '#fbbf24' : '#3b82f6',
+                                            fontSize: '1.1rem'
+                                        }}></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                            {isDark ? 'Light Mode' : 'Dark Mode'}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                            Switch theme
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {/* Changelog */}
+                                <div
+                                    onClick={() => {
+                                        setChangelogDialogVisible(true);
+                                        setCustomMenuVisible(false);
+                                    }}
+                                    style={{
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        backgroundColor: 'transparent',
+                                        marginBottom: '0.5rem',
+                                        position: 'relative'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <i className="pi pi-history" style={{
+                                            color: '#6366f1',
+                                            fontSize: '1.1rem'
+                                        }}></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                            Changelog
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                            View activity history
+                                        </p>
+                                    </div>
+                                    {changelog.length > 0 && (
+                                        <span style={{
+                                            backgroundColor: '#6366f1',
+                                            color: '#ffffff',
+                                            fontSize: '0.7rem',
+                                            fontWeight: '700',
+                                            padding: '0.25rem 0.6rem',
+                                            borderRadius: '12px',
+                                            minWidth: '24px',
+                                            textAlign: 'center'
+                                        }}>
+                                            {changelog.length}
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                {/* Edit/View Mode Toggle */}
+                                <div
+                                    onClick={() => {
+                                        handleToggleEditMode();
+                                        setCustomMenuVisible(false);
+                                    }}
+                                    style={{
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '12px',
+                                        cursor: saving ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        backgroundColor: 'transparent',
+                                        marginBottom: '0.5rem',
+                                        opacity: saving ? 0.5 : 1
+                                    }}
+                                    onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6')}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        background: editMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <i className={editMode ? 'pi pi-eye' : 'pi pi-pencil'} style={{
+                                            color: editMode ? '#10b981' : '#ef4444',
+                                            fontSize: '1.1rem'
+                                        }}></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                            {editMode ? 'View Mode' : 'Edit Mode'}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                            {editMode ? 'Switch to read-only' : 'Enable editing'}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {/* Edit Mode Options */}
+                                {editMode && (
+                                    <>
+                                        <div style={{
+                                            height: '1px',
+                                            background: isDark ? '#334155' : '#e5e7eb',
+                                            margin: '0.75rem 0'
+                                        }} />
+                                        
+                                        {/* Change Password */}
+                                        <div
+                                            onClick={() => {
+                                                setChangePasswordDialogVisible(true);
+                                                setCustomMenuVisible(false);
+                                            }}
+                                            style={{
+                                                padding: '1rem 1.25rem',
+                                                borderRadius: '12px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '1rem',
+                                                backgroundColor: 'transparent',
+                                                marginBottom: '0.5rem'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(168, 85, 247, 0.1)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <i className="pi pi-lock" style={{
+                                                    color: '#a855f7',
+                                                    fontSize: '1.1rem'
+                                                }}></i>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                                    Change Password
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                                    Update security
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Clear All Data */}
+                                        <div
+                                            onClick={() => {
+                                                handleClearAllData();
+                                                setCustomMenuVisible(false);
+                                            }}
+                                            style={{
+                                                padding: '1rem 1.25rem',
+                                                borderRadius: '12px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '1rem',
+                                                backgroundColor: 'transparent',
+                                                marginBottom: '0.5rem'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <i className="pi pi-trash" style={{
+                                                    color: '#ef4444',
+                                                    fontSize: '1.1rem'
+                                                }}></i>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: '#ef4444' }}>
+                                                    Clear All Data
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                                    Delete everything
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                
+                                {/* Save/Cancel Actions */}
+                                {editMode && hasUnsavedChanges && (
+                                    <>
+                                        <div style={{
+                                            height: '1px',
+                                            background: isDark ? '#334155' : '#e5e7eb',
+                                            margin: '0.75rem 0'
+                                        }} />
+                                        
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {/* Save Button */}
+                                            <div
+                                                onClick={() => {
+                                                    handleSaveChanges();
+                                                    setCustomMenuVisible(false);
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '1rem',
+                                                    borderRadius: '12px',
+                                                    cursor: saving ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    background: saving ? (isDark ? '#1e3a2e' : '#d1fae5') : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                    color: '#ffffff',
+                                                    fontWeight: '700',
+                                                    fontSize: '0.95rem',
+                                                    opacity: saving ? 0.7 : 1,
+                                                    boxShadow: saving ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                                }}
+                                            >
+                                                <i className={saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'} />
+                                                {saving ? 'Saving...' : 'Save'}
+                                            </div>
+                                            
+                                            {/* Cancel Button */}
+                                            <div
+                                                onClick={() => {
+                                                    handleCancelChanges();
+                                                    setCustomMenuVisible(false);
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '1rem',
+                                                    borderRadius: '12px',
+                                                    cursor: saving ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    background: isDark ? '#1e293b' : '#f1f5f9',
+                                                    border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
+                                                    color: isDark ? '#f1f5f9' : '#1e293b',
+                                                    fontWeight: '600',
+                                                    fontSize: '0.95rem',
+                                                    opacity: saving ? 0.5 : 1
+                                                }}
+                                            >
+                                                <i className="pi pi-times" />
+                                                Cancel
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="card">
@@ -1414,136 +1844,41 @@ export default function FlexibleScrollDemo() {
                     />
                 </DataTable>
 
-                {/* Changelog Container */}
-                {changelog.length > 0 && (
-                    <div style={{
-                        marginTop: '1.5rem',
-                        padding: '1rem',
-                        backgroundColor: isDark ? '#0f0f0f' : '#ffffff',
-                        border: `1px solid ${isDark ? '#2a2a2a' : '#e5e7eb'}`,
-                        borderRadius: '12px',
-                        maxHeight: '250px',
-                        overflowY: 'auto',
-                        boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '0.75rem',
-                            paddingBottom: '0.5rem',
-                            borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#e5e7eb'}`
-                        }}>
-                            <h3 style={{
-                                margin: 0,
-                                fontSize: '0.95rem',
-                                fontWeight: '600',
-                                color: isDark ? '#60a5fa' : '#3b82f6',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
-                                <i className="pi pi-history" style={{ fontSize: '0.9rem' }}></i>
-                                Changelog
-                            </h3>
-                            <Button
-                                label="Clear"
-                                icon="pi pi-trash"
-                                size="small"
-                                severity="danger"
-                                text
-                                onClick={() => setChangelog([])}
-                                style={{ fontSize: '0.75rem' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {changelog.map((entry) => {
-                                const actionColors = {
-                                    add: '#10b981',
-                                    edit: '#f59e0b',
-                                    delete: '#ef4444'
-                                };
-                                const actionIcons = {
-                                    add: 'pi-plus-circle',
-                                    edit: 'pi-pencil',
-                                    delete: 'pi-trash'
-                                };
-                                
-                                return (
-                                    <div key={entry.id} style={{
-                                        padding: '0.75rem',
-                                        backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
-                                        borderLeft: `3px solid ${actionColors[entry.action]}`,
-                                        borderRadius: '6px',
-                                        fontSize: '0.8rem',
-                                        display: 'flex',
-                                        gap: '0.75rem',
-                                        alignItems: 'flex-start',
-                                        transition: 'all 0.2s ease'
-                                    }}>
-                                        <i className={`pi ${actionIcons[entry.action]}`} style={{
-                                            color: actionColors[entry.action],
-                                            fontSize: '0.9rem',
-                                            marginTop: '0.1rem'
-                                        }}></i>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                marginBottom: '0.25rem'
-                                            }}>
-                                                <span style={{
-                                                    fontWeight: '600',
-                                                    color: actionColors[entry.action],
-                                                    textTransform: 'uppercase',
-                                                    fontSize: '0.7rem',
-                                                    letterSpacing: '0.5px'
-                                                }}>
-                                                    {entry.action} {entry.type}
-                                                </span>
-                                                <span style={{
-                                                    color: isDark ? '#9ca3af' : '#6b7280',
-                                                    fontSize: '0.7rem'
-                                                }}>
-                                                    {entry.timestamp}
-                                                </span>
-                                            </div>
-                                            <div style={{ color: isDark ? '#e5e5e5' : '#374151' }}>
-                                                {entry.action === 'add' && (
-                                                    <span>
-                                                        {entry.type === 'route' 
-                                                            ? `Route: ${entry.details.route || 'New Route'}`
-                                                            : `Location: ${entry.details.code || 'New Location'} in Route ${entry.details.route}`
-                                                        }
-                                                    </span>
-                                                )}
-                                                {entry.action === 'edit' && (
-                                                    <span>
-                                                        {entry.type === 'route' 
-                                                            ? `Route ${entry.details.route}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
-                                                            : `Location ${entry.details.code}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
-                                                        }
-                                                    </span>
-                                                )}
-                                                {entry.action === 'delete' && (
-                                                    <span>
-                                                        {entry.type === 'route' 
-                                                            ? `Route: ${entry.details.route}`
-                                                            : `Location: ${entry.details.code} from Route ${entry.details.route}`
-                                                        }
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
                 <Dialog 
-                    header={`Route ${currentRouteName}`} 
+                    header={
+                        (() => {
+                            const routeUpper = currentRouteName.toUpperCase();
+                            let flagSrc = null;
+                            if (routeUpper.startsWith('KL')) {
+                                flagSrc = '/flag/960px-Flag_of_the_Federal_Territories_of_Malaysia.svg.png';
+                            } else if (routeUpper.startsWith('SL')) {
+                                flagSrc = '/flag/960px-Flag_of_Selangor.svg.png';
+                            }
+                            
+                            return (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.75rem' 
+                                }}>
+                                    {flagSrc && (
+                                        <img 
+                                            src={flagSrc} 
+                                            alt="flag" 
+                                            style={{ 
+                                                width: '48px', 
+                                                height: '32px', 
+                                                objectFit: 'cover',
+                                                borderRadius: '3px',
+                                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+                                            }} 
+                                        />
+                                    )}
+                                    <span>Route {currentRouteName}</span>
+                                </div>
+                            );
+                        })()
+                    }
                     visible={dialogVisible} 
                     style={{ width: '90vw' }} 
                     maximizable
@@ -1842,7 +2177,7 @@ export default function FlexibleScrollDemo() {
                                     zIndex: 10
                                 }}>
                                     <tr>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Urutan</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Order</th>
                                         <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>No</th>
                                         <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Code</th>
                                         <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Location</th>
@@ -1895,7 +2230,8 @@ export default function FlexibleScrollDemo() {
                         </div>
                     ) : (
                     <DataTable 
-                        value={dialogData} 
+                        value={dialogData}
+                        frozenValue={frozenRow}
                         scrollable 
                         scrollHeight="flex" 
                         tableStyle={{ minWidth: '70rem' }}
@@ -1906,6 +2242,11 @@ export default function FlexibleScrollDemo() {
                         className="no-header-border"
                         rowClassName={(rowData) => {
                             let classes = '';
+                            
+                            // Frozen row styling
+                            if (rowData.id === 'frozen-row') {
+                                return 'frozen-row-highlight';
+                            }
                             
                             // Highlight new rows with light yellow background
                             if (newRows.includes(rowData.id)) {
@@ -1927,7 +2268,7 @@ export default function FlexibleScrollDemo() {
                     >
                         {customSortMode && (
                             <Column 
-                                header="Urutan" 
+                                header="Order" 
                                 align="center" 
                                 alignHeader="center"
                                 body={(rowData) => {
@@ -1990,7 +2331,13 @@ export default function FlexibleScrollDemo() {
                                 header="No" 
                                 align="center" 
                                 alignHeader="center"
-                                body={(data, options) => options.rowIndex + 1}
+                                body={(data, options) => {
+                                    // Show infinity symbol for frozen row
+                                    if (data.id === 'frozen-row') {
+                                        return <span style={{ fontSize: '1.1rem', fontWeight: '700', color: isDark ? '#60a5fa' : '#3b82f6' }}>∞</span>;
+                                    }
+                                    return options.rowIndex + 1;
+                                }}
                                 style={{ width: '60px' }}
                             />
                         )}
@@ -2000,9 +2347,13 @@ export default function FlexibleScrollDemo() {
                                 header="Code" 
                                 align="center" 
                                 alignHeader="center"
-                                editor={editMode ? textEditor : null}
+                                editor={(options) => {
+                                    // Disable editing for frozen row
+                                    if (options.rowData.id === 'frozen-row') return null;
+                                    return editMode ? textEditor(options) : null;
+                                }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: `${columnWidths.code}px`, minWidth: '80px' }}
+                                style={{ width: `${columnWidths.code}px`, minWidth: '70px' }}
                             />
                         )}
                         {visibleColumns.location && (
@@ -2011,9 +2362,13 @@ export default function FlexibleScrollDemo() {
                                 header="Location" 
                                 align="center" 
                                 alignHeader="center"
-                                editor={editMode ? textEditor : null}
+                                editor={(options) => {
+                                    // Disable editing for frozen row
+                                    if (options.rowData.id === 'frozen-row') return null;
+                                    return editMode ? textEditor(options) : null;
+                                }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: `${columnWidths.location}px`, minWidth: '150px' }}
+                                style={{ width: `${columnWidths.location}px`, minWidth: '140px' }}
                             />
                         )}
                         {visibleColumns.delivery && (
@@ -2022,9 +2377,13 @@ export default function FlexibleScrollDemo() {
                                 header="Delivery" 
                                 align="center" 
                                 alignHeader="center"
-                                editor={editMode ? textEditor : null}
+                                editor={(options) => {
+                                    // Disable editing for frozen row
+                                    if (options.rowData.id === 'frozen-row') return null;
+                                    return editMode ? textEditor(options) : null;
+                                }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
-                                style={{ width: `${columnWidths.delivery}px`, minWidth: '100px' }}
+                                style={{ width: `${columnWidths.delivery}px`, minWidth: '90px' }}
                             />
                         )}
                         {visibleColumns.image && (
@@ -3329,6 +3688,148 @@ export default function FlexibleScrollDemo() {
                             />
                         </div>
                     </div>
+                </Dialog>
+
+                {/* Changelog Dialog */}
+                <Dialog
+                    header="Changelog"
+                    visible={changelogDialogVisible}
+                    onHide={() => setChangelogDialogVisible(false)}
+                    style={{ width: '70vw' }}
+                    maximizable
+                    modal
+                >
+                    {changelog.length === 0 ? (
+                        <div style={{
+                            padding: '3rem',
+                            textAlign: 'center',
+                            color: isDark ? '#9ca3af' : '#6b7280'
+                        }}>
+                            <i className="pi pi-history" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}></i>
+                            <p style={{ fontSize: '1rem', fontWeight: '500' }}>No changes recorded yet</p>
+                            <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>Changes will appear here when you add, edit, or delete routes and locations</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginBottom: '1rem'
+                            }}>
+                                <Button
+                                    label="Clear All"
+                                    icon="pi pi-trash"
+                                    size="small"
+                                    severity="danger"
+                                    outlined
+                                    onClick={() => {
+                                        setChangelog([]);
+                                        setChangelogDialogVisible(false);
+                                    }}
+                                />
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem',
+                                maxHeight: '60vh',
+                                overflowY: 'auto',
+                                padding: '0.5rem'
+                            }}>
+                                {changelog.map((entry) => {
+                                    const actionColors = {
+                                        add: '#10b981',
+                                        edit: '#f59e0b',
+                                        delete: '#ef4444'
+                                    };
+                                    const actionIcons = {
+                                        add: 'pi-plus-circle',
+                                        edit: 'pi-pencil',
+                                        delete: 'pi-trash'
+                                    };
+                                    
+                                    return (
+                                        <div key={entry.id} style={{
+                                            padding: '1rem',
+                                            backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+                                            borderLeft: `4px solid ${actionColors[entry.action]}`,
+                                            borderRadius: '8px',
+                                            fontSize: '0.875rem',
+                                            display: 'flex',
+                                            gap: '1rem',
+                                            alignItems: 'flex-start',
+                                            transition: 'all 0.2s ease',
+                                            boxShadow: isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)'
+                                        }}>
+                                            <i className={`pi ${actionIcons[entry.action]}`} style={{
+                                                color: actionColors[entry.action],
+                                                fontSize: '1.25rem',
+                                                marginTop: '0.1rem'
+                                            }}></i>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    marginBottom: '0.5rem',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <span style={{
+                                                        fontWeight: '700',
+                                                        color: actionColors[entry.action],
+                                                        textTransform: 'uppercase',
+                                                        fontSize: '0.75rem',
+                                                        letterSpacing: '1px',
+                                                        padding: '0.25rem 0.75rem',
+                                                        backgroundColor: `${actionColors[entry.action]}20`,
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        {entry.action} {entry.type}
+                                                    </span>
+                                                    <span style={{
+                                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '500'
+                                                    }}>
+                                                        {entry.timestamp}
+                                                    </span>
+                                                </div>
+                                                <div style={{
+                                                    color: isDark ? '#e5e5e5' : '#374151',
+                                                    lineHeight: '1.6',
+                                                    fontSize: '0.875rem'
+                                                }}>
+                                                    {entry.action === 'add' && (
+                                                        <span>
+                                                            {entry.type === 'route' 
+                                                                ? `Route: ${entry.details.route || 'New Route'}`
+                                                                : `Location: ${entry.details.code || 'New Location'} in Route ${entry.details.route}`
+                                                            }
+                                                        </span>
+                                                    )}
+                                                    {entry.action === 'edit' && (
+                                                        <span>
+                                                            {entry.type === 'route' 
+                                                                ? `Route ${entry.details.route}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
+                                                                : `Location ${entry.details.code}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
+                                                            }
+                                                        </span>
+                                                    )}
+                                                    {entry.action === 'delete' && (
+                                                        <span>
+                                                            {entry.type === 'route' 
+                                                                ? `Route: ${entry.details.route}`
+                                                                : `Location: ${entry.details.code} from Route ${entry.details.route}`
+                                                            }
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                 </Dialog>
             </div>
         </div>
