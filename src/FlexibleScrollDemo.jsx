@@ -178,6 +178,9 @@ export default function FlexibleScrollDemo() {
         delivery: 100,
         image: 100
     });
+    
+    // Changelog State
+    const [changelog, setChangelog] = useState([]);
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -374,15 +377,31 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleUpdateRow = (rowId, field, value) => {
+        const route = routes.find(r => r.id === rowId);
+        const oldValue = route ? route[field] : '';
+        
         const updatedRoutes = routes.map(route => 
             route.id === rowId ? { ...route, [field]: value } : route
         );
         // Sort routes after update to maintain A-Z, 1-10 order
         setRoutes(sortRoutes(updatedRoutes));
         setHasUnsavedChanges(true);
+        
+        // Add to changelog
+        if (oldValue !== value) {
+            addChangelogEntry('edit', 'route', {
+                route: route?.route || 'Unknown',
+                field: field,
+                oldValue: oldValue,
+                newValue: value
+            });
+        }
     };
 
     const handleUpdateDialogData = (rowId, field, value) => {
+        const location = dialogData.find(d => d.id === rowId);
+        const oldValue = location ? location[field] : '';
+        
         const updatedData = dialogData.map(data => 
             data.id === rowId ? { ...data, [field]: value } : data
         );
@@ -391,6 +410,17 @@ export default function FlexibleScrollDemo() {
         
         // Mark row as modified
         setModifiedRows(prev => new Set(prev).add(rowId));
+        
+        // Add to changelog
+        if (oldValue !== value) {
+            addChangelogEntry('edit', 'location', {
+                code: location?.code || 'Unknown',
+                location: location?.location || 'Unknown',
+                field: field,
+                oldValue: oldValue,
+                newValue: value
+            });
+        }
         
         // Recalculate column widths if content field changed
         if (['code', 'location', 'delivery'].includes(field)) {
@@ -448,6 +478,26 @@ export default function FlexibleScrollDemo() {
     const getPowerColor = (powerMode) => {
         const status = getPowerStatus(powerMode);
         return status === 'ON' ? '#10b981' : '#ef4444';
+    };
+    
+    // Add changelog entry
+    const addChangelogEntry = (action, type, details) => {
+        const entry = {
+            id: Date.now(),
+            timestamp: new Date().toLocaleString('en-MY', { 
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true 
+            }),
+            action, // 'add', 'edit', 'delete'
+            type, // 'route', 'location'
+            details
+        };
+        setChangelog(prev => [entry, ...prev].slice(0, 50)); // Keep last 50 entries
     };
 
     const handleShowInfo = (rowData) => {
@@ -781,6 +831,15 @@ export default function FlexibleScrollDemo() {
         setDialogData(updatedData);
         setNewRows([...newRows, tempId]);
         setHasUnsavedChanges(true);
+        
+        // Add to changelog
+        addChangelogEntry('add', 'location', {
+            route: currentRouteName,
+            code: 'New Location',
+            location: '',
+            delivery: 'Daily'
+        });
+        
         console.log('✅ Added new location with temp ID:', tempId, 'for route:', currentRouteId);
         
         // Recalculate column widths
@@ -796,18 +855,36 @@ export default function FlexibleScrollDemo() {
     
     const confirmDelete = () => {
         if (deleteType === 'location') {
+            const locationToDelete = deleteTarget.data;
             const updatedData = dialogData.filter(data => data.id !== deleteTarget.id);
             setDialogData(sortDialogData(updatedData));
             setHasUnsavedChanges(true);
+            
+            // Add to changelog
+            addChangelogEntry('delete', 'location', {
+                route: currentRouteName,
+                code: locationToDelete?.code || 'Unknown',
+                location: locationToDelete?.location || 'Unknown'
+            });
+            
             console.log('Deleted dialog row:', deleteTarget.id);
             
             // Recalculate column widths after delete
             calculateColumnWidths(updatedData);
         } else if (deleteType === 'route') {
+            const routeToDelete = deleteTarget.data;
             const updatedRoutes = routes.filter(route => route.id !== deleteTarget.id);
             // Sort routes after delete to maintain A-Z, 1-10 order
             setRoutes(sortRoutes(updatedRoutes));
             setHasUnsavedChanges(true);
+            
+            // Add to changelog
+            addChangelogEntry('delete', 'route', {
+                route: routeToDelete?.route || 'Unknown',
+                shift: routeToDelete?.shift || '',
+                warehouse: routeToDelete?.warehouse || ''
+            });
+            
             console.log('Deleted row:', deleteTarget.id);
         }
         setDeleteConfirmVisible(false);
@@ -910,6 +987,14 @@ export default function FlexibleScrollDemo() {
         setRoutes(updatedRoutes);
         setHasUnsavedChanges(true);
         setNewRows([...newRows, tempId]); // Track new rows
+        
+        // Add to changelog
+        addChangelogEntry('add', 'route', {
+            route: 'New Route',
+            shift: '',
+            warehouse: ''
+        });
+        
         console.log('✅ Added new route with temp ID:', tempId);
     };
 
@@ -1328,6 +1413,134 @@ export default function FlexibleScrollDemo() {
                         headerStyle={{ color: '#ef4444', textAlign: 'center' }}
                     />
                 </DataTable>
+
+                {/* Changelog Container */}
+                {changelog.length > 0 && (
+                    <div style={{
+                        marginTop: '1.5rem',
+                        padding: '1rem',
+                        backgroundColor: isDark ? '#0f0f0f' : '#ffffff',
+                        border: `1px solid ${isDark ? '#2a2a2a' : '#e5e7eb'}`,
+                        borderRadius: '12px',
+                        maxHeight: '250px',
+                        overflowY: 'auto',
+                        boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.75rem',
+                            paddingBottom: '0.5rem',
+                            borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#e5e7eb'}`
+                        }}>
+                            <h3 style={{
+                                margin: 0,
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                color: isDark ? '#60a5fa' : '#3b82f6',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-history" style={{ fontSize: '0.9rem' }}></i>
+                                Changelog
+                            </h3>
+                            <Button
+                                label="Clear"
+                                icon="pi pi-trash"
+                                size="small"
+                                severity="danger"
+                                text
+                                onClick={() => setChangelog([])}
+                                style={{ fontSize: '0.75rem' }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {changelog.map((entry) => {
+                                const actionColors = {
+                                    add: '#10b981',
+                                    edit: '#f59e0b',
+                                    delete: '#ef4444'
+                                };
+                                const actionIcons = {
+                                    add: 'pi-plus-circle',
+                                    edit: 'pi-pencil',
+                                    delete: 'pi-trash'
+                                };
+                                
+                                return (
+                                    <div key={entry.id} style={{
+                                        padding: '0.75rem',
+                                        backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+                                        borderLeft: `3px solid ${actionColors[entry.action]}`,
+                                        borderRadius: '6px',
+                                        fontSize: '0.8rem',
+                                        display: 'flex',
+                                        gap: '0.75rem',
+                                        alignItems: 'flex-start',
+                                        transition: 'all 0.2s ease'
+                                    }}>
+                                        <i className={`pi ${actionIcons[entry.action]}`} style={{
+                                            color: actionColors[entry.action],
+                                            fontSize: '0.9rem',
+                                            marginTop: '0.1rem'
+                                        }}></i>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                marginBottom: '0.25rem'
+                                            }}>
+                                                <span style={{
+                                                    fontWeight: '600',
+                                                    color: actionColors[entry.action],
+                                                    textTransform: 'uppercase',
+                                                    fontSize: '0.7rem',
+                                                    letterSpacing: '0.5px'
+                                                }}>
+                                                    {entry.action} {entry.type}
+                                                </span>
+                                                <span style={{
+                                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                                    fontSize: '0.7rem'
+                                                }}>
+                                                    {entry.timestamp}
+                                                </span>
+                                            </div>
+                                            <div style={{ color: isDark ? '#e5e5e5' : '#374151' }}>
+                                                {entry.action === 'add' && (
+                                                    <span>
+                                                        {entry.type === 'route' 
+                                                            ? `Route: ${entry.details.route || 'New Route'}`
+                                                            : `Location: ${entry.details.code || 'New Location'} in Route ${entry.details.route}`
+                                                        }
+                                                    </span>
+                                                )}
+                                                {entry.action === 'edit' && (
+                                                    <span>
+                                                        {entry.type === 'route' 
+                                                            ? `Route ${entry.details.route}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
+                                                            : `Location ${entry.details.code}: ${entry.details.field} changed from "${entry.details.oldValue}" to "${entry.details.newValue}"`
+                                                        }
+                                                    </span>
+                                                )}
+                                                {entry.action === 'delete' && (
+                                                    <span>
+                                                        {entry.type === 'route' 
+                                                            ? `Route: ${entry.details.route}`
+                                                            : `Location: ${entry.details.code} from Route ${entry.details.route}`
+                                                        }
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 <Dialog 
                     header={`Route ${currentRouteName}`} 

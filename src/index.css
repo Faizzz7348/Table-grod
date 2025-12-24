@@ -104,7 +104,7 @@ body.light-mode .p-datatable .p-datatable-tbody > tr > td {
   text-align: center !important;
   font-size: 11px;
   font-weight: 600;
-  padding: 0.75rem;
+  padding: 12px;
   border: 0 !important;
   outline: none !important;
 }
@@ -183,7 +183,7 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr > td {
   text-align: center !important;
   font-size: 11px;
   font-weight: 600;
-  padding: 0.75rem;
+  padding: 12px;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -1306,4 +1306,41 @@ body.dark-mode .p-datatable .p-datatable-row-expansion > td > div {
   object-fit: contain;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
+}
+
+/* Changelog Container Scrollbar */
+body.light-mode div[style*="overflowY: auto"]::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.light-mode div[style*="overflowY: auto"]::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+body.light-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+body.light-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 10px;
+}
+
+body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 10px;
+}
+
+body.dark-mode div[style*="overflowY: auto"]::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
 }
