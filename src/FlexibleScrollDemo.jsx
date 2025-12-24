@@ -10,6 +10,7 @@ import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
 import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
+import { usePWAInstall } from './hooks/usePWAInstall';
 
 // CSS untuk remove border dari table header
 const tableStyles = `
@@ -109,6 +110,9 @@ export default function FlexibleScrollDemo() {
     const deviceInfo = useDeviceDetect();
     const responsiveStyles = getResponsiveStyles(deviceInfo);
     
+    // PWA Install
+    const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
+    
     const [routes, setRoutes] = useState([]);
     const [dialogVisible, setDialogVisible] = useState(false);
     const [dialogData, setDialogData] = useState([]);
@@ -129,7 +133,7 @@ export default function FlexibleScrollDemo() {
     
     // Dark Mode State - Simple implementation
     const [isDark, setIsDark] = useState(() => {
-        const saved = localStorage.getItem('darkMode');
+        const saved = localStorage.getItem('isDark');
         return saved === 'true';
     });
     
@@ -363,7 +367,7 @@ export default function FlexibleScrollDemo() {
         } else {
             document.body.classList.remove('dark');
         }
-        localStorage.setItem('darkMode', isDark.toString());
+        localStorage.setItem('isDark', isDark.toString());
         
         // Switch PrimeReact theme dynamically
         const themeLink = document.getElementById('app-theme');
@@ -1221,6 +1225,64 @@ export default function FlexibleScrollDemo() {
                 }}>
                     <i className="pi pi-exclamation-triangle"></i>
                     Unsaved Changes
+                </div>
+            )
+        }] : []),
+        ...(isInstallable && !isInstalled ? [{
+            label: 'Install App',
+            icon: 'pi pi-download',
+            command: () => promptInstall(),
+            className: 'menu-install-item',
+            template: (item) => (
+                <div 
+                    onClick={item.command}
+                    style={{
+                        backgroundColor: isDark ? '#10b981' : '#d1fae5',
+                        color: isDark ? '#ffffff' : '#065f46',
+                        padding: '0.75rem 1rem',
+                        margin: '0.5rem',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        border: `2px solid ${isDark ? '#059669' : '#10b981'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                    }}
+                >
+                    <i className="pi pi-download"></i>
+                    Install App
+                </div>
+            )
+        }] : []),
+        ...(isInstalled ? [{
+            template: () => (
+                <div style={{
+                    backgroundColor: isDark ? '#10b981' : '#d1fae5',
+                    color: isDark ? '#ffffff' : '#065f46',
+                    padding: '0.75rem 1rem',
+                    margin: '0.5rem',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    border: `2px solid ${isDark ? '#059669' : '#10b981'}`,
+                    transition: 'all 0.3s ease'
+                }}>
+                    <i className="pi pi-check-circle"></i>
+                    App Installed
                 </div>
             )
         }] : []),
