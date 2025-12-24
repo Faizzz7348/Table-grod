@@ -75,7 +75,7 @@ body.light-mode .p-datatable .p-datatable-thead > tr > th {
   text-align: center !important;
   font-weight: 600;
   font-size: 13px;
-  padding: 1rem;
+  padding: 8px;
   border: none !important;
   border-left: none !important;
   border-right: none !important;
@@ -104,7 +104,7 @@ body.light-mode .p-datatable .p-datatable-tbody > tr > td {
   text-align: center !important;
   font-size: 11px;
   font-weight: 600;
-  padding: 12px;
+  padding: 8px;
   border: 0 !important;
   outline: none !important;
 }
@@ -153,7 +153,7 @@ body.dark-mode .p-datatable .p-datatable-thead > tr > th {
   text-align: center !important;
   font-weight: 600;
   font-size: 13px;
-  padding: 1rem;
+  padding: 8px;
   border: 0 !important;
   border-width: 0 !important;
   border-style: none !important;
@@ -183,7 +183,7 @@ body.dark-mode .p-datatable .p-datatable-tbody > tr > td {
   text-align: center !important;
   font-size: 11px;
   font-weight: 600;
-  padding: 12px;
+  padding: 8px;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;

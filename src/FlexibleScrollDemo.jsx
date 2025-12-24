@@ -384,6 +384,12 @@ export default function FlexibleScrollDemo() {
             newThemeLink.href = themePath;
             document.head.appendChild(newThemeLink);
         }
+        
+        // Update browser tab theme-color based on mode
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+            themeColorMeta.setAttribute('content', isDark ? '#1a1a1a' : '#ffffff');
+        }
     }, [isDark]);
     
     // Close dropdown when clicking outside
