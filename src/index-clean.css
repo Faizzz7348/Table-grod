@@ -158,12 +158,12 @@ body.dark .p-datatable .p-datatable-tbody > tr.row-disabled {
 /* New/Modified Row Highlight */
 .p-datatable .p-datatable-tbody > tr.new-row-light,
 .p-datatable .p-datatable-tbody > tr.modified-row-light {
-  background-color: #fef3c7 !important;
+  background-color: #fefce8 !important;
 }
 
 .p-datatable .p-datatable-tbody > tr.new-row-light > td,
 .p-datatable .p-datatable-tbody > tr.modified-row-light > td {
-  background-color: #fef3c7 !important;
+  background-color: #fefce8 !important;
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr.new-row-dark,
