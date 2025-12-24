@@ -9,6 +9,7 @@ import { Menu } from 'primereact/menu';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
+import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
 
 // CSS untuk remove border dari table header
 const tableStyles = `
@@ -88,6 +89,11 @@ const DuplicateCheckEditor = ({ options, allData, field }) => {
 
 export default function FlexibleScrollDemo() {
     const menuRef = useRef(null);
+    
+    // Device Detection
+    const deviceInfo = useDeviceDetect();
+    const responsiveStyles = getResponsiveStyles(deviceInfo);
+    
     const [routes, setRoutes] = useState([]);
     const [dialogVisible, setDialogVisible] = useState(false);
     const [dialogData, setDialogData] = useState([]);
@@ -1776,8 +1782,8 @@ export default function FlexibleScrollDemo() {
                 <DataTable 
                     value={routes} 
                     scrollable 
-                    scrollHeight="400px" 
-                    tableStyle={{ minWidth: '50rem' }}
+                    scrollHeight={deviceInfo.tableScrollHeight} 
+                    tableStyle={{ minWidth: deviceInfo.isMobile ? '100%' : '50rem' }}
                     editMode={editMode ? "cell" : null}
                     className="no-header-border"
                 >
@@ -1823,19 +1829,19 @@ export default function FlexibleScrollDemo() {
                                     gap: '0.5rem'
                                 }}>
                                     <i className="pi pi-map-marker" style={{ 
-                                        color: isOverLimit ? '#ef4444' : (isDark ? '#60a5fa' : '#3b82f6'),
+                                        color: isOverLimit ? '#ef4444' : '#10b981',
                                         fontSize: '0.875rem'
                                     }}></i>
                                     <span style={{
                                         fontWeight: '600',
-                                        color: isOverLimit ? '#ef4444' : (isDark ? '#60a5fa' : '#3b82f6')
+                                        color: isOverLimit ? '#ef4444' : '#10b981'
                                     }}>
                                         {count}
                                     </span>
                                 </div>
                             );
                         }}
-                        headerStyle={{ color: isDark ? '#60a5fa' : '#3b82f6', textAlign: 'center', fontWeight: 'bold' }}
+                        headerStyle={{ color: isDark ? '#ffffff' : '#000000', textAlign: 'center', fontWeight: 'bold' }}
                     />
                     <Column 
                         header="Action" 
@@ -1861,33 +1867,49 @@ export default function FlexibleScrollDemo() {
                                 <div style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
-                                    gap: '0.75rem' 
+                                    gap: '0.75rem',
+                                    flexWrap: 'wrap'
                                 }}>
                                     {flagSrc && (
                                         <img 
                                             src={flagSrc} 
                                             alt="flag" 
                                             style={{ 
-                                                width: '48px', 
-                                                height: '32px', 
+                                                width: deviceInfo.isMobile ? '36px' : '48px', 
+                                                height: deviceInfo.isMobile ? '24px' : '32px', 
                                                 objectFit: 'cover',
                                                 borderRadius: '3px',
                                                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
                                             }} 
                                         />
                                     )}
-                                    <span>Route {currentRouteName}</span>
+                                    <span style={{ fontSize: deviceInfo.isMobile ? '0.9rem' : '1rem' }}>Route {currentRouteName}</span>
+                                    <span style={{
+                                        marginLeft: 'auto',
+                                        fontSize: '0.7rem',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '12px',
+                                        backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        fontWeight: '600',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem'
+                                    }}>
+                                        <i className={`pi ${deviceInfo.isMobile ? 'pi-mobile' : deviceInfo.isTablet ? 'pi-tablet' : 'pi-desktop'}`} style={{ fontSize: '0.7rem' }}></i>
+                                        {deviceInfo.deviceType.toUpperCase()}
+                                    </span>
                                 </div>
                             );
                         })()
                     }
                     visible={dialogVisible} 
-                    style={{ width: '90vw' }} 
-                    maximizable
+                    style={{ width: deviceInfo.dialogWidth }} 
+                    maximizable={!deviceInfo.isMobile}
                     modal
                     closeOnEscape
                     dismissableMask 
-                    contentStyle={{ height: '500px' }} 
+                    contentStyle={{ height: deviceInfo.isMobile ? '400px' : '500px' }} 
                     onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
                     headerStyle={{ color: isDark ? '#fff' : '#000' }}
@@ -2517,14 +2539,14 @@ export default function FlexibleScrollDemo() {
                     header={
                         <div style={{ 
                             textAlign: 'center', 
-                            fontSize: '12px',
+                            fontSize: deviceInfo.isMobile ? '11px' : '12px',
                             padding: '8px 0'
                         }}>
                             {selectedRowInfo && `${selectedRowInfo.code} - ${selectedRowInfo.location}`}
                         </div>
                     }
                     visible={infoDialogVisible} 
-                    style={{ width: '500px' }} 
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }} 
                     modal
                     dismissableMask
                     closeOnEscape
@@ -2748,7 +2770,7 @@ export default function FlexibleScrollDemo() {
                         </div>
                     }
                     visible={viewDialogVisible}
-                    style={{ width: '500px' }}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }}
                     modal
                     dismissableMask
                     transitionOptions={{ timeout: 300 }}
@@ -2863,7 +2885,7 @@ export default function FlexibleScrollDemo() {
                         </div>
                     }
                     visible={passwordDialogVisible}
-                    style={{ width: '400px' }}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '400px' }}
                     modal
                     closable={!passwordLoading}
                     transitionOptions={{ timeout: 300 }}
@@ -2961,7 +2983,7 @@ export default function FlexibleScrollDemo() {
                         </div>
                     }
                     visible={changePasswordDialogVisible}
-                    style={{ width: '450px' }}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
                     modal
                     dismissableMask
                     transitionOptions={{ timeout: 300 }}
@@ -3833,6 +3855,75 @@ export default function FlexibleScrollDemo() {
                         </>
                     )}
                 </Dialog>
+            </div>
+            
+            {/* Device Info Footer */}
+            <div style={{
+                position: 'fixed',
+                bottom: '1rem',
+                left: '1rem',
+                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                boxShadow: isDark ? '0 4px 12px rgba(0, 0, 0, 0.5)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
+                zIndex: 100,
+                backdropFilter: 'blur(8px)',
+                fontSize: '0.75rem',
+                color: isDark ? '#9ca3af' : '#6b7280',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                transition: 'all 0.3s ease'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <i className={`pi ${deviceInfo.isMobile ? 'pi-mobile' : deviceInfo.isTablet ? 'pi-tablet' : 'pi-desktop'}`} 
+                       style={{ fontSize: '1rem', color: isDark ? '#60a5fa' : '#3b82f6' }}></i>
+                    <span style={{ color: isDark ? '#e5e7eb' : '#374151', fontWeight: '700' }}>
+                        {deviceInfo.deviceType.toUpperCase()}
+                    </span>
+                </div>
+                <div style={{ 
+                    width: '1px', 
+                    height: '16px', 
+                    backgroundColor: isDark ? '#475569' : '#d1d5db' 
+                }}></div>
+                <span>{deviceInfo.screenWidth} × {deviceInfo.screenHeight}</span>
+                <div style={{ 
+                    width: '1px', 
+                    height: '16px', 
+                    backgroundColor: isDark ? '#475569' : '#d1d5db' 
+                }}></div>
+                <span style={{ 
+                    textTransform: 'capitalize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                }}>
+                    <i className={`pi ${deviceInfo.orientation === 'portrait' ? 'pi-arrow-up' : 'pi-arrow-right'}`} 
+                       style={{ fontSize: '0.75rem' }}></i>
+                    {deviceInfo.orientation}
+                </span>
+                {deviceInfo.touchSupport && (
+                    <>
+                        <div style={{ 
+                            width: '1px', 
+                            height: '16px', 
+                            backgroundColor: isDark ? '#475569' : '#d1d5db' 
+                        }}></div>
+                        <i className="pi pi-hand-pointer" style={{ fontSize: '0.875rem', color: '#10b981' }} title="Touch Enabled"></i>
+                    </>
+                )}
+                <div style={{ 
+                    width: '1px', 
+                    height: '16px', 
+                    backgroundColor: isDark ? '#475569' : '#d1d5db' 
+                }}></div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <i className="pi pi-globe" style={{ fontSize: '0.75rem' }}></i>
+                    {deviceInfo.browserInfo.name}
+                </span>
             </div>
         </div>
     );
