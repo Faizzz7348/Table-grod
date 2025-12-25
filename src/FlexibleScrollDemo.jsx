@@ -1468,22 +1468,35 @@ export default function FlexibleScrollDemo() {
                             top: '100%',
                             right: '2rem',
                             marginTop: '0.5rem',
-                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            backgroundColor: isDark ? '#1e293b' : 'rgba(249, 250, 251, 0.7)',
+                            backdropFilter: isDark ? 'none' : 'blur(30px) saturate(200%)',
+                            WebkitBackdropFilter: isDark ? 'none' : 'blur(30px) saturate(200%)',
                             borderRadius: '16px',
-                            boxShadow: isDark ? '0 20px 60px rgba(0, 0, 0, 0.5)' : '0 20px 60px rgba(0, 0, 0, 0.15)',
+                            boxShadow: isDark 
+                                ? '0 20px 60px rgba(0, 0, 0, 0.5)' 
+                                : '0 8px 32px rgba(31, 38, 135, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
                             minWidth: '320px',
                             zIndex: 1000,
                             overflow: 'hidden',
                             animation: 'slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
+                            border: `1px solid ${isDark ? '#334155' : 'rgba(229, 231, 235, 0.5)'}`,
+                            background: isDark 
+                                ? '#1e293b'
+                                : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(255, 255, 255, 0.7) 100%)'
                         }}>
                             {/* Menu Header */}
                             <div style={{
                                 padding: '1.25rem 1.5rem',
                                 background: isDark 
-                                    ? 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
-                                    : 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
-                                color: '#ffffff',
+                                    ? 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)'
+                                    : 'linear-gradient(135deg, rgba(209, 213, 219, 0.9) 0%, rgba(229, 231, 235, 0.8) 100%)',
+                                backdropFilter: isDark ? 'none' : 'blur(30px) saturate(200%)',
+                                WebkitBackdropFilter: isDark ? 'none' : 'blur(30px) saturate(200%)',
+                                border: isDark ? 'none' : '1px solid rgba(209, 213, 219, 0.5)',
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                borderTop: 'none',
+                                color: isDark ? '#ffffff' : '#1f2937',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '1rem'
@@ -1492,13 +1505,12 @@ export default function FlexibleScrollDemo() {
                                     width: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
-                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    background: 'transparent',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    backdropFilter: 'blur(10px)'
+                                    justifyContent: 'center'
                                 }}>
-                                    <i className="pi pi-cog" style={{ fontSize: '1.5rem' }}></i>
+                                    <i className="pi pi-cog" style={{ fontSize: '1.5rem', color: isDark ? '#ffffff' : '#374151' }}></i>
                                 </div>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700' }}>Settings</h3>
@@ -1555,7 +1567,7 @@ export default function FlexibleScrollDemo() {
                                         width: '40px',
                                         height: '40px',
                                         borderRadius: '10px',
-                                        background: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                        background: 'transparent',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center'
@@ -1600,7 +1612,7 @@ export default function FlexibleScrollDemo() {
                                         width: '40px',
                                         height: '40px',
                                         borderRadius: '10px',
-                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        background: 'transparent',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center'
@@ -1659,7 +1671,7 @@ export default function FlexibleScrollDemo() {
                                         width: '40px',
                                         height: '40px',
                                         borderRadius: '10px',
-                                        background: editMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                        background: 'transparent',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center'
@@ -1712,7 +1724,7 @@ export default function FlexibleScrollDemo() {
                                                 width: '40px',
                                                 height: '40px',
                                                 borderRadius: '10px',
-                                                background: 'rgba(168, 85, 247, 0.1)',
+                                                background: 'transparent',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center'
@@ -1756,7 +1768,7 @@ export default function FlexibleScrollDemo() {
                                                 width: '40px',
                                                 height: '40px',
                                                 borderRadius: '10px',
-                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                background: 'transparent',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center'
