@@ -171,6 +171,7 @@ export default function FlexibleScrollDemo() {
     const [selectedRowId, setSelectedRowId] = useState(null);
     const [imageUrlInput, setImageUrlInput] = useState('');
     const [editingImageIndex, setEditingImageIndex] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
     
     // Power Mode Modal State
     const [powerModeDialogVisible, setPowerModeDialogVisible] = useState(false);
@@ -994,15 +995,46 @@ export default function FlexibleScrollDemo() {
         setCurrentRowImages(newImages);
     };
     
-    const handleFileUpload = (event) => {
+    const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const newImages = [...currentRowImages, e.target.result];
-                setCurrentRowImages(newImages);
-            };
-            reader.readAsDataURL(file);
+            try {
+                setUploadingImage(true);
+                console.log('Uploading image to ImgBB...');
+                
+                // Create FormData
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                // Get API key from env
+                const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+                
+                // Upload to ImgBB
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add the uploaded image URL to the list
+                    const imageUrl = data.data.url;
+                    const newImages = [...currentRowImages, imageUrl];
+                    setCurrentRowImages(newImages);
+                    console.log('Image uploaded successfully:', imageUrl);
+                } else {
+                    console.error('ImgBB upload failed:', data);
+                    alert('Failed to upload image. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image. Please try again.');
+            } finally {
+                setUploadingImage(false);
+                // Clear file input
+                event.target.value = '';
+            }
         }
     };
     
@@ -3451,18 +3483,39 @@ export default function FlexibleScrollDemo() {
                             }}>
                                 Or Upload Image:
                             </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                style={{
-                                    padding: '0.5rem',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
-                                    width: '100%',
-                                    cursor: 'pointer'
-                                }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    disabled={uploadingImage}
+                                    style={{
+                                        padding: '0.5rem',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        width: '100%',
+                                        cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                                        opacity: uploadingImage ? 0.6 : 1
+                                    }}
+                                />
+                                {uploadingImage && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        right: '1rem',
+                                        transform: 'translateY(-50%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        color: '#3b82f6',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600'
+                                    }}>
+                                        <i className="pi pi-spin pi-spinner"></i>
+                                        Uploading...
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Current Images List */}
