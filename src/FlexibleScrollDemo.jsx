@@ -67,38 +67,30 @@ const DuplicateCheckEditor = ({ options, allData, field }) => {
 
     return (
         <div style={{ position: 'relative', width: '100%' }}>
-            {isDuplicate && (
-                <div style={{
-                    position: 'absolute',
-                    top: '-22px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#ef4444',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    zIndex: 1000,
-                    animation: 'fadeInDown 0.3s ease-out'
-                }}>
-                    ⚠️ Duplicated
-                </div>
-            )}
             <InputText 
                 type="text" 
                 value={localValue}
                 onChange={handleChange}
                 style={{ 
                     width: '100%',
-                    borderColor: isDuplicate ? '#ef4444' : undefined,
-                    backgroundColor: isDuplicate ? 'rgba(239, 68, 68, 0.1)' : undefined,
-                    borderWidth: isDuplicate ? '2px' : undefined
+                    border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
+                    backgroundColor: isDuplicate ? '#fee2e2' : undefined,
+                    color: isDuplicate ? '#000000' : undefined,
+                    borderRadius: '6px',
+                    padding: '0.5rem',
+                    fontSize: '1rem'
                 }}
-                className={isDuplicate ? 'p-invalid' : ''}
             />
+            {isDuplicate && (
+                <div style={{ 
+                    color: '#ef4444', 
+                    fontSize: '0.75rem', 
+                    marginTop: '0.25rem',
+                    fontWeight: '600'
+                }}>
+                    Duplicate!
+                </div>
+            )}
         </div>
     );
 };
@@ -172,6 +164,7 @@ export default function FlexibleScrollDemo() {
     const [imageUrlInput, setImageUrlInput] = useState('');
     const [editingImageIndex, setEditingImageIndex] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [imageLoadingStates, setImageLoadingStates] = useState({});
     
     // Power Mode Modal State
     const [powerModeDialogVisible, setPowerModeDialogVisible] = useState(false);
@@ -191,6 +184,9 @@ export default function FlexibleScrollDemo() {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [passwordError, setPasswordError] = useState('');
+    
+    // General operation loading state
+    const [savingInfo, setSavingInfo] = useState(false);
     
     // Change Password Dialog State
     const [changePasswordDialogVisible, setChangePasswordDialogVisible] = useState(false);
@@ -575,6 +571,7 @@ export default function FlexibleScrollDemo() {
     const handleSaveInfoEdit = async () => {
         if (!selectedRowInfo) return;
         
+        setSavingInfo(true);
         try {
             console.log('💾 Saving location info:', {
                 id: selectedRowInfo.id,
@@ -582,6 +579,9 @@ export default function FlexibleScrollDemo() {
                 longitude: infoEditData.longitude,
                 address: infoEditData.address
             });
+            
+            // Simulate a brief delay for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 300));
             
             // Update the location in dialogData
             const updatedDialogData = dialogData.map(item => {
@@ -631,6 +631,8 @@ export default function FlexibleScrollDemo() {
         } catch (error) {
             console.error('❌ Error saving info:', error);
             alert('Error saving location info: ' + error.message);
+        } finally {
+            setSavingInfo(false);
         }
     };
 
@@ -965,13 +967,22 @@ export default function FlexibleScrollDemo() {
         setImageDialogVisible(true);
         setImageUrlInput('');
         setEditingImageIndex(null);
+        // Initialize loading states for all images
+        const loadingStates = {};
+        (rowData.images || []).forEach((_, index) => {
+            loadingStates[index] = true;
+        });
+        setImageLoadingStates(loadingStates);
     };
     
     const handleAddImageUrl = () => {
         if (imageUrlInput.trim()) {
             const newImages = [...currentRowImages, imageUrlInput.trim()];
+            const newIndex = newImages.length - 1;
             setCurrentRowImages(newImages);
             setImageUrlInput('');
+            // Set loading state for new image
+            setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
         }
     };
     
@@ -997,44 +1008,77 @@ export default function FlexibleScrollDemo() {
     
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            try {
-                setUploadingImage(true);
-                console.log('Uploading image to ImgBB...');
-                
-                // Create FormData
-                const formData = new FormData();
-                formData.append('image', file);
-                
-                // Get API key from env
-                const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-                
-                // Upload to ImgBB
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Add the uploaded image URL to the list
-                    const imageUrl = data.data.url;
-                    const newImages = [...currentRowImages, imageUrl];
-                    setCurrentRowImages(newImages);
-                    console.log('Image uploaded successfully:', imageUrl);
-                } else {
-                    console.error('ImgBB upload failed:', data);
-                    alert('Failed to upload image. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Error uploading image. Please try again.');
-            } finally {
-                setUploadingImage(false);
-                // Clear file input
-                event.target.value = '';
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file (jpg, png, gif, etc.)');
+            console.error('Invalid file type:', file.type);
+            return;
+        }
+        
+        try {
+            setUploadingImage(true);
+            console.log('Uploading image to ImgBB...', {
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size
+            });
+            
+            // Get API key from env
+            const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+            
+            if (!apiKey) {
+                console.error('ImgBB API key is not configured');
+                alert('Image upload is not configured. Please contact administrator.');
+                return;
             }
+            
+            // Create FormData
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            // Upload to ImgBB
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('ImgBB response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('ImgBB HTTP error:', response.status, errorText);
+                alert(`Upload failed: ${response.status} ${response.statusText}`);
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('ImgBB response data:', data);
+            
+            if (data.success) {
+                // Add the uploaded image URL to the list
+                const imageUrl = data.data.url;
+                const newImages = [...currentRowImages, imageUrl];
+                const newIndex = newImages.length - 1;
+                setCurrentRowImages(newImages);
+                // Set loading state for uploaded image
+                setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
+                console.log('Image uploaded successfully:', imageUrl);
+                alert('Image uploaded successfully!');
+            } else {
+                console.error('ImgBB upload failed:', data);
+                alert(`Failed to upload image: ${data.error?.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert(`Error uploading image: ${error.message}`);
+        } finally {
+            setUploadingImage(false);
+            // Clear file input
+            event.target.value = '';
         }
     };
     
@@ -2359,7 +2403,7 @@ export default function FlexibleScrollDemo() {
                                                         }}
                                                     />
                                                     {isDuplicate && (
-                                                        <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                                                        <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: '600' }}>
                                                             Duplicate!
                                                         </div>
                                                     )}
@@ -2494,6 +2538,28 @@ export default function FlexibleScrollDemo() {
                                 header="Code" 
                                 align="center" 
                                 alignHeader="center"
+                                body={(rowData) => {
+                                    if (rowData.id === 'frozen-row') return rowData.code;
+                                    const isDuplicate = dialogData.some(item => 
+                                        item.code === rowData.code && item.id !== rowData.id && rowData.code
+                                    );
+                                    return (
+                                        <div>
+                                            <div>{rowData.code}</div>
+                                            {isDuplicate && (
+                                                <div style={{ 
+                                                    color: '#ef4444', 
+                                                    fontSize: '0.6rem', 
+                                                    marginTop: '0.1rem',
+                                                    fontWeight: '600',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    Duplicate!
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }}
                                 editor={(options) => {
                                     // Disable editing for frozen row
                                     if (options.rowData.id === 'frozen-row') return null;
@@ -2691,11 +2757,12 @@ export default function FlexibleScrollDemo() {
                                 ) : infoEditMode ? (
                                     <>
                                         <Button 
-                                            label="Save" 
-                                            icon="pi pi-check" 
+                                            label={savingInfo ? "Saving..." : "Save"} 
+                                            icon={savingInfo ? "pi pi-spin pi-spinner" : "pi pi-check"} 
                                             onClick={handleSaveInfoEdit}
                                             className="p-button-sm p-button-success"
                                             style={{ marginRight: '8px' }}
+                                            disabled={savingInfo}
                                         />
                                         <Button 
                                             label="Cancel" 
@@ -3553,17 +3620,60 @@ export default function FlexibleScrollDemo() {
                                             padding: '0.5rem',
                                             backgroundColor: isDark ? '#2a2a2a' : '#ffffff'
                                         }}>
-                                            <img
-                                                src={img}
-                                                alt={`Image ${index + 1}`}
-                                                style={{
-                                                    width: '100%',
-                                                    height: '80px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: '6px',
-                                                    marginBottom: '0.5rem'
-                                                }}
-                                            />
+                                            <div style={{ position: 'relative', width: '100%', height: '80px' }}>
+                                                {imageLoadingStates[index] && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: isDark ? 'rgba(42, 42, 42, 0.95)' : 'rgba(243, 244, 246, 0.95)',
+                                                        borderRadius: '6px',
+                                                        zIndex: 1,
+                                                        backdropFilter: 'blur(4px)',
+                                                        animation: 'fadeInOverlay 0.3s ease-in'
+                                                    }}>
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: '0.5rem'
+                                                        }}>
+                                                            <i className="pi pi-spin pi-spinner" style={{ 
+                                                                fontSize: '1.8rem',
+                                                                color: '#3b82f6'
+                                                            }}></i>
+                                                            <span style={{
+                                                                fontSize: '0.7rem',
+                                                                color: isDark ? '#9ca3af' : '#6b7280',
+                                                                fontWeight: '500'
+                                                            }}>Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <img
+                                                    src={img}
+                                                    alt={`Image ${index + 1}`}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '80px',
+                                                        objectFit: 'cover',
+                                                        borderRadius: '6px',
+                                                        marginBottom: '0.5rem',
+                                                        display: imageLoadingStates[index] ? 'none' : 'block'
+                                                    }}
+                                                    onLoad={() => {
+                                                        setImageLoadingStates(prev => ({ ...prev, [index]: false }));
+                                                    }}
+                                                    onError={() => {
+                                                        setImageLoadingStates(prev => ({ ...prev, [index]: false }));
+                                                    }}
+                                                />
+                                            </div>
                                             <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
                                                 <Button
                                                     icon="pi pi-pencil"
