@@ -1433,13 +1433,16 @@ export default function FlexibleScrollDemo() {
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <Button 
                         icon="pi pi-bars"
-                        label="Menu"
-                        onClick={() => setCustomMenuVisible(!customMenuVisible)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomMenuVisible(prev => !prev);
+                        }}
                         severity="info"
                         size="small"
                         raised
                         badge={editMode && hasUnsavedChanges ? "!" : null}
                         badgeSeverity="warning"
+                        aria-label="Menu"
                     />
                 </div>
                 
@@ -1801,15 +1804,15 @@ export default function FlexibleScrollDemo() {
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     gap: '0.5rem',
-                                                    background: saving ? (isDark ? '#1e3a2e' : '#d1fae5') : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                    color: '#ffffff',
+                                                    background: saving ? (isDark ? '#1e3a2e' : '#d1fae5') : 'transparent',
+                                                    border: 'none',
+                                                    color: '#10b981',
                                                     fontWeight: '700',
                                                     fontSize: '0.95rem',
-                                                    opacity: saving ? 0.7 : 1,
-                                                    boxShadow: saving ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                                    opacity: saving ? 0.7 : 1
                                                 }}
                                             >
-                                                <i className={saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'} />
+                                                <i className={saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'} style={{ color: '#10b981' }} />
                                                 {saving ? 'Saving...' : 'Save'}
                                             </div>
                                             
@@ -2065,7 +2068,7 @@ export default function FlexibleScrollDemo() {
                                                 severity="info"
                                                 size="small"
                                                 text
-                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem' }}
+                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={() => {
                                                     setActiveFunction('setOrder');
                                                     setCustomSortMode(true);
@@ -2083,7 +2086,7 @@ export default function FlexibleScrollDemo() {
                                                     severity="success"
                                                     size="small"
                                                     text
-                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem' }}
+                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
                                                     onClick={() => {
                                                         setActiveFunction('addRow');
                                                         setAddRowMode(true);
@@ -2096,7 +2099,7 @@ export default function FlexibleScrollDemo() {
                                                 severity="secondary"
                                                 size="small"
                                                 text
-                                                style={{ width: '100%', justifyContent: 'flex-start' }}
+                                                style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={() => {
                                                     setTempVisibleColumns({...visibleColumns});
                                                     setColumnModalVisible(true);
@@ -2122,10 +2125,13 @@ export default function FlexibleScrollDemo() {
                                                 icon="pi pi-check"
                                                 severity="success"
                                                 size="small"
+                                                text
                                                 style={{ 
                                                     width: '100%', 
                                                     marginBottom: '0.25rem',
-                                                    backgroundColor: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#9ca3af'
+                                                    backgroundColor: 'transparent',
+                                                    border: 'none',
+                                                    color: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#6b7280'
                                                 }}
                                                 onClick={applyCustomSort}
                                                 disabled={!Object.values(sortOrders).some(o => o !== '')}
@@ -2135,8 +2141,8 @@ export default function FlexibleScrollDemo() {
                                                 icon="pi pi-times"
                                                 severity="danger"
                                                 size="small"
-                                                outlined
-                                                style={{ width: '100%' }}
+                                                text
+                                                style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={() => {
                                                     setActiveFunction(null);
                                                     setCustomSortMode(false);
@@ -2163,7 +2169,8 @@ export default function FlexibleScrollDemo() {
                                                 icon="pi pi-plus"
                                                 severity="success"
                                                 size="small"
-                                                style={{ width: '100%', marginBottom: '0.25rem' }}
+                                                text
+                                                style={{ width: '100%', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={handleAddDialogRow}
                                             />
                                             <Button 
@@ -2171,11 +2178,13 @@ export default function FlexibleScrollDemo() {
                                                 icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"}
                                                 severity={hasUnsavedChanges ? "success" : "secondary"}
                                                 size="small"
+                                                text
                                                 style={{ 
                                                     width: '100%', 
                                                     marginBottom: '0.25rem',
-                                                    backgroundColor: hasUnsavedChanges ? '#10b981' : undefined,
-                                                    borderColor: hasUnsavedChanges ? '#10b981' : undefined
+                                                    backgroundColor: 'transparent',
+                                                    border: 'none',
+                                                    color: hasUnsavedChanges ? '#10b981' : '#6b7280'
                                                 }}
                                                 onClick={() => {
                                                     handleSaveChanges();
@@ -2191,8 +2200,8 @@ export default function FlexibleScrollDemo() {
                                                 icon="pi pi-times"
                                                 severity="danger"
                                                 size="small"
-                                                outlined
-                                                style={{ width: '100%' }}
+                                                text
+                                                style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={() => {
                                                     const filteredData = dialogData.filter(row => !newRows.includes(row.id));
                                                     setDialogData(filteredData);
@@ -2299,6 +2308,7 @@ export default function FlexibleScrollDemo() {
                                                             textAlign: 'center',
                                                             border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
                                                             backgroundColor: isDuplicate ? '#fee2e2' : '#ffffff',
+                                                            color: isDark ? '#000000' : '#000000',
                                                             padding: '0.5rem',
                                                             borderRadius: '6px',
                                                             fontSize: '1rem'
@@ -2404,6 +2414,7 @@ export default function FlexibleScrollDemo() {
                                                     textAlign: 'center',
                                                     border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
                                                     backgroundColor: isDuplicate ? '#fee2e2' : '#ffffff',
+                                                    color: isDark ? '#000000' : '#000000',
                                                     padding: '0.5rem',
                                                     borderRadius: '6px',
                                                     fontSize: '1rem',
@@ -3772,7 +3783,8 @@ export default function FlexibleScrollDemo() {
                                 icon="pi pi-times"
                                 severity="secondary"
                                 size="small"
-                                outlined
+                                text
+                                style={{ backgroundColor: 'transparent', border: 'none' }}
                                 onClick={() => setColumnModalVisible(false)}
                             />
                             <Button
@@ -3780,6 +3792,8 @@ export default function FlexibleScrollDemo() {
                                 icon="pi pi-check"
                                 severity="success"
                                 size="small"
+                                text
+                                style={{ backgroundColor: 'transparent', border: 'none' }}
                                 onClick={() => {
                                     setVisibleColumns(tempVisibleColumns);
                                     setColumnModalVisible(false);
