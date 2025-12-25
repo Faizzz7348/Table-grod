@@ -111,17 +111,18 @@ export default function FlexibleScrollDemo() {
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
     
+    // Global frozen row data - shared across all flex tables
+    const [frozenRowData, setFrozenRowData] = useState({
+        id: 'frozen-row',
+        code: 'QLK',
+        location: 'QL Kitchen',
+        delivery: 'Available',
+        images: [],
+        powerMode: 'Daily'
+    });
+    
     // Frozen row data for dialog table
-    const frozenRow = [
-        {
-            id: 'frozen-row',
-            code: 'QLK',
-            location: 'QL Kitchen',
-            delivery: 'Available',
-            images: [],
-            powerMode: 'Daily'
-        }
-    ];
+    const frozenRow = [frozenRowData];
     
     // Dark Mode State - Simple implementation
     const [isDark, setIsDark] = useState(() => {
@@ -1240,6 +1241,13 @@ export default function FlexibleScrollDemo() {
         }
         
         if (newValue !== rowData[field]) {
+            // If editing frozen row (QL Kitchen), update global state
+            if (rowData.id === 'frozen-row') {
+                setFrozenRowData(prev => ({
+                    ...prev,
+                    [field]: newValue
+                }));
+            }
             handleUpdateDialogData(rowData.id, field, newValue);
         }
     };
@@ -2605,8 +2613,6 @@ export default function FlexibleScrollDemo() {
                                     );
                                 }}
                                 editor={(options) => {
-                                    // Disable editing for frozen row
-                                    if (options.rowData.id === 'frozen-row') return null;
                                     return editMode ? textEditor(options) : null;
                                 }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
@@ -2620,8 +2626,6 @@ export default function FlexibleScrollDemo() {
                                 align="center" 
                                 alignHeader="center"
                                 editor={(options) => {
-                                    // Disable editing for frozen row
-                                    if (options.rowData.id === 'frozen-row') return null;
                                     return editMode ? textEditor(options) : null;
                                 }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
@@ -2635,8 +2639,6 @@ export default function FlexibleScrollDemo() {
                                 align="center" 
                                 alignHeader="center"
                                 editor={(options) => {
-                                    // Disable editing for frozen row
-                                    if (options.rowData.id === 'frozen-row') return null;
                                     return editMode ? textEditor(options) : null;
                                 }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
