@@ -1128,6 +1128,14 @@ export default function FlexibleScrollDemo() {
     };
     
     const handleSaveImages = () => {
+        // If saving images for frozen row (QL Kitchen), update global state
+        if (selectedRowId === 'frozen-row') {
+            setFrozenRowData(prev => ({
+                ...prev,
+                images: currentRowImages
+            }));
+        }
+        
         const updatedData = dialogData.map(data => 
             data.id === selectedRowId ? { ...data, images: currentRowImages } : data
         );
@@ -1144,6 +1152,14 @@ export default function FlexibleScrollDemo() {
     };
     
     const handleSavePowerMode = () => {
+        // If saving power mode for frozen row (QL Kitchen), update global state
+        if (powerModeRowId === 'frozen-row') {
+            setFrozenRowData(prev => ({
+                ...prev,
+                powerMode: selectedPowerMode
+            }));
+        }
+        
         const updatedData = dialogData.map(data => 
             data.id === powerModeRowId ? { ...data, powerMode: selectedPowerMode } : data
         );
