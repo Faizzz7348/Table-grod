@@ -1014,67 +1014,111 @@ export default function FlexibleScrollDemo() {
         }
         
         if (!file.type.startsWith('image/')) {
-            alert('Please select an image file (jpg, png, gif, etc.)');
+            alert('Please select an image file (jpg, png, gif, webp)');
             console.error('Invalid file type:', file.type);
             return;
         }
         
+        // Check file size (10MB limit)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            alert('File size exceeds 10MB limit');
+            return;
+        }
+        
+        // Warn if file is larger than 4.5MB (Vercel limit)
+        if (file.size > 4.5 * 1024 * 1024) {
+            const proceed = confirm(
+                `Warning: File size is ${(file.size / 1024 / 1024).toFixed(2)}MB.\n` +
+                `Vercel has a 4.5MB request limit.\n` +
+                `Upload may fail. Continue anyway?`
+            );
+            if (!proceed) return;
+        }
+        
         try {
             setUploadingImage(true);
-            console.log('Uploading image to ImgBB...', {
+            console.log('Starting upload...', {
                 fileName: file.name,
                 fileType: file.type,
-                fileSize: file.size
+                fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB'
             });
-            
-            // Get API key from env
-            const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-            
-            if (!apiKey) {
-                console.error('ImgBB API key is not configured');
-                alert('Image upload is not configured. Please contact administrator.');
-                return;
-            }
             
             // Create FormData
             const formData = new FormData();
             formData.append('image', file);
             
-            // Upload to ImgBB
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-                method: 'POST',
-                body: formData
-            });
+            // Determine API endpoint based on environment
+            const apiUrl = window.location.hostname === 'localhost' 
+                ? 'http://localhost:5173/api/upload'
+                : '/api/upload';
             
-            console.log('ImgBB response status:', response.status);
+            console.log('Uploading to:', apiUrl);
+            
+            // Upload via our API endpoint with proper error handling
+            let response;
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (fetchError) {
+                console.error('Fetch error:', fetchError);
+                throw new Error(`Network error: ${fetchError.message}`);
+            }
+            
+            console.log('Upload response status:', response.status);
+            
+            // Read response body only once
+            let responseData;
+            const contentType = response.headers.get('content-type');
+            
+            try {
+                if (contentType && contentType.includes('application/json')) {
+                    responseData = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.log('Response text:', text);
+                    try {
+                        responseData = JSON.parse(text);
+                    } catch (e) {
+                        responseData = { error: text };
+                    }
+                }
+            } catch (readError) {
+                console.error('Error reading response:', readError);
+                throw new Error('Failed to read server response');
+            }
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('ImgBB HTTP error:', response.status, errorText);
-                alert(`Upload failed: ${response.status} ${response.statusText}`);
+                let errorMessage = `Upload failed (${response.status})`;
+                if (responseData) {
+                    console.error('Upload error response:', responseData);
+                    errorMessage = responseData.message || responseData.error || errorMessage;
+                }
+                alert(errorMessage);
                 return;
             }
             
-            const data = await response.json();
-            console.log('ImgBB response data:', data);
+            console.log('Upload response data:', responseData);
             
-            if (data.success) {
+            if (responseData && responseData.success && responseData.data && responseData.data.url) {
                 // Add the uploaded image URL to the list
-                const imageUrl = data.data.url;
+                const imageUrl = responseData.data.url;
                 const newImages = [...currentRowImages, imageUrl];
                 const newIndex = newImages.length - 1;
                 setCurrentRowImages(newImages);
                 // Set loading state for uploaded image
                 setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
-                console.log('Image uploaded successfully:', imageUrl);
+                console.log('✓ Image uploaded successfully:', imageUrl);
                 alert('Image uploaded successfully!');
             } else {
-                console.error('ImgBB upload failed:', data);
-                alert(`Failed to upload image: ${data.error?.message || 'Unknown error'}`);
+                console.error('Upload failed - invalid response:', data);
+                alert(`Failed to upload image: ${data.error || 'Invalid response from server'}`);
             }
         } catch (error) {
             console.error('Error uploading image:', error);
-            alert(`Error uploading image: ${error.message}`);
+            alert(`Error uploading image: ${error.message}\n\nPlease check:\n- Internet connection\n- File size (<4.5MB for Vercel)\n- IMGBB_API_KEY is configured`);
         } finally {
             setUploadingImage(false);
             // Clear file input
