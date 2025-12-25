@@ -133,6 +133,7 @@ export default function FlexibleScrollDemo() {
     const [editMode, setEditMode] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
+    const [isRouteInfo, setIsRouteInfo] = useState(false);
     const [globalFilterValue, setGlobalFilterValue] = useState('');
     const [visibleColumns, setVisibleColumns] = useState({
         no: true,
@@ -558,8 +559,9 @@ export default function FlexibleScrollDemo() {
         setChangelog(prev => [entry, ...prev].slice(0, 50)); // Keep last 50 entries
     };
 
-    const handleShowInfo = (rowData) => {
+    const handleShowInfo = (rowData, isRoute = false) => {
         setSelectedRowInfo(rowData);
+        setIsRouteInfo(isRoute);
         setInfoEditData({
             latitude: rowData.latitude || null,
             longitude: rowData.longitude || null,
@@ -1310,12 +1312,18 @@ export default function FlexibleScrollDemo() {
                             icon="pi pi-info-circle" 
                             size="small"
                             severity="info"
-                            tooltip="View Info"
+                            tooltip="View Map"
                             tooltipOptions={{ position: 'top' }}
                             text
-                            onClick={() => {
-                                setSelectedViewRoute(rowData);
-                                setViewDialogVisible(true);
+                            onClick={async () => {
+                                // Fetch locations for this route
+                                const locations = await CustomerService.getDetailData(rowData.id);
+                                // Add locations array to rowData
+                                const routeWithLocations = {
+                                    ...rowData,
+                                    locations: locations || []
+                                };
+                                handleShowInfo(routeWithLocations, true);
                             }} 
                         />
                         <Button 
@@ -2793,11 +2801,15 @@ export default function FlexibleScrollDemo() {
                             fontSize: deviceInfo.isMobile ? '11px' : '12px',
                             padding: '8px 0'
                         }}>
-                            {selectedRowInfo && `${selectedRowInfo.code} - ${selectedRowInfo.location}`}
+                            {selectedRowInfo && (
+                                isRouteInfo 
+                                    ? `Route ${selectedRowInfo.route} - ${selectedRowInfo.locations?.length || 0} Locations`
+                                    : `${selectedRowInfo.code} - ${selectedRowInfo.location}`
+                            )}
                         </div>
                     }
                     visible={infoDialogVisible} 
-                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }} 
+                    style={{ width: deviceInfo.isMobile ? '95vw' : isRouteInfo ? '700px' : '500px' }} 
                     modal
                     dismissableMask
                     closeOnEscape
@@ -2859,9 +2871,10 @@ export default function FlexibleScrollDemo() {
                             {/* Mini Map Section */}
                             {!infoEditMode ? (
                                 <MiniMap 
-                                    latitude={selectedRowInfo.latitude}
-                                    longitude={selectedRowInfo.longitude}
-                                    address={selectedRowInfo.address}
+                                    latitude={!isRouteInfo ? selectedRowInfo.latitude : null}
+                                    longitude={!isRouteInfo ? selectedRowInfo.longitude : null}
+                                    address={!isRouteInfo ? selectedRowInfo.address : null}
+                                    locations={isRouteInfo ? selectedRowInfo.locations : []}
                                     style={{ marginBottom: '20px' }}
                                 />
                             ) : (
@@ -3005,6 +3018,189 @@ export default function FlexibleScrollDemo() {
                                             <div style={{ marginTop: '3px' }}>
                                                 {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
                                             </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Shortcut Section */}
+                                    <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #e9ecef' }}>
+                                        <strong style={{ fontSize: '13px', color: '#495057', display: 'block', marginBottom: '12px' }}>
+                                            <i className="pi pi-link" style={{ marginRight: '8px' }}></i>
+                                            Shortcut
+                                        </strong>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            gap: '12px',
+                                            justifyContent: 'flex-start',
+                                            flexWrap: 'wrap'
+                                        }}>
+                                            {/* Web Portal Button */}
+                                            <Button
+                                                tooltip="Web Portal"
+                                                tooltipOptions={{ position: 'top' }}
+                                                size="small"
+                                                text
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#06b6d4',
+                                                    transition: 'all 0.2s ease',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                                    e.currentTarget.style.color = '#0891b2';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.color = '#06b6d4';
+                                                }}
+                                                onClick={() => {
+                                                    // Functionality to be updated later
+                                                    console.log('Web Portal clicked');
+                                                }}
+                                            >
+                                                <i className="pi pi-globe" style={{ fontSize: '24px' }}></i>
+                                            </Button>
+                                            
+                                            {/* Google Maps Button */}
+                                            <Button
+                                                tooltip="Google Maps"
+                                                tooltipOptions={{ position: 'top' }}
+                                                size="small"
+                                                text
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    transition: 'all 0.2s ease',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                                onClick={() => {
+                                                    // Functionality to be updated later
+                                                    console.log('Google Maps clicked');
+                                                }}
+                                            >
+                                                <img src="/icon/google-maps.svg" alt="Google Maps" style={{ width: '24px', height: '24px' }} />
+                                            </Button>
+                                            
+                                            {/* Waze Button */}
+                                            <Button
+                                                tooltip="Waze"
+                                                tooltipOptions={{ position: 'top' }}
+                                                size="small"
+                                                text
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    transition: 'all 0.2s ease',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                                onClick={() => {
+                                                    // Functionality to be updated later
+                                                    console.log('Waze clicked');
+                                                }}
+                                            >
+                                                <img src="/icon/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
+                                            </Button>
+                                            
+                                            {/* Website Button */}
+                                            <Button
+                                                tooltip="Website"
+                                                tooltipOptions={{ position: 'top' }}
+                                                size="small"
+                                                text
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#10b981',
+                                                    transition: 'all 0.2s ease',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                                    e.currentTarget.style.color = '#059669';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.color = '#10b981';
+                                                }}
+                                                onClick={() => {
+                                                    // Functionality to be updated later
+                                                    console.log('Website clicked');
+                                                }}
+                                            >
+                                                <i className="pi pi-external-link" style={{ fontSize: '24px' }}></i>
+                                            </Button>
+                                            
+                                            {/* QR Code Button */}
+                                            <Button
+                                                tooltip="QR Code"
+                                                tooltipOptions={{ position: 'top' }}
+                                                size="small"
+                                                text
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: 'none',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#6b7280',
+                                                    transition: 'all 0.2s ease',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                                    e.currentTarget.style.color = '#4b5563';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.color = '#6b7280';
+                                                }}
+                                                onClick={() => {
+                                                    // Functionality to be updated later
+                                                    console.log('QR Code clicked');
+                                                }}
+                                            >
+                                                <i className="pi pi-qrcode" style={{ fontSize: '24px' }}></i>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

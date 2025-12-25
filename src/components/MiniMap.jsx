@@ -26,27 +26,55 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MiniMap({ latitude, longitude, address, style = {} }) {
+export default function MiniMap({ latitude, longitude, address, locations = [], style = {} }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
     
     // Default coordinates (Kuala Lumpur) if no coordinates provided
     const defaultLat = 3.139;
     const defaultLng = 101.6869;
     
-    const lat = latitude !== null && latitude !== undefined ? latitude : defaultLat;
-    const lng = longitude !== null && longitude !== undefined ? longitude : defaultLng;
-    const position = [lat, lng];
+    // If locations array is provided (multiple markers mode)
+    const isMultipleMarkers = locations && locations.length > 0;
     
-    const hasValidCoordinates = latitude !== null && latitude !== undefined && 
-                                longitude !== null && longitude !== undefined;
+    let center, zoom, hasValidCoordinates;
+    
+    if (isMultipleMarkers) {
+        // Filter locations with valid coordinates
+        const validLocations = locations.filter(loc => 
+            loc.latitude !== null && loc.latitude !== undefined &&
+            loc.longitude !== null && loc.longitude !== undefined
+        );
+        
+        if (validLocations.length > 0) {
+            // Calculate center from all valid locations
+            const avgLat = validLocations.reduce((sum, loc) => sum + loc.latitude, 0) / validLocations.length;
+            const avgLng = validLocations.reduce((sum, loc) => sum + loc.longitude, 0) / validLocations.length;
+            center = [avgLat, avgLng];
+            zoom = validLocations.length === 1 ? 15 : 12;
+            hasValidCoordinates = true;
+        } else {
+            center = [defaultLat, defaultLng];
+            zoom = 11;
+            hasValidCoordinates = false;
+        }
+    } else {
+        // Single marker mode
+        const lat = latitude !== null && latitude !== undefined ? latitude : defaultLat;
+        const lng = longitude !== null && longitude !== undefined ? longitude : defaultLng;
+        center = [lat, lng];
+        zoom = latitude !== null && latitude !== undefined && 
+               longitude !== null && longitude !== undefined ? 15 : 11;
+        hasValidCoordinates = latitude !== null && latitude !== undefined && 
+                            longitude !== null && longitude !== undefined;
+    }
 
     return (
         <>
             {/* Mini Map Container */}
             <div style={{ position: 'relative', ...style }}>
                 <MapContainer
-                    center={position}
-                    zoom={hasValidCoordinates ? 15 : 11}
+                    center={center}
+                    zoom={zoom}
                     style={{ 
                         height: '200px', 
                         width: '100%', 
@@ -63,12 +91,29 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    {hasValidCoordinates && (
-                        <Marker position={position}>
-                            <Popup>
-                                {address || 'Location'}
-                            </Popup>
-                        </Marker>
+                    {isMultipleMarkers ? (
+                        // Multiple markers
+                        locations
+                            .filter(loc => loc.latitude !== null && loc.latitude !== undefined &&
+                                         loc.longitude !== null && loc.longitude !== undefined)
+                            .map((loc, index) => (
+                                <Marker key={index} position={[loc.latitude, loc.longitude]}>
+                                    <Popup>
+                                        <strong>{loc.location || `Location ${index + 1}`}</strong>
+                                        {loc.code && <><br />Code: {loc.code}</>}
+                                        {loc.address && <><br />{loc.address}</>}
+                                    </Popup>
+                                </Marker>
+                            ))
+                    ) : (
+                        // Single marker
+                        hasValidCoordinates && (
+                            <Marker position={center}>
+                                <Popup>
+                                    {address || 'Location'}
+                                </Popup>
+                            </Marker>
+                        )
                     )}
                 </MapContainer>
                 
@@ -88,7 +133,7 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                 />
                 
                 {/* Address Caption */}
-                {address && (
+                {!isMultipleMarkers && address && (
                     <div style={{
                         marginTop: '10px',
                         padding: '8px',
@@ -104,6 +149,22 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                     </div>
                 )}
                 
+                {isMultipleMarkers && (
+                    <div style={{
+                        marginTop: '10px',
+                        padding: '8px',
+                        backgroundColor: '#e3f2fd',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        color: '#1565c0',
+                        textAlign: 'center',
+                        fontWeight: 'bold'
+                    }}>
+                        <i className="pi pi-map-marker" style={{ marginRight: '5px' }}></i>
+                        {locations.filter(loc => loc.latitude && loc.longitude).length} locations shown on map
+                    </div>
+                )}
+                
                 {!hasValidCoordinates && (
                     <div style={{
                         marginTop: '10px',
@@ -115,7 +176,7 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                         textAlign: 'center'
                     }}>
                         <i className="pi pi-info-circle" style={{ marginRight: '5px' }}></i>
-                        No coordinates set. Showing default location (KL).
+                        {isMultipleMarkers ? 'No locations with coordinates found.' : 'No coordinates set. Showing default location (KL).'}
                     </div>
                 )}
             </div>
@@ -125,7 +186,7 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                 header={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <i className="pi pi-map" style={{ fontSize: '1.2rem' }}></i>
-                        <span>Map View</span>
+                        <span>{isMultipleMarkers ? 'Route Map View' : 'Map View'}</span>
                     </div>
                 }
                 visible={fullscreenVisible}
@@ -136,8 +197,8 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                 contentStyle={{ height: 'calc(100% - 60px)', padding: 0 }}
             >
                 <MapContainer
-                    center={position}
-                    zoom={hasValidCoordinates ? 15 : 11}
+                    center={center}
+                    zoom={zoom}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={true}
                 >
@@ -145,21 +206,42 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <MapUpdater center={position} zoom={hasValidCoordinates ? 15 : 11} />
-                    {hasValidCoordinates && (
-                        <Marker position={position}>
-                            <Popup>
-                                <strong>{address || 'Location'}</strong>
-                                <br />
-                                Lat: {lat.toFixed(6)}
-                                <br />
-                                Lng: {lng.toFixed(6)}
-                            </Popup>
-                        </Marker>
+                    <MapUpdater center={center} zoom={zoom} />
+                    {isMultipleMarkers ? (
+                        // Multiple markers
+                        locations
+                            .filter(loc => loc.latitude !== null && loc.latitude !== undefined &&
+                                         loc.longitude !== null && loc.longitude !== undefined)
+                            .map((loc, index) => (
+                                <Marker key={index} position={[loc.latitude, loc.longitude]}>
+                                    <Popup>
+                                        <strong>{loc.location || `Location ${index + 1}`}</strong>
+                                        {loc.code && <><br />Code: {loc.code}</>}
+                                        {loc.address && <><br />{loc.address}</>}
+                                        <br />
+                                        Lat: {loc.latitude.toFixed(6)}
+                                        <br />
+                                        Lng: {loc.longitude.toFixed(6)}
+                                    </Popup>
+                                </Marker>
+                            ))
+                    ) : (
+                        // Single marker
+                        hasValidCoordinates && (
+                            <Marker position={center}>
+                                <Popup>
+                                    <strong>{address || 'Location'}</strong>
+                                    <br />
+                                    Lat: {center[0].toFixed(6)}
+                                    <br />
+                                    Lng: {center[1].toFixed(6)}
+                                </Popup>
+                            </Marker>
+                        )
                     )}
                 </MapContainer>
                 
-                {address && (
+                {!isMultipleMarkers && address && (
                     <div style={{
                         position: 'absolute',
                         bottom: '20px',
@@ -175,6 +257,25 @@ export default function MiniMap({ latitude, longitude, address, style = {} }) {
                     }}>
                         <i className="pi pi-map-marker" style={{ marginRight: '8px', color: '#dc3545' }}></i>
                         <strong>{address}</strong>
+                    </div>
+                )}
+                
+                {isMultipleMarkers && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '20px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        zIndex: 1000,
+                        maxWidth: '80%',
+                        textAlign: 'center'
+                    }}>
+                        <i className="pi pi-map-marker" style={{ marginRight: '8px', color: '#1565c0' }}></i>
+                        <strong>{locations.filter(loc => loc.latitude && loc.longitude).length} Locations</strong>
                     </div>
                 )}
             </Dialog>

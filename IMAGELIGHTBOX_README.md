@@ -1,4 +1,4 @@
-# 🖼️ ImageLightbox Component - Implementation Guide
+l# 🖼️ ImageLightbox Component - Implementation Guide
 
 ## ✅ Yang Sudah Dibuat
 

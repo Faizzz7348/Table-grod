@@ -40,7 +40,7 @@
       "short_name": "Routes",
       "description": "Open route management",
       "url": "/",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon/waze.svg", "sizes": "192x192" }]
     }
   ],
   "screenshots": [
