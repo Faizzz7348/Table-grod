@@ -73,7 +73,10 @@ export default async function handler(req, res) {
               routeId: location.routeId || null,
               latitude: location.latitude !== undefined ? location.latitude : null,
               longitude: location.longitude !== undefined ? location.longitude : null,
-              address: location.address !== undefined ? location.address : null
+              address: location.address !== undefined ? location.address : null,
+              websiteLink: location.websiteLink || null,
+              qrCodeImageUrl: location.qrCodeImageUrl || null,
+              qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
             }
           })
         );
@@ -95,7 +98,10 @@ export default async function handler(req, res) {
               images: location.images || [],
               latitude: location.latitude !== undefined ? location.latitude : null,
               longitude: location.longitude !== undefined ? location.longitude : null,
-              address: location.address !== undefined ? location.address : null
+              address: location.address !== undefined ? location.address : null,
+              websiteLink: location.websiteLink || null,
+              qrCodeImageUrl: location.qrCodeImageUrl || null,
+              qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
             }
           })
         );

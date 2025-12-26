@@ -22,20 +22,23 @@ model Route {
 }
 
 model Location {
-  id        Int      @id @default(autoincrement())
-  no        Int
-  code      String
-  location  String
-  delivery  String
-  powerMode String
-  images    String[] // Array of image URLs
-  latitude  Float?   // Latitude for map
-  longitude Float?   // Longitude for map
-  address   String?  // Address caption for map
-  routeId   Int?
-  route     Route?   @relation(fields: [routeId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    Int      @id @default(autoincrement())
+  no                    Int
+  code                  String
+  location              String
+  delivery              String
+  powerMode             String
+  images                String[] // Array of image URLs
+  latitude              Float?   // Latitude for map
+  longitude             Float?   // Longitude for map
+  address               String?  // Address caption for map
+  websiteLink           String?  // Website link for shortcut
+  qrCodeImageUrl        String?  // QR code image URL
+  qrCodeDestinationUrl  String?  // QR code destination URL
+  routeId               Int?
+  route                 Route?   @relation(fields: [routeId], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
   
   @@index([routeId])
 }
