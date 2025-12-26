@@ -346,10 +346,13 @@ export default function FlexibleScrollDemo() {
     const [qrCodeDestinationUrl, setQrCodeDestinationUrl] = useState('');
     const [uploadingQrCode, setUploadingQrCode] = useState(false);
     const [scanningQrCode, setScanningQrCode] = useState(false);
+    const [scannedUrl, setScannedUrl] = useState(''); // Store scanned URL to display
 
     // Auto-scan QR code when dialog opens in view mode
     useEffect(() => {
         if (qrCodeDialogVisible && !editMode && qrCodeImageUrl) {
+            // Reset scanned URL
+            setScannedUrl('');
             // Auto-trigger scan after a short delay
             const timer = setTimeout(() => {
                 handleScanQrCode(qrCodeDestinationUrl);
@@ -1010,24 +1013,28 @@ export default function FlexibleScrollDemo() {
                 
                 console.log('✅ QR code scanned successfully:', result.data);
                 
-                // Auto navigate after scan animation
+                let targetUrl = result.data;
+                
+                // If not a URL, search on Google
+                if (!targetUrl.match(/^https?:\/\//)) {
+                    if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+                        targetUrl = `https://${targetUrl}`;
+                    } else {
+                        targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`;
+                    }
+                }
+                
+                // Store the scanned URL to display
+                setScannedUrl(targetUrl);
+                
+                // Auto navigate after showing the link
                 setTimeout(() => {
                     setScanningQrCode(false);
                     setQrCodeDialogVisible(false);
-                    
-                    let targetUrl = result.data;
-                    
-                    // If not a URL, search on Google
-                    if (!targetUrl.match(/^https?:\/\//)) {
-                        if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
-                            targetUrl = `https://${targetUrl}`;
-                        } else {
-                            targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`;
-                        }
-                    }
-                    
                     window.open(targetUrl, '_blank');
-                }, 1500);
+                    // Reset scanned URL after navigation
+                    setTimeout(() => setScannedUrl(''), 500);
+                }, 2500);
                 
             } catch (error) {
                 console.error('❌ QR scanning error:', error);
@@ -5191,6 +5198,8 @@ export default function FlexibleScrollDemo() {
                         setQrCodeImageUrl('');
                         setQrCodeDestinationUrl('');
                         setCurrentEditingRowId(null);
+                        setScannedUrl(''); // Reset scanned URL
+                        setScanningQrCode(false); // Reset scanning state
                         // Reset file input
                         const fileInput = document.getElementById('qr-code-upload-input');
                         if (fileInput) fileInput.value = '';
@@ -5206,6 +5215,8 @@ export default function FlexibleScrollDemo() {
                                         setQrCodeImageUrl('');
                                         setQrCodeDestinationUrl('');
                                         setCurrentEditingRowId(null);
+                                        setScannedUrl(''); // Reset scanned URL
+                                        setScanningQrCode(false); // Reset scanning state
                                         // Reset file input
                                         const fileInput = document.getElementById('qr-code-upload-input');
                                         if (fileInput) fileInput.value = '';
@@ -5379,12 +5390,50 @@ export default function FlexibleScrollDemo() {
                                             <i className="pi pi-spin pi-spinner" style={{ fontSize: '1.5rem' }}></i>
                                             <span>Scanning QR Code...</span>
                                         </div>
+                                        
+                                        {/* Display scanned URL */}
+                                        {scannedUrl && (
+                                            <div style={{
+                                                marginTop: '1.5rem',
+                                                padding: '1rem',
+                                                backgroundColor: isDark ? '#1e293b' : '#f0fdf4',
+                                                border: `2px solid ${isDark ? '#10b981' : '#86efac'}`,
+                                                borderRadius: '8px',
+                                                textAlign: 'left'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    marginBottom: '0.5rem',
+                                                    color: '#10b981',
+                                                    fontWeight: '700',
+                                                    fontSize: '0.875rem'
+                                                }}>
+                                                    <i className="pi pi-check-circle"></i>
+                                                    <span>QR Code Detected!</span>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: '0.875rem',
+                                                    color: isDark ? '#e5e7eb' : '#374151',
+                                                    fontWeight: '600',
+                                                    wordBreak: 'break-all',
+                                                    backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                                                    padding: '0.5rem',
+                                                    borderRadius: '4px',
+                                                    border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
+                                                }}>
+                                                    {scannedUrl}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         <p style={{
                                             marginTop: '1rem',
                                             fontSize: '0.875rem',
                                             color: isDark ? '#9ca3af' : '#6b7280'
                                         }}>
-                                            Redirecting to destination...
+                                            {scannedUrl ? 'Opening link...' : 'Detecting QR code...'}
                                         </p>
                                     </div>
                                 ) : qrCodeImageUrl ? (
