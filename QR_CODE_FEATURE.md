@@ -18,7 +18,8 @@ When in edit mode and clicking the QR code button:
 ### View Mode  
 When in view mode and clicking the QR code button:
 - **Auto-Show**: Button only appears if QR code image or URL exists
-- **QR Code Scanning**: Automatically scans QR code from uploaded image using QrScanner library
+- **Automatic QR Code Scanning**: Automatically scans QR code from uploaded image when dialog opens
+- **QR Code Scanning**: Uses QrScanner library to decode QR codes from images
 - **Scan Animation**: Visual scanning animation with green scan line and corners
 - **Auto Navigation**: After scanning, automatically opens detected URL
 - **Fallback**: If QR scan fails, uses destination URL if available
@@ -26,7 +27,7 @@ When in view mode and clicking the QR code button:
   - Opens detected URLs directly
   - Adds https:// if URL doesn't have protocol
   - Searches on Google if content is not a URL
-- **Direct Navigation**: "Scan Again" button to re-scan the QR code
+- **Manual Re-scan**: "Scan Again" button to re-scan the QR code if needed
 - **Hidden When Empty**: Button is hidden if no QR code is uploaded
 
 ## User Flow
@@ -44,10 +45,10 @@ When in view mode and clicking the QR code button:
 1. Disable Edit Mode (View Mode)
 2. Click Info button on a location that has a QR code
 3. In the Shortcut section, click the QR Code button (appears only if QR exists)
-4. **Automatic Scanning**: QR code is automatically scanned using QrScanner library
-5. **Visual Feedback**: Watch the green scan line animation
-6. **Auto Navigation**: Automatically redirects to detected URL after 1.5 seconds
-7. Alternative: Click "Scan Again" to re-scan manually
+4. **Automatic Scanning**: QR code is automatically scanned immediately when dialog opens
+5. **Visual Feedback**: Watch the green scan line animation during scanning
+6. **Auto Navigation**: Automatically redirects to detected URL after successful scan
+7. Alternative: Click "Scan Again" to manually re-scan if needed
 
 ## Technical Details
 

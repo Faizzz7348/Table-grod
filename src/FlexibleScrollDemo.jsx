@@ -347,6 +347,17 @@ export default function FlexibleScrollDemo() {
     const [uploadingQrCode, setUploadingQrCode] = useState(false);
     const [scanningQrCode, setScanningQrCode] = useState(false);
 
+    // Auto-scan QR code when dialog opens in view mode
+    useEffect(() => {
+        if (qrCodeDialogVisible && !editMode && qrCodeImageUrl) {
+            // Auto-trigger scan after a short delay
+            const timer = setTimeout(() => {
+                handleScanQrCode(qrCodeDestinationUrl);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [qrCodeDialogVisible, editMode, qrCodeImageUrl]);
+
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
         if (!data || data.length === 0) return;
