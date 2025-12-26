@@ -516,18 +516,6 @@ export default function FlexibleScrollDemo() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [functionDropdownVisible]);
-    
-    // Auto-trigger QR code scanning when dialog opens in view mode
-    useEffect(() => {
-        if (qrCodeDialogVisible && !editMode && qrCodeDestinationUrl) {
-            // Auto scan after dialog animation completes
-            const timer = setTimeout(() => {
-                handleScanQrCode(qrCodeDestinationUrl);
-            }, 300);
-            
-            return () => clearTimeout(timer);
-        }
-    }, [qrCodeDialogVisible, editMode, qrCodeDestinationUrl]);
 
     const dialogFooterTemplate = () => {
         return (
@@ -3858,10 +3846,10 @@ export default function FlexibleScrollDemo() {
                                                             e.currentTarget.style.color = '#8b5cf6';
                                                         }}
                                                         onClick={() => {
-                                                            setCurrentEditingRowId(selectedRowInfo.id);
-                                                            setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
-                                                            setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
-                                                            setQrCodeDialogVisible(true);
+                                                            // View mode: Direct open link without dialog
+                                                            if (selectedRowInfo.qrCodeDestinationUrl) {
+                                                                handleOpenLink(selectedRowInfo.qrCodeDestinationUrl, 'QR Code');
+                                                            }
                                                         }}
                                                     >
                                                         <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
