@@ -3845,9 +3845,10 @@ export default function FlexibleScrollDemo() {
                                                             e.currentTarget.style.transform = 'scale(1)';
                                                             e.currentTarget.style.color = '#8b5cf6';
                                                         }}
-                                                        onClick={() => {
-                                                            // View mode: Direct open link without dialog
+                                                        onClick={async () => {
+                                                            // View mode: Auto scan QR code and extract link
                                                             if (selectedRowInfo.qrCodeDestinationUrl) {
+                                                                // Direct open if URL already exists
                                                                 handleOpenLink(selectedRowInfo.qrCodeDestinationUrl, 'QR Code');
                                                             }
                                                         }}
