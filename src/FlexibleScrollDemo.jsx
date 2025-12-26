@@ -667,12 +667,28 @@ export default function FlexibleScrollDemo() {
     };
 
     const handleShowInfo = (rowData, isRoute = false) => {
-        setSelectedRowInfo(rowData);
+        // Get the latest data from dialogData if available
+        let latestRowData = rowData;
+        if (!isRoute && rowData.id) {
+            const foundInDialog = dialogData.find(item => item.id === rowData.id);
+            if (foundInDialog) {
+                latestRowData = foundInDialog;
+                console.log('📋 Using latest data from dialogData:', {
+                    id: foundInDialog.id,
+                    hasQrImage: !!foundInDialog.qrCodeImageUrl,
+                    hasQrUrl: !!foundInDialog.qrCodeDestinationUrl,
+                    qrCodeImageUrl: foundInDialog.qrCodeImageUrl,
+                    qrCodeDestinationUrl: foundInDialog.qrCodeDestinationUrl
+                });
+            }
+        }
+        
+        setSelectedRowInfo(latestRowData);
         setIsRouteInfo(isRoute);
         setInfoEditData({
-            latitude: rowData.latitude || null,
-            longitude: rowData.longitude || null,
-            address: rowData.address || ''
+            latitude: latestRowData.latitude || null,
+            longitude: latestRowData.longitude || null,
+            address: latestRowData.address || ''
         });
         setInfoEditMode(false);
         setInfoDialogVisible(true);
@@ -3775,9 +3791,20 @@ export default function FlexibleScrollDemo() {
                                             )}
                                             
                                             {/* QR Code Button */}
-                                            {!editMode ? (
-                                                // View Mode - Only show if QR code exists
-                                                (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) && (
+                                            {(() => {
+                                                // Debug log
+                                                console.log('🔍 QR Button Check:', {
+                                                    editMode,
+                                                    hasQrImage: !!selectedRowInfo.qrCodeImageUrl,
+                                                    hasQrUrl: !!selectedRowInfo.qrCodeDestinationUrl,
+                                                    qrCodeImageUrl: selectedRowInfo.qrCodeImageUrl,
+                                                    qrCodeDestinationUrl: selectedRowInfo.qrCodeDestinationUrl,
+                                                    selectedRowId: selectedRowInfo.id
+                                                });
+                                                
+                                                return !editMode ? (
+                                                    // View Mode - Only show if QR code exists
+                                                    (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) && (
                                                     <Button
                                                         tooltip="QR Code"
                                                         tooltipOptions={{ position: 'top' }}
@@ -3855,7 +3882,8 @@ export default function FlexibleScrollDemo() {
                                                 >
                                                     <i className={`pi ${(selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? 'pi-pencil' : 'pi-plus-circle'}`} style={{ fontSize: '20px' }}></i>
                                                 </Button>
-                                            )}
+                                            );
+                                            })()}
                                         </div>
                                     </div>
                                         </>
