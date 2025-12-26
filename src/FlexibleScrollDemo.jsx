@@ -25,12 +25,20 @@ const tableStyles = `
         font-weight: 600 !important;
         border-bottom: 1px solid #9ca3af !important;
         padding: 1rem !important;
+        font-size: 13px !important;
+        letter-spacing: 0.5px !important;
     }
     
     body.dark .p-datatable .p-datatable-thead > tr > th {
         background-color: #0f172a !important;
         color: #f1f5f9 !important;
         border-bottom: 1px solid #334155 !important;
+    }
+    
+    /* Table body row text size */
+    .p-datatable .p-datatable-tbody > tr > td {
+        font-size: 11px !important;
+        font-weight: 600 !important;
     }
     
     @keyframes slideDown {
@@ -587,19 +595,51 @@ export default function FlexibleScrollDemo() {
             await new Promise(resolve => setTimeout(resolve, 300));
             
             // Update the location in dialogData
-            const updatedDialogData = dialogData.map(item => {
-                if (item.id === selectedRowInfo.id) {
-                    return {
-                        ...item,
-                        latitude: infoEditData.latitude,
-                        longitude: infoEditData.longitude,
-                        address: infoEditData.address
-                    };
-                }
-                return item;
-            });
+            const locationExists = dialogData.some(item => item.id === selectedRowInfo.id);
+            let updatedDialogData;
+            
+            if (locationExists) {
+                // Update existing location
+                updatedDialogData = dialogData.map(item => {
+                    if (item.id === selectedRowInfo.id) {
+                        return {
+                            ...item,
+                            latitude: infoEditData.latitude,
+                            longitude: infoEditData.longitude,
+                            address: infoEditData.address
+                        };
+                    }
+                    return item;
+                });
+            } else {
+                // Location not in dialogData, add it
+                updatedDialogData = [...dialogData, {
+                    ...selectedRowInfo,
+                    latitude: infoEditData.latitude,
+                    longitude: infoEditData.longitude,
+                    address: infoEditData.address
+                }];
+            }
             
             setDialogData(updatedDialogData);
+            
+            // Also need to fetch all locations to ensure we save all of them
+            if (!locationExists) {
+                console.log('📍 Location was not in dialogData, fetching all locations to ensure complete save');
+                const allLocations = await CustomerService.getDetailData();
+                const updatedAllLocations = allLocations.map(loc => {
+                    if (loc.id === selectedRowInfo.id) {
+                        return {
+                            ...loc,
+                            latitude: infoEditData.latitude,
+                            longitude: infoEditData.longitude,
+                            address: infoEditData.address
+                        };
+                    }
+                    return loc;
+                });
+                setDialogData(updatedAllLocations);
+            }
             
             // Update the location in routes
             const updatedRoutes = routes.map(route => ({
@@ -1255,6 +1295,16 @@ export default function FlexibleScrollDemo() {
                     life: 3000
                 });
                 return; // Prevent save
+            }
+        }
+        
+        // Convert latitude/longitude to number if editing those fields
+        if (field === 'latitude' || field === 'longitude') {
+            if (newValue === '' || newValue === null || newValue === undefined) {
+                newValue = null;
+            } else {
+                const parsed = parseFloat(newValue);
+                newValue = isNaN(parsed) ? null : parsed;
             }
         }
         
@@ -2669,6 +2719,93 @@ export default function FlexibleScrollDemo() {
                                 style={{ width: `${columnWidths.delivery}px`, minWidth: '90px' }}
                             />
                         )}
+                        {editMode && (
+                            <Column 
+                                field="latitude" 
+                                header="Latitude" 
+                                align="center" 
+                                alignHeader="center"
+                                body={(rowData) => {
+                                    const value = rowData.latitude;
+                                    return (
+                                        <div style={{ fontSize: '0.85rem' }}>
+                                            {value !== null && value !== undefined ? value.toFixed(6) : '-'}
+                                        </div>
+                                    );
+                                }}
+                                editor={(options) => {
+                                    return <InputText 
+                                        type="text" 
+                                        value={options.value !== null && options.value !== undefined ? String(options.value) : ''} 
+                                        onChange={(e) => options.editorCallback(e.target.value)} 
+                                        placeholder="e.g., 3.139003"
+                                        style={{ width: '100%' }} 
+                                    />;
+                                }}
+                                onCellEditComplete={onDialogCellEditComplete}
+                                style={{ width: '110px', minWidth: '110px' }}
+                            />
+                        )}
+                        {editMode && (
+                            <Column 
+                                field="longitude" 
+                                header="Longitude" 
+                                align="center" 
+                                alignHeader="center"
+                                body={(rowData) => {
+                                    const value = rowData.longitude;
+                                    return (
+                                        <div style={{ fontSize: '0.85rem' }}>
+                                            {value !== null && value !== undefined ? value.toFixed(6) : '-'}
+                                        </div>
+                                    );
+                                }}
+                                editor={(options) => {
+                                    return <InputText 
+                                        type="text" 
+                                        value={options.value !== null && options.value !== undefined ? String(options.value) : ''} 
+                                        onChange={(e) => options.editorCallback(e.target.value)} 
+                                        placeholder="e.g., 101.686855"
+                                        style={{ width: '100%' }} 
+                                    />;
+                                }}
+                                onCellEditComplete={onDialogCellEditComplete}
+                                style={{ width: '120px', minWidth: '120px' }}
+                            />
+                        )}
+                        {editMode && (
+                            <Column 
+                                field="address" 
+                                header="Address" 
+                                align="center" 
+                                alignHeader="center"
+                                body={(rowData) => {
+                                    const value = rowData.address;
+                                    return (
+                                        <div style={{ 
+                                            fontSize: '0.85rem',
+                                            maxWidth: '150px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {value || '-'}
+                                        </div>
+                                    );
+                                }}
+                                editor={(options) => {
+                                    return <InputText 
+                                        type="text" 
+                                        value={options.value || ''} 
+                                        onChange={(e) => options.editorCallback(e.target.value)} 
+                                        placeholder="e.g., Wisma CIMB, KL"
+                                        style={{ width: '100%' }} 
+                                    />;
+                                }}
+                                onCellEditComplete={onDialogCellEditComplete}
+                                style={{ width: '150px', minWidth: '150px' }}
+                            />
+                        )}
                         {visibleColumns.image && (
                             <Column 
                                 columnKey="image"
@@ -2716,7 +2853,14 @@ export default function FlexibleScrollDemo() {
                             alignHeader="center"
                             headerStyle={{ color: '#ef4444' }}
                             body={(rowData) => (
-                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '0.5rem', 
+                                    justifyContent: 'center', 
+                                    alignItems: 'center', 
+                                    flexWrap: 'nowrap',
+                                    minWidth: editMode ? '180px' : '80px'
+                                }}>
                                     {/* Info Button - Always visible */}
                                     <Button 
                                         icon="pi pi-info-circle" 
@@ -2787,7 +2931,7 @@ export default function FlexibleScrollDemo() {
                                     )}
                                 </div>
                             )}
-                            style={{ width: '200px' }}
+                            style={{ width: editMode ? '220px' : '100px', minWidth: editMode ? '220px' : '100px' }}
                         />
                     </DataTable>
                     )}
@@ -2906,15 +3050,18 @@ export default function FlexibleScrollDemo() {
                                             Latitude
                                         </label>
                                         <InputText 
-                                            value={infoEditData.latitude || ''}
-                                            onChange={(e) => setInfoEditData({
-                                                ...infoEditData,
-                                                latitude: e.target.value ? parseFloat(e.target.value) : null
-                                            })}
+                                            value={infoEditData.latitude !== null && infoEditData.latitude !== undefined ? String(infoEditData.latitude) : ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setInfoEditData({
+                                                    ...infoEditData,
+                                                    latitude: value === '' ? null : (isNaN(parseFloat(value)) ? null : parseFloat(value))
+                                                });
+                                            }}
                                             placeholder="Enter latitude (e.g., 3.139)"
                                             style={{ width: '100%' }}
-                                            type="number"
-                                            step="any"
+                                            type="text"
+                                            inputMode="decimal"
                                         />
                                     </div>
                                     
@@ -2929,15 +3076,18 @@ export default function FlexibleScrollDemo() {
                                             Longitude
                                         </label>
                                         <InputText 
-                                            value={infoEditData.longitude || ''}
-                                            onChange={(e) => setInfoEditData({
-                                                ...infoEditData,
-                                                longitude: e.target.value ? parseFloat(e.target.value) : null
-                                            })}
+                                            value={infoEditData.longitude !== null && infoEditData.longitude !== undefined ? String(infoEditData.longitude) : ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setInfoEditData({
+                                                    ...infoEditData,
+                                                    longitude: value === '' ? null : (isNaN(parseFloat(value)) ? null : parseFloat(value))
+                                                });
+                                            }}
                                             placeholder="Enter longitude (e.g., 101.6869)"
                                             style={{ width: '100%' }}
-                                            type="number"
-                                            step="any"
+                                            type="text"
+                                            inputMode="decimal"
                                         />
                                     </div>
                                     
@@ -2977,62 +3127,92 @@ export default function FlexibleScrollDemo() {
                                 }}>
                                     <strong style={{ fontSize: '13px', color: '#495057' }}>
                                         <i className="pi pi-info-circle" style={{ marginRight: '8px' }}></i>
-                                        General Information
+                                        {isRouteInfo ? 'Route Information' : 'General Information'}
                                     </strong>
                                 </div>
                                 <div style={{ padding: '15px' }}>
-                                    <div style={{ 
-                                        display: 'grid', 
-                                        gridTemplateColumns: '1fr 1fr',
-                                        gap: '10px',
-                                        fontSize: '13px'
-                                    }}>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>No:</strong>
-                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
-                                        </div>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>Code:</strong>
-                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
-                                        </div>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>Delivery:</strong>
-                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
-                                        </div>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
-                                            <div style={{ marginTop: '3px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
-                                        </div>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>Current Status:</strong>
-                                            <div style={{ 
-                                                marginTop: '3px',
-                                                color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), 
-                                                fontWeight: 'bold' 
-                                            }}>
-                                                {getPowerStatus(selectedRowInfo.powerMode || 'Daily')}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <strong style={{ color: '#6c757d' }}>Total Images:</strong>
-                                            <div style={{ marginTop: '3px' }}>
-                                                {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Shortcut Section */}
-                                    <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #e9ecef' }}>
-                                        <strong style={{ fontSize: '13px', color: '#495057', display: 'block', marginBottom: '12px' }}>
-                                            <i className="pi pi-link" style={{ marginRight: '8px' }}></i>
-                                            Shortcut
-                                        </strong>
+                                    {isRouteInfo ? (
+                                        // Route Information
                                         <div style={{ 
-                                            display: 'flex', 
-                                            gap: '12px',
-                                            justifyContent: 'flex-start',
-                                            flexWrap: 'wrap'
+                                            display: 'grid', 
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '10px',
+                                            fontSize: '13px'
                                         }}>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Route:</strong>
+                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.route}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Shift:</strong>
+                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.shift}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
+                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.warehouse}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
+                                                <div style={{ marginTop: '3px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                                    {selectedRowInfo.locationCount || 0}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Location Information
+                                        <>
+                                            <div style={{ 
+                                                display: 'grid', 
+                                                gridTemplateColumns: '1fr 1fr',
+                                                gap: '10px',
+                                                fontSize: '13px'
+                                            }}>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>No:</strong>
+                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Code:</strong>
+                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Delivery:</strong>
+                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
+                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Current Status:</strong>
+                                                    <div style={{ 
+                                                        marginTop: '3px',
+                                                        color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), 
+                                                        fontWeight: 'bold' 
+                                                    }}>
+                                                        {getPowerStatus(selectedRowInfo.powerMode || 'Daily')}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Total Images:</strong>
+                                                    <div style={{ marginTop: '3px' }}>
+                                                        {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Shortcut Section - Only for location info */}
+                                            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #e9ecef' }}>
+                                                <strong style={{ fontSize: '13px', color: '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
+                                                    <i className="pi pi-link" style={{ marginRight: '8px' }}></i>
+                                                    Shortcut
+                                                </strong>
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    gap: '12px',
+                                                    justifyContent: 'center',
+                                                    flexWrap: 'wrap'
+                                                }}>
                                             {/* Web Portal Button */}
                                             <Button
                                                 tooltip="Web Portal"
@@ -3065,72 +3245,82 @@ export default function FlexibleScrollDemo() {
                                                     console.log('Web Portal clicked');
                                                 }}
                                             >
-                                                <i className="pi pi-globe" style={{ fontSize: '24px' }}></i>
+                                                <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
                                             </Button>
                                             
-                                            {/* Google Maps Button */}
-                                            <Button
-                                                tooltip="Google Maps"
-                                                tooltipOptions={{ position: 'top' }}
-                                                size="small"
-                                                text
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: 'none',
-                                                    backgroundColor: 'transparent',
-                                                    transition: 'all 0.2s ease',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                }}
-                                                onClick={() => {
-                                                    // Functionality to be updated later
-                                                    console.log('Google Maps clicked');
-                                                }}
-                                            >
-                                                <img src="/icon/google-maps.svg" alt="Google Maps" style={{ width: '24px', height: '24px' }} />
-                                            </Button>
+                                            {/* Google Maps Button - Only show if lat/long exists */}
+                                            {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
+                                             selectedRowInfo.longitude !== null && selectedRowInfo.longitude !== undefined && (
+                                                <Button
+                                                    tooltip="Google Maps - Get Directions"
+                                                    tooltipOptions={{ position: 'top' }}
+                                                    size="small"
+                                                    text
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: 'none',
+                                                        backgroundColor: 'transparent',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    onClick={() => {
+                                                        const lat = selectedRowInfo.latitude;
+                                                        const lng = selectedRowInfo.longitude;
+                                                        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                                                        window.open(googleMapsUrl, '_blank');
+                                                    }}
+                                                >
+                                                    <img src="/google-maps.svg" alt="Google Maps" style={{ width: '24px', height: '24px' }} />
+                                                </Button>
+                                            )}
                                             
-                                            {/* Waze Button */}
-                                            <Button
-                                                tooltip="Waze"
-                                                tooltipOptions={{ position: 'top' }}
-                                                size="small"
-                                                text
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: 'none',
-                                                    backgroundColor: 'transparent',
-                                                    transition: 'all 0.2s ease',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                }}
-                                                onClick={() => {
-                                                    // Functionality to be updated later
-                                                    console.log('Waze clicked');
-                                                }}
-                                            >
-                                                <img src="/icon/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
-                                            </Button>
+                                            {/* Waze Button - Only show if lat/long exists */}
+                                            {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
+                                             selectedRowInfo.longitude !== null && selectedRowInfo.longitude !== undefined && (
+                                                <Button
+                                                    tooltip="Waze - Get Directions"
+                                                    tooltipOptions={{ position: 'top' }}
+                                                    size="small"
+                                                    text
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: 'none',
+                                                        backgroundColor: 'transparent',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    onClick={() => {
+                                                        const lat = selectedRowInfo.latitude;
+                                                        const lng = selectedRowInfo.longitude;
+                                                        const wazeUrl = `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+                                                        window.open(wazeUrl, '_blank');
+                                                    }}
+                                                >
+                                                    <img src="/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
+                                                </Button>
+                                            )}
                                             
                                             {/* Website Button */}
                                             <Button
@@ -3164,7 +3354,7 @@ export default function FlexibleScrollDemo() {
                                                     console.log('Website clicked');
                                                 }}
                                             >
-                                                <i className="pi pi-external-link" style={{ fontSize: '24px' }}></i>
+                                                <i className="pi pi-external-link" style={{ fontSize: '20px' }}></i>
                                             </Button>
                                             
                                             {/* QR Code Button */}
@@ -3199,10 +3389,12 @@ export default function FlexibleScrollDemo() {
                                                     console.log('QR Code clicked');
                                                 }}
                                             >
-                                                <i className="pi pi-qrcode" style={{ fontSize: '24px' }}></i>
+                                                <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
                                             </Button>
                                         </div>
                                     </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

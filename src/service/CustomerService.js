@@ -79,7 +79,7 @@ export const CustomerService = {
 
     // Get detail locations from API or localStorage with caching
     async getDetailData(routeId = null) {
-        // For specific routeId, don't cache (data can change frequently)
+        // For specific routeId, always fetch fresh data (don't use cache)
         if (!routeId) {
             const cachedData = getCache('locations');
             if (cachedData) {
@@ -91,10 +91,11 @@ export const CustomerService = {
         if (USE_LOCALSTORAGE) {
             this.initLocalStorage();
             const locations = JSON.parse(localStorage.getItem('locations') || '[]');
-            console.log('📦 Loading locations from localStorage:', locations);
+            console.log('📦 Loading locations from localStorage (all):', locations.length, 'locations');
             // Filter by routeId if provided
             const filteredLocations = routeId ? locations.filter(loc => loc.routeId === routeId) : locations;
-            console.log(`📦 Filtered locations for routeId ${routeId}:`, filteredLocations);
+            console.log(`📦 Filtered locations for routeId ${routeId}:`, filteredLocations.length, 'locations');
+            console.log('📍 Sample location data:', filteredLocations[0]);
             if (!routeId) setCache('locations', locations);
             return filteredLocations;
         }
