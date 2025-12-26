@@ -242,6 +242,11 @@ export default function FlexibleScrollDemo() {
     
     // Changelog State
     const [changelog, setChangelog] = useState([]);
+    
+    // Website Link Modal State
+    const [websiteLinkDialogVisible, setWebsiteLinkDialogVisible] = useState(false);
+    const [websiteLinkInput, setWebsiteLinkInput] = useState('');
+    const [currentEditingRowId, setCurrentEditingRowId] = useState(null);
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -676,6 +681,65 @@ export default function FlexibleScrollDemo() {
             alert('Error saving location info: ' + error.message);
         } finally {
             setSavingInfo(false);
+        }
+    };
+    
+    // Handle saving website link
+    const handleSaveWebsiteLink = async () => {
+        if (!currentEditingRowId) return;
+        
+        try {
+            console.log('💾 Saving website link:', {
+                id: currentEditingRowId,
+                websiteLink: websiteLinkInput
+            });
+            
+            // Update the location in dialogData
+            const updatedDialogData = dialogData.map(item => {
+                if (item.id === currentEditingRowId) {
+                    return {
+                        ...item,
+                        websiteLink: websiteLinkInput
+                    };
+                }
+                return item;
+            });
+            
+            setDialogData(updatedDialogData);
+            
+            // Update the location in routes
+            const updatedRoutes = routes.map(route => ({
+                ...route,
+                locations: route.locations?.map(loc => {
+                    if (loc.id === currentEditingRowId) {
+                        return {
+                            ...loc,
+                            websiteLink: websiteLinkInput
+                        };
+                    }
+                    return loc;
+                }) || []
+            }));
+            
+            setRoutes(updatedRoutes);
+            
+            // Update selectedRowInfo if it's the same location
+            if (selectedRowInfo && selectedRowInfo.id === currentEditingRowId) {
+                setSelectedRowInfo({
+                    ...selectedRowInfo,
+                    websiteLink: websiteLinkInput
+                });
+            }
+            
+            setHasUnsavedChanges(true);
+            setWebsiteLinkDialogVisible(false);
+            setWebsiteLinkInput('');
+            setCurrentEditingRowId(null);
+            
+            console.log('✅ Website link updated in state, ready to save');
+        } catch (error) {
+            console.error('❌ Error saving website link:', error);
+            alert('Error saving website link: ' + error.message);
         }
     };
 
@@ -3213,40 +3277,131 @@ export default function FlexibleScrollDemo() {
                                                     justifyContent: 'center',
                                                     flexWrap: 'wrap'
                                                 }}>
-                                            {/* Web Portal Button */}
-                                            <Button
-                                                tooltip="Web Portal"
-                                                tooltipOptions={{ position: 'top' }}
-                                                size="small"
-                                                text
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: 'none',
-                                                    backgroundColor: 'transparent',
-                                                    color: '#06b6d4',
-                                                    transition: 'all 0.2s ease',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                    e.currentTarget.style.color = '#0891b2';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                    e.currentTarget.style.color = '#06b6d4';
-                                                }}
-                                                onClick={() => {
-                                                    // Functionality to be updated later
-                                                    console.log('Web Portal clicked');
-                                                }}
-                                            >
-                                                <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
-                                            </Button>
+                                            {/* Web Portal Button - Only show if code contains numbers */}
+                                            {(() => {
+                                                const code = selectedRowInfo.code || '';
+                                                const hasNumber = /\d/.test(code);
+                                                
+                                                if (!hasNumber) return null;
+                                                
+                                                // Extract numbers from code and pad to 4 digits
+                                                const numbers = code.match(/\d+/);
+                                                const paddedNumber = numbers ? numbers[0].padStart(4, '0') : null;
+                                                
+                                                if (!paddedNumber) return null;
+                                                
+                                                const webPortalUrl = `https://fmvending.web.app/refill-service/M${paddedNumber}`;
+                                                
+                                                return (
+                                                    <Button
+                                                        tooltip="Web Portal"
+                                                        tooltipOptions={{ position: 'top' }}
+                                                        size="small"
+                                                        text
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            border: 'none',
+                                                            backgroundColor: 'transparent',
+                                                            color: '#06b6d4',
+                                                            transition: 'all 0.2s ease',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1.1)';
+                                                            e.currentTarget.style.color = '#0891b2';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                            e.currentTarget.style.color = '#06b6d4';
+                                                        }}
+                                                        onClick={() => {
+                                                            window.open(webPortalUrl, '_blank');
+                                                        }}
+                                                    >
+                                                        <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
+                                                    </Button>
+                                                );
+                                            })()}
+                                            
+                                            {/* Website Link Button */}
+                                            {!editMode ? (
+                                                // View Mode - Only show if website link exists
+                                                selectedRowInfo.websiteLink && (
+                                                    <Button
+                                                        tooltip="Visit Website"
+                                                        tooltipOptions={{ position: 'top' }}
+                                                        size="small"
+                                                        text
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            border: 'none',
+                                                            backgroundColor: 'transparent',
+                                                            color: '#10b981',
+                                                            transition: 'all 0.2s ease',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1.1)';
+                                                            e.currentTarget.style.color = '#059669';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                            e.currentTarget.style.color = '#10b981';
+                                                        }}
+                                                        onClick={() => {
+                                                            window.open(selectedRowInfo.websiteLink, '_blank');
+                                                        }}
+                                                    >
+                                                        <i className="pi pi-external-link" style={{ fontSize: '20px' }}></i>
+                                                    </Button>
+                                                )
+                                            ) : (
+                                                // Edit Mode - Always show to manage website link
+                                                <Button
+                                                    tooltip={selectedRowInfo.websiteLink ? "Edit Website Link" : "Add Website Link"}
+                                                    tooltipOptions={{ position: 'top' }}
+                                                    size="small"
+                                                    text
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: 'none',
+                                                        backgroundColor: 'transparent',
+                                                        color: selectedRowInfo.websiteLink ? '#f59e0b' : '#10b981',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                        e.currentTarget.style.color = selectedRowInfo.websiteLink ? '#d97706' : '#059669';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                        e.currentTarget.style.color = selectedRowInfo.websiteLink ? '#f59e0b' : '#10b981';
+                                                    }}
+                                                    onClick={() => {
+                                                        setCurrentEditingRowId(selectedRowInfo.id);
+                                                        setWebsiteLinkInput(selectedRowInfo.websiteLink || '');
+                                                        setWebsiteLinkDialogVisible(true);
+                                                    }}
+                                                >
+                                                    <i className={`pi ${selectedRowInfo.websiteLink ? 'pi-pencil' : 'pi-plus-circle'}`} style={{ fontSize: '20px' }}></i>
+                                                </Button>
+                                            )}
                                             
                                             {/* Google Maps Button - Only show if lat/long exists */}
                                             {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
@@ -3321,41 +3476,6 @@ export default function FlexibleScrollDemo() {
                                                     <img src="/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
                                                 </Button>
                                             )}
-                                            
-                                            {/* Website Button */}
-                                            <Button
-                                                tooltip="Website"
-                                                tooltipOptions={{ position: 'top' }}
-                                                size="small"
-                                                text
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: 'none',
-                                                    backgroundColor: 'transparent',
-                                                    color: '#10b981',
-                                                    transition: 'all 0.2s ease',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                    e.currentTarget.style.color = '#059669';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                    e.currentTarget.style.color = '#10b981';
-                                                }}
-                                                onClick={() => {
-                                                    // Functionality to be updated later
-                                                    console.log('Website clicked');
-                                                }}
-                                            >
-                                                <i className="pi pi-external-link" style={{ fontSize: '20px' }}></i>
-                                            </Button>
                                             
                                             {/* QR Code Button */}
                                             <Button
@@ -4581,6 +4701,77 @@ export default function FlexibleScrollDemo() {
                             </div>
                         </>
                     )}
+                </Dialog>
+                
+                {/* Website Link Dialog */}
+                <Dialog 
+                    header={
+                        <div style={{ 
+                            textAlign: 'center', 
+                            fontSize: '14px',
+                            padding: '8px 0'
+                        }}>
+                            <i className="pi pi-external-link" style={{ marginRight: '8px' }}></i>
+                            Add Website Link
+                        </div>
+                    }
+                    visible={websiteLinkDialogVisible} 
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }} 
+                    modal
+                    dismissableMask
+                    closeOnEscape
+                    onHide={() => {
+                        setWebsiteLinkDialogVisible(false);
+                        setWebsiteLinkInput('');
+                        setCurrentEditingRowId(null);
+                    }}
+                    footer={
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <Button 
+                                label="Cancel" 
+                                icon="pi pi-times" 
+                                onClick={() => {
+                                    setWebsiteLinkDialogVisible(false);
+                                    setWebsiteLinkInput('');
+                                    setCurrentEditingRowId(null);
+                                }}
+                                className="p-button-text"
+                            />
+                            <Button 
+                                label="Save" 
+                                icon="pi pi-check" 
+                                onClick={handleSaveWebsiteLink}
+                                className="p-button-success"
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        <label style={{ 
+                            display: 'block', 
+                            marginBottom: '10px',
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            color: isDark ? '#e5e5e5' : '#495057'
+                        }}>
+                            Website URL
+                        </label>
+                        <InputText 
+                            value={websiteLinkInput}
+                            onChange={(e) => setWebsiteLinkInput(e.target.value)}
+                            placeholder="https://example.com"
+                            style={{ width: '100%' }}
+                            autoFocus
+                        />
+                        <small style={{ 
+                            display: 'block', 
+                            marginTop: '8px',
+                            color: isDark ? '#9ca3af' : '#6b7280',
+                            fontSize: '12px'
+                        }}>
+                            Enter the full URL including http:// or https://
+                        </small>
+                    </div>
                 </Dialog>
             </div>
             
