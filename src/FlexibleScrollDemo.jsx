@@ -307,6 +307,10 @@ export default function FlexibleScrollDemo() {
     const [addRowMode, setAddRowMode] = useState(false);
     const [newRows, setNewRows] = useState([]);
     
+    // Link Confirmation Dialog State
+    const [linkConfirmVisible, setLinkConfirmVisible] = useState(false);
+    const [pendingLinkData, setPendingLinkData] = useState({ url: '', type: '' });
+    
     // Track modified rows
     const [modifiedRows, setModifiedRows] = useState(new Set());
     
@@ -512,6 +516,18 @@ export default function FlexibleScrollDemo() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [functionDropdownVisible]);
+    
+    // Auto-trigger QR code scanning when dialog opens in view mode
+    useEffect(() => {
+        if (qrCodeDialogVisible && !editMode && qrCodeDestinationUrl) {
+            // Auto scan after dialog animation completes
+            const timer = setTimeout(() => {
+                handleScanQrCode(qrCodeDestinationUrl);
+            }, 300);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [qrCodeDialogVisible, editMode, qrCodeDestinationUrl]);
 
     const dialogFooterTemplate = () => {
         return (
@@ -1044,9 +1060,26 @@ export default function FlexibleScrollDemo() {
             setScanningQrCode(false);
             setQrCodeDialogVisible(false);
             
-            // Open destination URL in new tab
-            window.open(destinationUrl, '_blank');
+            // Use confirmation dialog instead of direct open
+            handleOpenLink(destinationUrl, 'QR Code');
         }, 2500);
+    };
+
+    // Handle link opening with confirmation
+    const handleOpenLink = (url, type) => {
+        setPendingLinkData({ url, type });
+        setLinkConfirmVisible(true);
+    };
+
+    const confirmOpenLink = () => {
+        window.open(pendingLinkData.url, '_blank');
+        setLinkConfirmVisible(false);
+        setPendingLinkData({ url: '', type: '' });
+    };
+
+    const cancelOpenLink = () => {
+        setLinkConfirmVisible(false);
+        setPendingLinkData({ url: '', type: '' });
     };
 
     const handleSaveChanges = async () => {
@@ -3626,7 +3659,7 @@ export default function FlexibleScrollDemo() {
                                                             e.currentTarget.style.color = '#06b6d4';
                                                         }}
                                                         onClick={() => {
-                                                            window.open(webPortalUrl, '_blank');
+                                                            handleOpenLink(webPortalUrl, 'Web Portal');
                                                         }}
                                                     >
                                                         <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
@@ -3665,7 +3698,7 @@ export default function FlexibleScrollDemo() {
                                                             e.currentTarget.style.color = '#10b981';
                                                         }}
                                                         onClick={() => {
-                                                            window.open(selectedRowInfo.websiteLink, '_blank');
+                                                            handleOpenLink(selectedRowInfo.websiteLink, 'Website');
                                                         }}
                                                     >
                                                         <i className="pi pi-external-link" style={{ fontSize: '20px' }}></i>
@@ -3739,7 +3772,7 @@ export default function FlexibleScrollDemo() {
                                                         const lat = selectedRowInfo.latitude;
                                                         const lng = selectedRowInfo.longitude;
                                                         const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-                                                        window.open(googleMapsUrl, '_blank');
+                                                        handleOpenLink(googleMapsUrl, 'Google Maps');
                                                     }}
                                                 >
                                                     <img src="/google-maps.svg" alt="Google Maps" style={{ width: '24px', height: '24px' }} />
@@ -3776,7 +3809,7 @@ export default function FlexibleScrollDemo() {
                                                         const lat = selectedRowInfo.latitude;
                                                         const lng = selectedRowInfo.longitude;
                                                         const wazeUrl = `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-                                                        window.open(wazeUrl, '_blank');
+                                                        handleOpenLink(wazeUrl, 'Waze');
                                                     }}
                                                 >
                                                     <img src="/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
@@ -3829,12 +3862,6 @@ export default function FlexibleScrollDemo() {
                                                             setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
                                                             setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
                                                             setQrCodeDialogVisible(true);
-                                                            // Auto-trigger scanning after dialog opens if has data
-                                                            if (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) {
-                                                                setTimeout(() => {
-                                                                    handleScanQrCode(selectedRowInfo.qrCodeDestinationUrl);
-                                                                }, 300);
-                                                            }
                                                         }}
                                                     >
                                                         <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
@@ -5399,7 +5426,7 @@ export default function FlexibleScrollDemo() {
                                         <Button 
                                             label="Go to Destination" 
                                             icon="pi pi-external-link" 
-                                            onClick={() => window.open(qrCodeDestinationUrl, '_blank')}
+                                            onClick={() => handleOpenLink(qrCodeDestinationUrl, 'QR Code')}
                                             className="p-button-success"
                                         />
                                     </div>
@@ -5413,6 +5440,75 @@ export default function FlexibleScrollDemo() {
                                 )}
                             </div>
                         )}
+                    </div>
+                </Dialog>
+
+                {/* Link Confirmation Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-external-link" style={{ color: '#3b82f6', fontSize: '1.5rem' }}></i>
+                            <span>Open External Link</span>
+                        </div>
+                    }
+                    visible={linkConfirmVisible}
+                    style={{ width: '450px' }}
+                    modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
+                    onHide={cancelOpenLink}
+                    footer={
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={cancelOpenLink}
+                                severity="secondary"
+                                size="small"
+                                outlined
+                            />
+                            <Button
+                                label="Open Link"
+                                icon="pi pi-external-link"
+                                onClick={confirmOpenLink}
+                                severity="success"
+                                size="small"
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ 
+                        padding: '1rem',
+                        color: isDark ? '#e5e7eb' : '#1f2937'
+                    }}>
+                        <p style={{ 
+                            fontSize: '15px',
+                            marginBottom: '1rem',
+                            lineHeight: '1.6'
+                        }}>
+                            You are about to open <strong>{pendingLinkData.type}</strong> in a new tab:
+                        </p>
+                        <div style={{
+                            backgroundColor: isDark ? '#1e293b' : '#f3f4f6',
+                            padding: '0.75rem',
+                            borderRadius: '8px',
+                            border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
+                            wordBreak: 'break-all',
+                            fontSize: '13px',
+                            color: isDark ? '#9ca3af' : '#6b7280',
+                            maxHeight: '100px',
+                            overflowY: 'auto'
+                        }}>
+                            {pendingLinkData.url}
+                        </div>
+                        <p style={{ 
+                            fontSize: '13px',
+                            marginTop: '1rem',
+                            color: isDark ? '#9ca3af' : '#6b7280'
+                        }}>
+                            <i className="pi pi-info-circle" style={{ marginRight: '0.5rem' }}></i>
+                            Make sure you trust this link before opening it.
+                        </p>
                     </div>
                 </Dialog>
             </div>
