@@ -3790,16 +3790,16 @@ export default function FlexibleScrollDemo() {
                                                     editMode,
                                                     hasQrImage: !!selectedRowInfo.qrCodeImageUrl,
                                                     hasQrUrl: !!selectedRowInfo.qrCodeDestinationUrl,
-                                                    qrCodeImageUrl: selectedRowInfo.qrCodeImageUrl,
+                                                    qrCodeImageUrl: selectedRowInfo.qrCodeImageUrl?.substring(0, 50),
                                                     qrCodeDestinationUrl: selectedRowInfo.qrCodeDestinationUrl,
                                                     selectedRowId: selectedRowInfo.id
                                                 });
                                                 
                                                 return !editMode ? (
-                                                    // View Mode - Only show if QR code exists
-                                                    (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) && (
+                                                    // View Mode - Show if QR code exists
+                                                    (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? (
                                                     <Button
-                                                        tooltip="QR Code"
+                                                        tooltip="Scan QR Code"
                                                         tooltipOptions={{ position: 'top' }}
                                                         size="small"
                                                         text
@@ -3829,15 +3829,17 @@ export default function FlexibleScrollDemo() {
                                                             setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
                                                             setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
                                                             setQrCodeDialogVisible(true);
-                                                            // Auto-trigger scanning after dialog opens
-                                                            setTimeout(() => {
-                                                                handleScanQrCode(selectedRowInfo.qrCodeDestinationUrl);
-                                                            }, 300);
+                                                            // Auto-trigger scanning after dialog opens if has data
+                                                            if (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) {
+                                                                setTimeout(() => {
+                                                                    handleScanQrCode(selectedRowInfo.qrCodeDestinationUrl);
+                                                                }, 300);
+                                                            }
                                                         }}
                                                     >
                                                         <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
                                                     </Button>
-                                                )
+                                                ) : null
                                             ) : (
                                                 // Edit Mode - Always show to manage QR code
                                                 <Button
