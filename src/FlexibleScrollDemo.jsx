@@ -11,6 +11,7 @@ import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
 import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import QrScanner from 'qr-scanner';
 
 // CSS untuk remove border dari table header
 const tableStyles = `
@@ -872,103 +873,30 @@ export default function FlexibleScrollDemo() {
             return;
         }
         
-        // Warn if file is larger than 4.5MB (Vercel limit)
-        if (file.size > 4.5 * 1024 * 1024) {
-            const proceed = confirm(
-                `Warning: File size is ${(file.size / 1024 / 1024).toFixed(2)}MB.\n` +
-                `Vercel has a 4.5MB request limit.\n` +
-                `Upload may fail. Continue anyway?`
-            );
-            if (!proceed) {
-                event.target.value = ''; // Reset input
-                return;
-            }
-        }
-        
         setUploadingQrCode(true);
         
         try {
-            console.log('📤 Uploading QR code image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + ' MB');
+            console.log('📤 Processing QR code image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + ' MB');
             
-            const formData = new FormData();
-            formData.append('image', file);
+            // Convert file to base64 for preview and storage (like repo rujukan)
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                setQrCodeImageUrl(base64String);
+                setUploadingQrCode(false);
+                console.log('✅ QR code image loaded successfully');
+            };
+            reader.onerror = () => {
+                alert('Failed to read file');
+                setUploadingQrCode(false);
+                event.target.value = '';
+            };
+            reader.readAsDataURL(file);
             
-            // Use relative path - works for both dev and production
-            const apiUrl = '/api/upload';
-            
-            console.log('Uploading to:', apiUrl);
-            console.log('Current location:', window.location.href);
-            
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                body: formData
-            });
-            
-            console.log('Response status:', response.status);
-            
-            // Read response body
-            let responseData;
-            const contentType = response.headers.get('content-type');
-            
-            try {
-                if (contentType && contentType.includes('application/json')) {
-                    responseData = await response.json();
-                } else {
-                    const text = await response.text();
-                    console.log('Response text:', text);
-                    try {
-                        responseData = JSON.parse(text);
-                    } catch (e) {
-                        responseData = { error: text };
-                    }
-                }
-            } catch (readError) {
-                console.error('Error reading response:', readError);
-                throw new Error('Failed to read server response');
-            }
-            
-            if (!response.ok) {
-                const errorMessage = responseData.message || responseData.error || `Upload failed with status ${response.status}`;
-                console.error('Upload error response:', responseData);
-                throw new Error(errorMessage);
-            }
-            
-            console.log('Upload result:', responseData);
-            
-            // API returns { success: true, data: { url, displayUrl, ... } }
-            if (responseData && responseData.success && responseData.data && responseData.data.url) {
-                setQrCodeImageUrl(responseData.data.url);
-                console.log('✅ QR code image uploaded successfully:', responseData.data.url);
-                alert('QR code image uploaded successfully!');
-                // Reset file input after successful upload
-                const fileInput = document.getElementById('qr-code-upload-input');
-                if (fileInput) fileInput.value = '';
-            } else {
-                throw new Error(responseData.error || responseData.message || 'Upload failed - no URL returned');
-            }
         } catch (error) {
-            console.error('❌ Error uploading QR code:', error);
-            
-            let errorMessage = `Error uploading QR code: ${error.message}\n\n`;
-            
-            if (error.message.includes('404')) {
-                errorMessage += `⚠️ API endpoint not found!\n\n`;
-                errorMessage += `For Development:\n`;
-                errorMessage += `- Install Vercel CLI: npm i -g vercel\n`;
-                errorMessage += `- Run: vercel dev (instead of npm run dev)\n\n`;
-                errorMessage += `For Production:\n`;
-                errorMessage += `- Deploy to Vercel first\n`;
-                errorMessage += `- Test upload on deployed site\n`;
-            } else {
-                errorMessage += `Please check:\n`;
-                errorMessage += `- Internet connection\n`;
-                errorMessage += `- File size (<4.5MB for Vercel)\n`;
-                errorMessage += `- IMGBB_API_KEY is configured in Vercel\n`;
-            }
-            
-            alert(errorMessage);
-            event.target.value = ''; // Reset input on error
-        } finally {
+            console.error('❌ Error processing QR code:', error);
+            alert('Error processing QR code: ' + error.message);
+            event.target.value = '';
             setUploadingQrCode(false);
         }
     };
@@ -1039,8 +967,73 @@ export default function FlexibleScrollDemo() {
     
     // Handle QR code scanning with animation
     const handleScanQrCode = async (destinationUrl) => {
+        // If in view mode and have QR image, try to scan it
+        if (!editMode && selectedRowInfo && selectedRowInfo.qrCodeImageUrl) {
+            setScanningQrCode(true);
+            
+            try {
+                let imageSource = selectedRowInfo.qrCodeImageUrl;
+                
+                console.log('🔍 Scanning QR code from image...');
+                
+                // If it's a remote URL, handle CORS
+                if (imageSource.startsWith('http')) {
+                    try {
+                        const response = await fetch(imageSource);
+                        if (response.ok) {
+                            imageSource = await response.blob();
+                        }
+                    } catch (e) {
+                        console.warn('Could not fetch remote image, trying direct scan:', e);
+                    }
+                }
+                
+                // Try to decode QR code from the image using QrScanner
+                const result = await QrScanner.scanImage(imageSource, { 
+                    returnDetailedScanResult: true 
+                });
+                
+                console.log('✅ QR code scanned successfully:', result.data);
+                
+                // Auto navigate after scan animation
+                setTimeout(() => {
+                    setScanningQrCode(false);
+                    setQrCodeDialogVisible(false);
+                    
+                    let targetUrl = result.data;
+                    
+                    // If not a URL, search on Google
+                    if (!targetUrl.match(/^https?:\/\//)) {
+                        if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+                            targetUrl = `https://${targetUrl}`;
+                        } else {
+                            targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`;
+                        }
+                    }
+                    
+                    window.open(targetUrl, '_blank');
+                }, 1500);
+                
+            } catch (error) {
+                console.error('❌ QR scanning error:', error);
+                setScanningQrCode(false);
+                
+                // Fallback: If have destination URL, use it
+                if (destinationUrl) {
+                    setTimeout(() => {
+                        setQrCodeDialogVisible(false);
+                        window.open(destinationUrl, '_blank');
+                    }, 500);
+                } else {
+                    alert('Could not read QR code from the image. Please check if the image contains a valid QR code.');
+                }
+            }
+            return;
+        }
+        
+        // Fallback: direct URL navigation if no QR image
         if (!destinationUrl) {
-            alert('No destination URL configured for this QR code');
+            alert('No QR code or destination URL configured');
             return;
         }
         
