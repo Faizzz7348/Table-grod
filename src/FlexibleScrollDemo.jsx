@@ -51,6 +51,93 @@ const tableStyles = `
             transform: translateY(0);
         }
     }
+    
+    /* QR Code Scanning Animation */
+    @keyframes scanLine {
+        0% {
+            top: 0%;
+        }
+        50% {
+            top: 100%;
+        }
+        100% {
+            top: 0%;
+        }
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    .qr-scan-container {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .qr-scan-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(transparent, #10b981, transparent);
+        box-shadow: 0 0 10px #10b981;
+        animation: scanLine 2s ease-in-out infinite;
+    }
+    
+    .qr-scan-corners {
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        right: 10%;
+        bottom: 10%;
+        border: 2px solid #10b981;
+        border-radius: 12px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .qr-scan-corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #10b981;
+    }
+    
+    .qr-scan-corner.top-left {
+        top: -2px;
+        left: -2px;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 12px 0 0 0;
+    }
+    
+    .qr-scan-corner.top-right {
+        top: -2px;
+        right: -2px;
+        border-left: none;
+        border-bottom: none;
+        border-radius: 0 12px 0 0;
+    }
+    
+    .qr-scan-corner.bottom-left {
+        bottom: -2px;
+        left: -2px;
+        border-right: none;
+        border-top: none;
+        border-radius: 0 0 0 12px;
+    }
+    
+    .qr-scan-corner.bottom-right {
+        bottom: -2px;
+        right: -2px;
+        border-left: none;
+        border-top: none;
+        border-radius: 0 0 12px 0;
+    }
 `;
 
 // Custom editor component with duplicate detection
@@ -253,6 +340,7 @@ export default function FlexibleScrollDemo() {
     const [qrCodeImageUrl, setQrCodeImageUrl] = useState('');
     const [qrCodeDestinationUrl, setQrCodeDestinationUrl] = useState('');
     const [uploadingQrCode, setUploadingQrCode] = useState(false);
+    const [scanningQrCode, setScanningQrCode] = useState(false);
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -931,6 +1019,25 @@ export default function FlexibleScrollDemo() {
             console.error('❌ Error saving QR code:', error);
             alert('Error saving QR code: ' + error.message);
         }
+    };
+    
+    // Handle QR code scanning with animation
+    const handleScanQrCode = async (destinationUrl) => {
+        if (!destinationUrl) {
+            alert('No destination URL configured for this QR code');
+            return;
+        }
+        
+        setScanningQrCode(true);
+        
+        // Simulate scanning animation for 2.5 seconds
+        setTimeout(() => {
+            setScanningQrCode(false);
+            setQrCodeDialogVisible(false);
+            
+            // Open destination URL in new tab
+            window.open(destinationUrl, '_blank');
+        }, 2500);
     };
 
     const handleSaveChanges = async () => {
@@ -3702,6 +3809,10 @@ export default function FlexibleScrollDemo() {
                                                             setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
                                                             setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
                                                             setQrCodeDialogVisible(true);
+                                                            // Auto-trigger scanning after dialog opens
+                                                            setTimeout(() => {
+                                                                handleScanQrCode(selectedRowInfo.qrCodeDestinationUrl);
+                                                            }, 300);
                                                         }}
                                                     >
                                                         <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
@@ -5165,26 +5276,90 @@ export default function FlexibleScrollDemo() {
                                 </div>
                             </>
                         ) : (
-                            // View Mode - Show QR code and scan option
+                            // View Mode - Show QR code scanning animation
                             <div style={{ textAlign: 'center' }}>
-                                {qrCodeImageUrl ? (
+                                {scanningQrCode ? (
+                                    // Scanning Animation
                                     <div>
-                                        <img 
-                                            src={qrCodeImageUrl} 
-                                            alt="QR Code" 
-                                            style={{ 
-                                                maxWidth: '100%',
-                                                maxHeight: '400px',
-                                                border: '2px solid #e5e7eb',
-                                                borderRadius: '8px',
-                                                marginBottom: '1rem'
-                                            }} 
-                                        />
+                                        <div style={{ 
+                                            position: 'relative',
+                                            display: 'inline-block',
+                                            marginBottom: '1.5rem'
+                                        }}>
+                                            <div className="qr-scan-container" style={{
+                                                position: 'relative',
+                                                width: '300px',
+                                                height: '300px',
+                                                margin: '0 auto',
+                                                borderRadius: '12px',
+                                                overflow: 'hidden'
+                                            }}>
+                                                {qrCodeImageUrl && (
+                                                    <img 
+                                                        src={qrCodeImageUrl} 
+                                                        alt="QR Code" 
+                                                        style={{ 
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'contain',
+                                                            border: '2px solid #e5e7eb',
+                                                            borderRadius: '12px'
+                                                        }} 
+                                                    />
+                                                )}
+                                                <div className="qr-scan-line"></div>
+                                                <div className="qr-scan-corners">
+                                                    <div className="qr-scan-corner top-left"></div>
+                                                    <div className="qr-scan-corner top-right"></div>
+                                                    <div className="qr-scan-corner bottom-left"></div>
+                                                    <div className="qr-scan-corner bottom-right"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.75rem',
+                                            color: '#10b981',
+                                            fontSize: '1.1rem',
+                                            fontWeight: '600',
+                                            marginTop: '1rem'
+                                        }}>
+                                            <i className="pi pi-spin pi-spinner" style={{ fontSize: '1.5rem' }}></i>
+                                            <span>Scanning QR Code...</span>
+                                        </div>
+                                        <p style={{
+                                            marginTop: '1rem',
+                                            fontSize: '0.875rem',
+                                            color: isDark ? '#9ca3af' : '#6b7280'
+                                        }}>
+                                            Redirecting to destination...
+                                        </p>
+                                    </div>
+                                ) : qrCodeImageUrl ? (
+                                    <div>
+                                        <div className="qr-scan-container" style={{
+                                            position: 'relative',
+                                            display: 'inline-block',
+                                            marginBottom: '1rem'
+                                        }}>
+                                            <img 
+                                                src={qrCodeImageUrl} 
+                                                alt="QR Code" 
+                                                style={{ 
+                                                    maxWidth: '100%',
+                                                    maxHeight: '400px',
+                                                    border: '2px solid #e5e7eb',
+                                                    borderRadius: '8px'
+                                                }} 
+                                            />
+                                        </div>
                                         {qrCodeDestinationUrl && (
                                             <Button 
-                                                label="Go to Destination" 
-                                                icon="pi pi-external-link" 
-                                                onClick={() => window.open(qrCodeDestinationUrl, '_blank')}
+                                                label="Scan Again" 
+                                                icon="pi pi-qrcode" 
+                                                onClick={() => handleScanQrCode(qrCodeDestinationUrl)}
                                                 className="p-button-success"
                                             />
                                         )}
