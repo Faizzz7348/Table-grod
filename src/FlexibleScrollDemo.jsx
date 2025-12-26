@@ -247,6 +247,12 @@ export default function FlexibleScrollDemo() {
     const [websiteLinkDialogVisible, setWebsiteLinkDialogVisible] = useState(false);
     const [websiteLinkInput, setWebsiteLinkInput] = useState('');
     const [currentEditingRowId, setCurrentEditingRowId] = useState(null);
+    
+    // QR Code Modal State
+    const [qrCodeDialogVisible, setQrCodeDialogVisible] = useState(false);
+    const [qrCodeImageUrl, setQrCodeImageUrl] = useState('');
+    const [qrCodeDestinationUrl, setQrCodeDestinationUrl] = useState('');
+    const [uploadingQrCode, setUploadingQrCode] = useState(false);
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -740,6 +746,190 @@ export default function FlexibleScrollDemo() {
         } catch (error) {
             console.error('❌ Error saving website link:', error);
             alert('Error saving website link: ' + error.message);
+        }
+    };
+    
+    // Handle QR code image upload
+    const handleQrCodeUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            event.target.value = ''; // Reset input
+            return;
+        }
+        
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size must be less than 10MB');
+            event.target.value = ''; // Reset input
+            return;
+        }
+        
+        // Warn if file is larger than 4.5MB (Vercel limit)
+        if (file.size > 4.5 * 1024 * 1024) {
+            const proceed = confirm(
+                `Warning: File size is ${(file.size / 1024 / 1024).toFixed(2)}MB.\n` +
+                `Vercel has a 4.5MB request limit.\n` +
+                `Upload may fail. Continue anyway?`
+            );
+            if (!proceed) {
+                event.target.value = ''; // Reset input
+                return;
+            }
+        }
+        
+        setUploadingQrCode(true);
+        
+        try {
+            console.log('📤 Uploading QR code image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + ' MB');
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            // Use relative path - works for both dev and production
+            const apiUrl = '/api/upload';
+            
+            console.log('Uploading to:', apiUrl);
+            console.log('Current location:', window.location.href);
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Response status:', response.status);
+            
+            // Read response body
+            let responseData;
+            const contentType = response.headers.get('content-type');
+            
+            try {
+                if (contentType && contentType.includes('application/json')) {
+                    responseData = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.log('Response text:', text);
+                    try {
+                        responseData = JSON.parse(text);
+                    } catch (e) {
+                        responseData = { error: text };
+                    }
+                }
+            } catch (readError) {
+                console.error('Error reading response:', readError);
+                throw new Error('Failed to read server response');
+            }
+            
+            if (!response.ok) {
+                const errorMessage = responseData.message || responseData.error || `Upload failed with status ${response.status}`;
+                console.error('Upload error response:', responseData);
+                throw new Error(errorMessage);
+            }
+            
+            console.log('Upload result:', responseData);
+            
+            // API returns { success: true, data: { url, displayUrl, ... } }
+            if (responseData && responseData.success && responseData.data && responseData.data.url) {
+                setQrCodeImageUrl(responseData.data.url);
+                console.log('✅ QR code image uploaded successfully:', responseData.data.url);
+                alert('QR code image uploaded successfully!');
+                // Reset file input after successful upload
+                const fileInput = document.getElementById('qr-code-upload-input');
+                if (fileInput) fileInput.value = '';
+            } else {
+                throw new Error(responseData.error || responseData.message || 'Upload failed - no URL returned');
+            }
+        } catch (error) {
+            console.error('❌ Error uploading QR code:', error);
+            
+            let errorMessage = `Error uploading QR code: ${error.message}\n\n`;
+            
+            if (error.message.includes('404')) {
+                errorMessage += `⚠️ API endpoint not found!\n\n`;
+                errorMessage += `For Development:\n`;
+                errorMessage += `- Install Vercel CLI: npm i -g vercel\n`;
+                errorMessage += `- Run: vercel dev (instead of npm run dev)\n\n`;
+                errorMessage += `For Production:\n`;
+                errorMessage += `- Deploy to Vercel first\n`;
+                errorMessage += `- Test upload on deployed site\n`;
+            } else {
+                errorMessage += `Please check:\n`;
+                errorMessage += `- Internet connection\n`;
+                errorMessage += `- File size (<4.5MB for Vercel)\n`;
+                errorMessage += `- IMGBB_API_KEY is configured in Vercel\n`;
+            }
+            
+            alert(errorMessage);
+            event.target.value = ''; // Reset input on error
+        } finally {
+            setUploadingQrCode(false);
+        }
+    };
+    
+    // Handle saving QR code
+    const handleSaveQrCode = async () => {
+        if (!currentEditingRowId) return;
+        
+        try {
+            console.log('💾 Saving QR code:', {
+                id: currentEditingRowId,
+                qrCodeImageUrl,
+                qrCodeDestinationUrl
+            });
+            
+            // Update the location in dialogData
+            const updatedDialogData = dialogData.map(item => {
+                if (item.id === currentEditingRowId) {
+                    return {
+                        ...item,
+                        qrCodeImageUrl,
+                        qrCodeDestinationUrl
+                    };
+                }
+                return item;
+            });
+            
+            setDialogData(updatedDialogData);
+            
+            // Update the location in routes
+            const updatedRoutes = routes.map(route => ({
+                ...route,
+                locations: route.locations?.map(loc => {
+                    if (loc.id === currentEditingRowId) {
+                        return {
+                            ...loc,
+                            qrCodeImageUrl,
+                            qrCodeDestinationUrl
+                        };
+                    }
+                    return loc;
+                }) || []
+            }));
+            
+            setRoutes(updatedRoutes);
+            
+            // Update selectedRowInfo if it's the same location
+            if (selectedRowInfo && selectedRowInfo.id === currentEditingRowId) {
+                setSelectedRowInfo({
+                    ...selectedRowInfo,
+                    qrCodeImageUrl,
+                    qrCodeDestinationUrl
+                });
+            }
+            
+            setHasUnsavedChanges(true);
+            setQrCodeDialogVisible(false);
+            setQrCodeImageUrl('');
+            setQrCodeDestinationUrl('');
+            setCurrentEditingRowId(null);
+            
+            console.log('✅ QR code updated in state, ready to save');
+        } catch (error) {
+            console.error('❌ Error saving QR code:', error);
+            alert('Error saving QR code: ' + error.message);
         }
     };
 
@@ -3478,39 +3668,83 @@ export default function FlexibleScrollDemo() {
                                             )}
                                             
                                             {/* QR Code Button */}
-                                            <Button
-                                                tooltip="QR Code"
-                                                tooltipOptions={{ position: 'top' }}
-                                                size="small"
-                                                text
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: 'none',
-                                                    backgroundColor: 'transparent',
-                                                    color: '#6b7280',
-                                                    transition: 'all 0.2s ease',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                    e.currentTarget.style.color = '#4b5563';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                    e.currentTarget.style.color = '#6b7280';
-                                                }}
-                                                onClick={() => {
-                                                    // Functionality to be updated later
-                                                    console.log('QR Code clicked');
-                                                }}
-                                            >
-                                                <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
-                                            </Button>
+                                            {!editMode ? (
+                                                // View Mode - Only show if QR code exists
+                                                (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) && (
+                                                    <Button
+                                                        tooltip="QR Code"
+                                                        tooltipOptions={{ position: 'top' }}
+                                                        size="small"
+                                                        text
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            border: 'none',
+                                                            backgroundColor: 'transparent',
+                                                            color: '#8b5cf6',
+                                                            transition: 'all 0.2s ease',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1.1)';
+                                                            e.currentTarget.style.color = '#7c3aed';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                            e.currentTarget.style.color = '#8b5cf6';
+                                                        }}
+                                                        onClick={() => {
+                                                            setCurrentEditingRowId(selectedRowInfo.id);
+                                                            setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
+                                                            setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
+                                                            setQrCodeDialogVisible(true);
+                                                        }}
+                                                    >
+                                                        <i className="pi pi-qrcode" style={{ fontSize: '20px' }}></i>
+                                                    </Button>
+                                                )
+                                            ) : (
+                                                // Edit Mode - Always show to manage QR code
+                                                <Button
+                                                    tooltip={selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl ? "Edit QR Code" : "Add QR Code"}
+                                                    tooltipOptions={{ position: 'top' }}
+                                                    size="small"
+                                                    text
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: 'none',
+                                                        backgroundColor: 'transparent',
+                                                        color: (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? '#f59e0b' : '#8b5cf6',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                        e.currentTarget.style.color = (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? '#d97706' : '#7c3aed';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                        e.currentTarget.style.color = (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? '#f59e0b' : '#8b5cf6';
+                                                    }}
+                                                    onClick={() => {
+                                                        setCurrentEditingRowId(selectedRowInfo.id);
+                                                        setQrCodeImageUrl(selectedRowInfo.qrCodeImageUrl || '');
+                                                        setQrCodeDestinationUrl(selectedRowInfo.qrCodeDestinationUrl || '');
+                                                        setQrCodeDialogVisible(true);
+                                                    }}
+                                                >
+                                                    <i className={`pi ${(selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? 'pi-pencil' : 'pi-plus-circle'}`} style={{ fontSize: '20px' }}></i>
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                         </>
@@ -4771,6 +5005,216 @@ export default function FlexibleScrollDemo() {
                         }}>
                             Enter the full URL including http:// or https://
                         </small>
+                    </div>
+                </Dialog>
+                
+                {/* QR Code Dialog */}
+                <Dialog 
+                    header={
+                        <div style={{ 
+                            textAlign: 'center', 
+                            fontSize: '14px',
+                            padding: '8px 0'
+                        }}>
+                            <i className="pi pi-qrcode" style={{ marginRight: '8px' }}></i>
+                            {editMode ? 'Manage QR Code' : 'Scan QR Code'}
+                        </div>
+                    }
+                    visible={qrCodeDialogVisible} 
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }} 
+                    modal
+                    dismissableMask
+                    closeOnEscape
+                    onHide={() => {
+                        setQrCodeDialogVisible(false);
+                        setQrCodeImageUrl('');
+                        setQrCodeDestinationUrl('');
+                        setCurrentEditingRowId(null);
+                        // Reset file input
+                        const fileInput = document.getElementById('qr-code-upload-input');
+                        if (fileInput) fileInput.value = '';
+                    }}
+                    footer={
+                        editMode ? (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <Button 
+                                    label="Cancel" 
+                                    icon="pi pi-times" 
+                                    onClick={() => {
+                                        setQrCodeDialogVisible(false);
+                                        setQrCodeImageUrl('');
+                                        setQrCodeDestinationUrl('');
+                                        setCurrentEditingRowId(null);
+                                        // Reset file input
+                                        const fileInput = document.getElementById('qr-code-upload-input');
+                                        if (fileInput) fileInput.value = '';
+                                    }}
+                                    className="p-button-text"
+                                />
+                                <Button 
+                                    label="Save" 
+                                    icon="pi pi-check" 
+                                    onClick={handleSaveQrCode}
+                                    className="p-button-success"
+                                    disabled={!qrCodeImageUrl && !qrCodeDestinationUrl}
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <Button 
+                                    label="Close" 
+                                    icon="pi pi-times" 
+                                    onClick={() => {
+                                        setQrCodeDialogVisible(false);
+                                    }}
+                                    className="p-button-text"
+                                />
+                            </div>
+                        )
+                    }
+                >
+                    <div style={{ padding: '1rem 0' }}>
+                        {editMode ? (
+                            <>
+                                {/* Upload QR Code Image */}
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '10px',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        color: isDark ? '#e5e5e5' : '#495057'
+                                    }}>
+                                        Upload QR Code Image
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleQrCodeUpload}
+                                            disabled={uploadingQrCode}
+                                            id="qr-code-upload-input"
+                                            style={{
+                                                padding: '0.5rem',
+                                                border: '1px solid #d1d5db',
+                                                borderRadius: '6px',
+                                                width: '100%',
+                                                cursor: uploadingQrCode ? 'not-allowed' : 'pointer',
+                                                opacity: uploadingQrCode ? 0.6 : 1
+                                            }}
+                                        />
+                                        {uploadingQrCode && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                right: '1rem',
+                                                transform: 'translateY(-50%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                color: '#3b82f6',
+                                                fontSize: '0.875rem',
+                                                fontWeight: '600'
+                                            }}>
+                                                <i className="pi pi-spin pi-spinner"></i>
+                                                Uploading...
+                                            </div>
+                                        )}
+                                    </div>
+                                    {qrCodeImageUrl && (
+                                        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                                            <img 
+                                                src={qrCodeImageUrl} 
+                                                alt="QR Code" 
+                                                style={{ 
+                                                    maxWidth: '200px',
+                                                    maxHeight: '200px',
+                                                    border: '2px solid #e5e7eb',
+                                                    borderRadius: '8px'
+                                                }} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Or Enter Destination URL */}
+                                <div>
+                                    <label style={{ 
+                                        display: 'block', 
+                                        marginBottom: '10px',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        color: isDark ? '#e5e5e5' : '#495057'
+                                    }}>
+                                        Or Enter Destination URL
+                                    </label>
+                                    <InputText 
+                                        value={qrCodeDestinationUrl}
+                                        onChange={(e) => setQrCodeDestinationUrl(e.target.value)}
+                                        placeholder="https://example.com"
+                                        style={{ width: '100%' }}
+                                    />
+                                    <small style={{ 
+                                        display: 'block', 
+                                        marginTop: '8px',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        fontSize: '12px'
+                                    }}>
+                                        This URL will be opened when the QR code is scanned in view mode
+                                    </small>
+                                </div>
+                            </>
+                        ) : (
+                            // View Mode - Show QR code and scan option
+                            <div style={{ textAlign: 'center' }}>
+                                {qrCodeImageUrl ? (
+                                    <div>
+                                        <img 
+                                            src={qrCodeImageUrl} 
+                                            alt="QR Code" 
+                                            style={{ 
+                                                maxWidth: '100%',
+                                                maxHeight: '400px',
+                                                border: '2px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                marginBottom: '1rem'
+                                            }} 
+                                        />
+                                        {qrCodeDestinationUrl && (
+                                            <Button 
+                                                label="Go to Destination" 
+                                                icon="pi pi-external-link" 
+                                                onClick={() => window.open(qrCodeDestinationUrl, '_blank')}
+                                                className="p-button-success"
+                                            />
+                                        )}
+                                    </div>
+                                ) : qrCodeDestinationUrl ? (
+                                    <div>
+                                        <p style={{ 
+                                            fontSize: '14px', 
+                                            color: isDark ? '#9ca3af' : '#6b7280',
+                                            marginBottom: '1rem'
+                                        }}>
+                                            No QR code image uploaded
+                                        </p>
+                                        <Button 
+                                            label="Go to Destination" 
+                                            icon="pi pi-external-link" 
+                                            onClick={() => window.open(qrCodeDestinationUrl, '_blank')}
+                                            className="p-button-success"
+                                        />
+                                    </div>
+                                ) : (
+                                    <p style={{ 
+                                        fontSize: '14px', 
+                                        color: isDark ? '#9ca3af' : '#6b7280'
+                                    }}>
+                                        No QR code configured for this location
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </Dialog>
             </div>

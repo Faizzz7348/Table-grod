@@ -31,6 +31,13 @@ React table component with PrimeReact DataTable featuring flexible scrolling, di
 - 🔒 **Secure** - API key hidden on server (Vercel serverless function)
 - 🚀 **Vercel Compatible** - Optimized for serverless deployment
 
+### QR Code Features (NEW! 🎉)
+- 📱 **QR Code Upload** - Upload QR code images for each location
+- 🔗 **Destination URL** - Set URL that QR code points to
+- 👁️ **View Mode** - Auto-scan functionality (click to go to destination)
+- ✏️ **Edit Mode** - Manage QR code image and destination URL
+- 🚀 **Smart Display** - Button only shows when QR code exists (view mode)
+
 ### Validation Features
 - 🚫 **Duplicate Prevention** - Automatic detection and prevention of duplicate values
   - Real-time validation while editing
@@ -89,13 +96,42 @@ IMGBB_API_KEY="your_imgbb_api_key_here"
 
 ## Running the Project
 
-Start the development server:
+### Development (Frontend Only)
+
+Start the Vite development server:
 
 ```bash
 npm run dev
 ```
 
 The application will open at `http://localhost:5173`
+
+**⚠️ Note:** API endpoints (image upload, QR code upload) will NOT work with this command.
+
+### Development with API (Recommended)
+
+Start Vercel development server with API support:
+
+```bash
+# First time only: Install Vercel CLI
+npm install -g vercel
+
+# Login and link project
+vercel login
+vercel link
+
+# Pull environment variables
+vercel env pull
+
+# Start development server
+npm run dev:vercel
+```
+
+The application will open at `http://localhost:3000`
+
+**✅ With this command:** All API endpoints work including image & QR code upload!
+
+**See detailed guide:** [VERCEL_DEV_SETUP.md](VERCEL_DEV_SETUP.md)
 
 ## Build
 
@@ -124,6 +160,8 @@ vercel --prod
 2. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for complete guide
 
 **Documentation:**
+- 📖 [VERCEL_DEV_SETUP.md](VERCEL_DEV_SETUP.md) - **Development dengan Vercel (MUST READ!)**
+- 📖 [QR_CODE_FEATURE.md](QR_CODE_FEATURE.md) - QR Code feature guide
 - 📖 [QUICKSTART.md](QUICKSTART.md) - 3-step quick setup
 - 📖 [IMAGE_UPLOAD_GUIDE.md](IMAGE_UPLOAD_GUIDE.md) - Complete image upload guide
 - 📖 [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) - Deployment steps
