@@ -49,18 +49,19 @@ export const useDeviceDetect = () => {
             let browserName = 'Unknown';
             let browserVersion = '';
             
-            if (userAgent.indexOf('chrome') > -1 && userAgent.indexOf('edg') === -1) {
+            // Check Chrome first (before Safari since Chrome includes 'safari' in UA)
+            if (userAgent.indexOf('edg') > -1) {
+                browserName = 'Edge';
+                browserVersion = userAgent.match(/edg\/(\d+)/)?.[1] || '';
+            } else if (userAgent.indexOf('chrome') > -1 && userAgent.indexOf('safari') > -1) {
                 browserName = 'Chrome';
                 browserVersion = userAgent.match(/chrome\/(\d+)/)?.[1] || '';
-            } else if (userAgent.indexOf('safari') > -1 && userAgent.indexOf('chrome') === -1) {
-                browserName = 'Safari';
-                browserVersion = userAgent.match(/version\/(\d+)/)?.[1] || '';
             } else if (userAgent.indexOf('firefox') > -1) {
                 browserName = 'Firefox';
                 browserVersion = userAgent.match(/firefox\/(\d+)/)?.[1] || '';
-            } else if (userAgent.indexOf('edg') > -1) {
-                browserName = 'Edge';
-                browserVersion = userAgent.match(/edg\/(\d+)/)?.[1] || '';
+            } else if (userAgent.indexOf('safari') > -1) {
+                browserName = 'Safari';
+                browserVersion = userAgent.match(/version\/(\d+)/)?.[1] || '';
             }
 
             // Orientation

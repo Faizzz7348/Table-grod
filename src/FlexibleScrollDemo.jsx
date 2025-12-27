@@ -487,6 +487,10 @@ export default function FlexibleScrollDemo() {
     const [colorPickerVisible, setColorPickerVisible] = useState(false);
     const [colorPickerRowId, setColorPickerRowId] = useState(null);
     const [colorPickerLocationName, setColorPickerLocationName] = useState('');
+    
+    // Update Notification State
+    const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+    const APP_VERSION = '1.0.1'; // Increment this when pushing updates
 
     // Calculate dynamic table width based on visible columns
     const calculateTableWidth = () => {
@@ -710,6 +714,26 @@ export default function FlexibleScrollDemo() {
             themeColorMeta.setAttribute('content', isDark ? '#1a1a1a' : '#ffffff');
         }
     }, [isDark]);
+    
+    // Check for app updates
+    useEffect(() => {
+        const checkForUpdates = () => {
+            const storedVersion = localStorage.getItem('appVersion');
+            
+            if (storedVersion && storedVersion !== APP_VERSION) {
+                setShowUpdateBanner(true);
+            } else if (!storedVersion) {
+                localStorage.setItem('appVersion', APP_VERSION);
+            }
+        };
+        
+        checkForUpdates();
+        
+        // Check for updates every 5 minutes
+        const intervalId = setInterval(checkForUpdates, 5 * 60 * 1000);
+        
+        return () => clearInterval(intervalId);
+    }, []);
     
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -2179,6 +2203,15 @@ export default function FlexibleScrollDemo() {
         );
     };
 
+    const handleUpdateApp = () => {
+        localStorage.setItem('appVersion', APP_VERSION);
+        window.location.reload();
+    };
+    
+    const handleDismissUpdate = () => {
+        setShowUpdateBanner(false);
+    };
+    
     const handleClearAllData = () => {
         if (confirm('⚠️ Clear All Data?\n\nThis will delete ALL routes and locations from localStorage.\nYou will start with a fresh empty database.\n\nThis action cannot be undone!')) {
             localStorage.removeItem('routes');
@@ -2845,6 +2878,73 @@ export default function FlexibleScrollDemo() {
                 )}
             </div>
 
+            {/* Update Notification Banner */}
+            {showUpdateBanner && (
+                <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: isDark ? '#1e3a8a' : '#dbeafe',
+                    border: `2px solid ${isDark ? '#3b82f6' : '#2563eb'}`,
+                    borderRadius: '12px',
+                    padding: '1rem 1.5rem',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    maxWidth: '90%',
+                    animation: 'slideDown 0.3s ease-out'
+                }}>
+                    <i className="pi pi-info-circle" style={{ 
+                        fontSize: '1.5rem', 
+                        color: isDark ? '#60a5fa' : '#2563eb' 
+                    }}></i>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ 
+                            fontWeight: '700', 
+                            fontSize: '0.95rem',
+                            color: isDark ? '#e0f2fe' : '#1e3a8a',
+                            marginBottom: '0.25rem'
+                        }}>
+                            App Ada Update!
+                        </div>
+                        <div style={{ 
+                            fontSize: '0.85rem',
+                            color: isDark ? '#bae6fd' : '#1e40af'
+                        }}>
+                            Sila refresh app untuk versi terkini
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <Button 
+                            label="Update"
+                            icon="pi pi-refresh"
+                            onClick={handleUpdateApp}
+                            severity="info"
+                            size="small"
+                            raised
+                            style={{
+                                backgroundColor: isDark ? '#3b82f6' : '#2563eb',
+                                border: 'none',
+                                fontWeight: '600'
+                            }}
+                        />
+                        <Button 
+                            icon="pi pi-times"
+                            onClick={handleDismissUpdate}
+                            severity="secondary"
+                            size="small"
+                            text
+                            style={{
+                                color: isDark ? '#94a3b8' : '#64748b'
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
             <div className="card">
                 {editMode && (
                     <div style={{ marginBottom: '1rem' }}>
@@ -2862,7 +2962,7 @@ export default function FlexibleScrollDemo() {
                     value={displayedRoutes} 
                     scrollable 
                     scrollHeight={deviceInfo.tableScrollHeight} 
-                    tableStyle={{ minWidth: '70rem' }}
+                    tableStyle={{ minWidth: calculateTableWidth() }}
                     editMode={editMode ? "cell" : null}
                     className="no-header-border"
                     resizableColumns

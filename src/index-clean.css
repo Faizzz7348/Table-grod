@@ -892,3 +892,15 @@ body.dark .p-dialog-mask {
 .modal-exit {
   animation: modalFadeOut 0.3s ease-in;
 }
+
+/* Slide down animation for update banner */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
