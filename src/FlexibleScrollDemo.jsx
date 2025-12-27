@@ -27,9 +27,11 @@ const tableStyles = `
         color: #111827 !important;
         font-weight: 600 !important;
         border-bottom: 1px solid #9ca3af !important;
-        padding: 1rem !important;
+        padding: 1.25rem 1rem !important;
         font-size: 13px !important;
         letter-spacing: 0.5px !important;
+        height: 56px !important;
+        line-height: 1.5 !important;
     }
     
     body.dark .p-datatable .p-datatable-thead > tr > th {
@@ -221,6 +223,42 @@ const tableStyles = `
         border-top: none;
         border-radius: 0 0 12px 0;
     }
+    
+    /* Responsive table wrapper for fewer columns */
+    .p-datatable-wrapper {
+        overflow-x: auto !important;
+    }
+    
+    /* Center table when it's narrower than container */
+    .p-datatable .p-datatable-table-container {
+        overflow-x: auto;
+    }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .p-datatable .p-datatable-thead > tr > th {
+            padding: 0.5rem !important;
+            font-size: 11px !important;
+        }
+        
+        .p-datatable .p-datatable-tbody > tr > td {
+            padding: 0.5rem !important;
+            font-size: 10px !important;
+        }
+        
+        /* Make table fit mobile screen */
+        .p-dialog .p-dialog-content {
+            padding: 0.5rem !important;
+        }
+    }
+    
+    /* Tablet responsive styles */
+    @media (max-width: 1024px) and (min-width: 769px) {
+        .p-datatable .p-datatable-thead > tr > th {
+            padding: 0.75rem !important;
+            font-size: 12px !important;
+        }
+    }
 `;
 
 // Custom editor component with duplicate detection
@@ -309,6 +347,7 @@ export default function FlexibleScrollDemo() {
     });
     
     const [editMode, setEditMode] = useState(false);
+    const [modeTransitioning, setModeTransitioning] = useState(false);
     const [infoDialogVisible, setInfoDialogVisible] = useState(false);
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
     const [isRouteInfo, setIsRouteInfo] = useState(false);
@@ -448,6 +487,54 @@ export default function FlexibleScrollDemo() {
     const [colorPickerVisible, setColorPickerVisible] = useState(false);
     const [colorPickerRowId, setColorPickerRowId] = useState(null);
     const [colorPickerLocationName, setColorPickerLocationName] = useState('');
+
+    // Calculate dynamic table width based on visible columns
+    const calculateTableWidth = () => {
+        let totalWidth = 0;
+        
+        // Adjust column widths based on device
+        const isMobileDevice = deviceInfo.isMobile;
+        const columnWidthMap = {
+            no: isMobileDevice ? 60 : 80,
+            code: isMobileDevice ? (columnWidths.code ? columnWidths.code * 0.8 : 100) : (columnWidths.code || 120),
+            location: isMobileDevice ? (columnWidths.location ? columnWidths.location * 0.7 : 160) : (columnWidths.location || 220),
+            delivery: isMobileDevice ? (columnWidths.delivery ? columnWidths.delivery * 0.8 : 90) : (columnWidths.delivery || 110),
+            image: isMobileDevice ? 80 : 120
+        };
+        
+        // Count visible columns
+        let visibleCount = 0;
+        Object.keys(visibleColumns).forEach(col => {
+            if (visibleColumns[col] && columnWidthMap[col]) {
+                totalWidth += columnWidthMap[col];
+                visibleCount++;
+            }
+        });
+        
+        // Add action column width if in edit mode
+        if (editMode) {
+            totalWidth += isMobileDevice ? 80 : 120; // action column width
+        }
+        
+        // Get viewport width
+        const viewportWidth = window.innerWidth;
+        const availableWidth = isMobileDevice ? viewportWidth * 0.9 : viewportWidth * 0.85;
+        
+        // If only 1-3 columns visible, fit to content but don't exceed viewport
+        if (visibleCount <= 3) {
+            const calculatedWidth = Math.min(totalWidth, availableWidth);
+            return `${calculatedWidth}px`;
+        }
+        
+        // For 4-5 columns, balance between content and viewport
+        if (visibleCount <= 5) {
+            const calculatedWidth = Math.min(totalWidth * 1.1, availableWidth);
+            return `${calculatedWidth}px`;
+        }
+        
+        // For more columns, allow scrolling but optimize width
+        return totalWidth < availableWidth ? `${totalWidth}px` : '100%';
+    };
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -1349,7 +1436,15 @@ export default function FlexibleScrollDemo() {
                     handleSaveChanges();
                 }
             }
-            setEditMode(false);
+            
+            // Show loading spinner
+            setModeTransitioning(true);
+            
+            // Simulate transition time
+            setTimeout(() => {
+                setEditMode(false);
+                setModeTransitioning(false);
+            }, 600);
         } else {
             // Entering edit mode - show password dialog
             setPasswordInput('');
@@ -2189,10 +2284,10 @@ export default function FlexibleScrollDemo() {
             badgeClass: 'p-badge-info'
         },
         {
-            label: editMode ? 'View Mode' : 'Edit Mode',
-            icon: editMode ? 'pi pi-eye' : 'pi pi-pencil',
+            label: modeTransitioning ? 'Switching...' : (editMode ? 'View Mode' : 'Edit Mode'),
+            icon: modeTransitioning ? 'pi pi-spin pi-spinner' : (editMode ? 'pi pi-eye' : 'pi pi-pencil'),
             command: () => handleToggleEditMode(),
-            disabled: saving
+            disabled: saving || modeTransitioning
         },
         ...(editMode ? [
             {
@@ -2533,22 +2628,24 @@ export default function FlexibleScrollDemo() {
                                 {/* Edit/View Mode Toggle */}
                                 <div
                                     onClick={() => {
-                                        handleToggleEditMode();
-                                        setCustomMenuVisible(false);
+                                        if (!modeTransitioning && !saving) {
+                                            handleToggleEditMode();
+                                            setCustomMenuVisible(false);
+                                        }
                                     }}
                                     style={{
                                         padding: '1rem 1.25rem',
                                         borderRadius: '12px',
-                                        cursor: saving ? 'not-allowed' : 'pointer',
+                                        cursor: (saving || modeTransitioning) ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.2s ease',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '1rem',
                                         backgroundColor: 'transparent',
                                         marginBottom: '0.5rem',
-                                        opacity: saving ? 0.5 : 1
+                                        opacity: (saving || modeTransitioning) ? 0.5 : 1
                                     }}
-                                    onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6')}
+                                    onMouseEnter={(e) => !(saving || modeTransitioning) && (e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6')}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
                                     <div style={{
@@ -2560,17 +2657,17 @@ export default function FlexibleScrollDemo() {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                     }}>
-                                        <i className={editMode ? 'pi pi-eye' : 'pi pi-pencil'} style={{
-                                            color: editMode ? '#10b981' : '#ef4444',
+                                        <i className={modeTransitioning ? 'pi pi-spin pi-spinner' : (editMode ? 'pi pi-eye' : 'pi pi-pencil')} style={{
+                                            color: modeTransitioning ? '#3b82f6' : (editMode ? '#10b981' : '#ef4444'),
                                             fontSize: '1.1rem'
                                         }}></i>
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
-                                            {editMode ? 'View Mode' : 'Edit Mode'}
+                                            {modeTransitioning ? 'Switching...' : (editMode ? 'View Mode' : 'Edit Mode')}
                                         </p>
                                         <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
-                                            {editMode ? 'Switch to read-only' : 'Enable editing'}
+                                            {modeTransitioning ? 'Please wait' : (editMode ? 'Switch to read-only' : 'Enable editing')}
                                         </p>
                                     </div>
                                 </div>
@@ -3252,7 +3349,7 @@ export default function FlexibleScrollDemo() {
                         frozenValue={frozenRow}
                         scrollable 
                         scrollHeight="flex" 
-                        tableStyle={{ minWidth: '70rem' }}
+                        tableStyle={{ minWidth: calculateTableWidth() }}
                         editMode={editMode ? "cell" : null}
                         globalFilter={globalFilterValue}
                         resizableColumns
@@ -3839,13 +3936,12 @@ export default function FlexibleScrollDemo() {
                                 borderRadius: '8px',
                                 border: isDark ? '1px solid #374151' : '1px solid #e9ecef'
                             }}>
-                                <div style={{ 
+                                <div style={{
                                     padding: '10px 15px',
                                     borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
                                     backgroundColor: isDark ? 'transparent' : '#f8f9fa'
                                 }}>
-                                    <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057' }}>
-                                        <i className="pi pi-info-circle" style={{ marginRight: '8px' }}></i>
+                                    <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
                                         {isRouteInfo ? 'Route Information' : 'General Information'}
                                     </strong>
                                 </div>
@@ -3888,15 +3984,66 @@ export default function FlexibleScrollDemo() {
                                             }}>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>No:</strong>
-                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
+                                                    {editMode ? (
+                                                        <InputText
+                                                            value={selectedRowInfo.no}
+                                                            onChange={(e) => {
+                                                                const updatedInfo = { ...selectedRowInfo, no: e.target.value };
+                                                                setSelectedRowInfo(updatedInfo);
+                                                                const updatedData = dialogData.map(item => 
+                                                                    item.id === selectedRowInfo.id ? { ...item, no: e.target.value } : item
+                                                                );
+                                                                setDialogData(updatedData);
+                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
+                                                                setHasUnsavedChanges(true);
+                                                            }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                        />
+                                                    ) : (
+                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Code:</strong>
-                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
+                                                    {editMode ? (
+                                                        <InputText
+                                                            value={selectedRowInfo.code}
+                                                            onChange={(e) => {
+                                                                const updatedInfo = { ...selectedRowInfo, code: e.target.value };
+                                                                setSelectedRowInfo(updatedInfo);
+                                                                const updatedData = dialogData.map(item => 
+                                                                    item.id === selectedRowInfo.id ? { ...item, code: e.target.value } : item
+                                                                );
+                                                                setDialogData(updatedData);
+                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
+                                                                setHasUnsavedChanges(true);
+                                                            }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                        />
+                                                    ) : (
+                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Delivery:</strong>
-                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
+                                                    {editMode ? (
+                                                        <InputText
+                                                            value={selectedRowInfo.delivery}
+                                                            onChange={(e) => {
+                                                                const updatedInfo = { ...selectedRowInfo, delivery: e.target.value };
+                                                                setSelectedRowInfo(updatedInfo);
+                                                                const updatedData = dialogData.map(item => 
+                                                                    item.id === selectedRowInfo.id ? { ...item, delivery: e.target.value } : item
+                                                                );
+                                                                setDialogData(updatedData);
+                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
+                                                                setHasUnsavedChanges(true);
+                                                            }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                        />
+                                                    ) : (
+                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
@@ -3923,7 +4070,6 @@ export default function FlexibleScrollDemo() {
                                             {/* Shortcut Section - Only for location info */}
                                             <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
                                                 <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
-                                                    <i className="pi pi-link" style={{ marginRight: '8px' }}></i>
                                                     Shortcut
                                                 </strong>
                                                 <div style={{ 

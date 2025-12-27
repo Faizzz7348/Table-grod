@@ -53,6 +53,7 @@ function MapUpdater({ center, zoom }) {
 
 export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, onMarkerColorChange }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
+    const [addressExpanded, setAddressExpanded] = useState(false);
     
     // Default marker color
     const defaultMarkerColor = '#dc3545';
@@ -180,18 +181,43 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                 
                 {/* Address Caption */}
                 {!isMultipleMarkers && address && (
-                    <div style={{
-                        marginTop: '10px',
-                        padding: '8px',
-                        backgroundColor: '#f5f5f5',
-                        borderRadius: '4px',
-                        fontSize: '13px',
-                        color: '#555',
-                        textAlign: 'center',
-                        fontStyle: 'italic'
-                    }}>
-                        <i className="pi pi-map-marker" style={{ marginRight: '5px', color: '#dc3545' }}></i>
-                        {address}
+                    <div 
+                        style={{
+                            marginTop: '10px',
+                            padding: '6px 8px',
+                            backgroundColor: 'transparent',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontFamily: "'Open Sans', sans-serif",
+                            color: '#555',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onClick={() => setAddressExpanded(!addressExpanded)}
+                    >
+                        <i 
+                            className={`pi ${addressExpanded ? 'pi-chevron-up' : 'pi-chevron-down'}`} 
+                            style={{ 
+                                fontSize: '8px',
+                                color: '#dc3545',
+                                transition: 'transform 0.2s ease'
+                            }}
+                        ></i>
+                        <span style={{
+                            overflow: addressExpanded ? 'visible' : 'hidden',
+                            textOverflow: addressExpanded ? 'clip' : 'ellipsis',
+                            whiteSpace: addressExpanded ? 'normal' : 'nowrap',
+                            maxWidth: addressExpanded ? 'none' : '100%',
+                            display: addressExpanded ? 'block' : 'inline'
+                        }}>
+                            {address}
+                        </span>
                     </div>
                 )}
                 
