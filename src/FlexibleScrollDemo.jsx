@@ -2595,9 +2595,11 @@ export default function FlexibleScrollDemo() {
                     value={routes} 
                     scrollable 
                     scrollHeight={deviceInfo.tableScrollHeight} 
-                    tableStyle={{ minWidth: deviceInfo.isMobile ? '100%' : '50rem' }}
+                    tableStyle={{ minWidth: 'auto' }}
                     editMode={editMode ? "cell" : null}
                     className="no-header-border"
+                    resizableColumns
+                    columnResizeMode="expand"
                 >
                     <Column 
                         field="route" 
