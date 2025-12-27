@@ -28,7 +28,7 @@ const tableStyles = `
         font-weight: 600 !important;
         border-bottom: 1px solid #9ca3af !important;
         padding: 1rem !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         letter-spacing: 0.5px !important;
     }
     
@@ -40,7 +40,7 @@ const tableStyles = `
     
     /* Table body row text size */
     .p-datatable .p-datatable-tbody > tr > td {
-        font-size: 11px !important;
+        font-size: 12px !important;
         font-weight: 600 !important;
     }
     
@@ -74,7 +74,7 @@ const tableStyles = `
         border: 2px solid #3b82f6 !important;
         border-radius: 6px !important;
         padding: 0.5rem !important;
-        font-size: 11px !important;
+        font-size: 12px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
@@ -332,6 +332,15 @@ export default function FlexibleScrollDemo() {
     const [sortOrders, setSortOrders] = useState({});
     const [isCustomSorted, setIsCustomSorted] = useState(false); // Track if data is custom sorted
     
+    // Pin Row State
+    const [pinnedRows, setPinnedRows] = useState(new Set());
+    
+    // Save Order Preset State
+    const [savePresetDialogVisible, setSavePresetDialogVisible] = useState(false);
+    const [presetName, setPresetName] = useState('');
+    const [savedPresets, setSavedPresets] = useState([]);
+    const [presetsListVisible, setPresetsListVisible] = useState(false);
+    
     // Delete Confirmation State
     const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -503,6 +512,13 @@ export default function FlexibleScrollDemo() {
         setColumnWidths(widths);
     };
 
+    // Compute displayed routes with pinned rows at top
+    const displayedRoutes = React.useMemo(() => {
+        const pinned = routes.filter(route => pinnedRows.has(route.id));
+        const unpinned = routes.filter(route => !pinnedRows.has(route.id));
+        return [...pinned, ...unpinned];
+    }, [routes, pinnedRows]);
+
     // Natural sort function for routes (handles both alphabetic and numeric sorting)
     const sortRoutes = (routesData) => {
         return [...routesData].sort((a, b) => {
@@ -554,6 +570,18 @@ export default function FlexibleScrollDemo() {
         };
         
         loadData();
+    }, []);
+    
+    // Load saved presets from localStorage on mount
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('sortPresets');
+            if (saved) {
+                setSavedPresets(JSON.parse(saved));
+            }
+        } catch (error) {
+            console.error('Error loading presets:', error);
+        }
     }, []);
     
     // Calculate column widths when dialogData changes
@@ -628,6 +656,16 @@ export default function FlexibleScrollDemo() {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {customSortMode && (
+                        <Button 
+                            label="Save Preset" 
+                            icon="pi pi-save" 
+                            onClick={() => setSavePresetDialogVisible(true)} 
+                            size="small"
+                            severity="success"
+                            disabled={!Object.values(sortOrders).some(order => order !== '' && order !== undefined)}
+                        />
+                    )}
                     <Button 
                         label="Close" 
                         icon="pi pi-times" 
@@ -931,7 +969,7 @@ export default function FlexibleScrollDemo() {
             
             // Also need to fetch all locations to ensure we save all of them
             if (!locationExists) {
-                console.log('📍 Location was not in dialogData, fetching all locations to ensure complete save');
+                // Location was not in dialogData, fetching all locations
                 const allLocations = await CustomerService.getDetailData();
                 const updatedAllLocations = allLocations.map(loc => {
                     if (loc.id === selectedRowInfo.id) {
@@ -976,7 +1014,7 @@ export default function FlexibleScrollDemo() {
             
             setInfoEditMode(false);
             
-            console.log('✅ Location info updated in state, ready to save');
+            // Location info updated in state
         } catch (error) {
             console.error('❌ Error saving info:', error);
             alert('Error saving location info: ' + error.message);
@@ -1037,7 +1075,7 @@ export default function FlexibleScrollDemo() {
             setWebsiteLinkInput('');
             setCurrentEditingRowId(null);
             
-            console.log('✅ Website link updated in state, ready to save');
+            // Website link updated in state
         } catch (error) {
             console.error('❌ Error saving website link:', error);
             alert('Error saving website link: ' + error.message);
@@ -1066,7 +1104,7 @@ export default function FlexibleScrollDemo() {
         setUploadingQrCode(true);
         
         try {
-            console.log('📤 Processing QR code image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + ' MB');
+            // Processing QR code image
             
             // Convert file to base64 for preview and storage (like repo rujukan)
             const reader = new FileReader();
@@ -1074,7 +1112,7 @@ export default function FlexibleScrollDemo() {
                 const base64String = reader.result;
                 setQrCodeImageUrl(base64String);
                 setUploadingQrCode(false);
-                console.log('✅ QR code image loaded successfully');
+                // QR code image loaded successfully
             };
             reader.onerror = () => {
                 alert('Failed to read file');
@@ -1152,7 +1190,7 @@ export default function FlexibleScrollDemo() {
             const actionMessage = (!qrCodeImageUrl && !qrCodeDestinationUrl) 
                 ? '✅ QR code removed successfully' 
                 : '✅ QR code updated successfully';
-            console.log(actionMessage);
+            // QR code saved
         } catch (error) {
             console.error('❌ Error saving QR code:', error);
             alert('Error saving QR code: ' + error.message);
@@ -1167,7 +1205,7 @@ export default function FlexibleScrollDemo() {
         try {
             let imageSource = qrImageUrl;
             
-            console.log('🔍 Scanning QR code from image...');
+            // Scanning QR code from image
             
             // If it's a remote URL, handle CORS
             if (imageSource.startsWith('http')) {
@@ -1186,7 +1224,7 @@ export default function FlexibleScrollDemo() {
                 returnDetailedScanResult: true 
             });
             
-            console.log('✅ QR code scanned successfully:', result.data);
+            // QR code scanned successfully
             
             let targetUrl = result.data;
             
@@ -1239,9 +1277,7 @@ export default function FlexibleScrollDemo() {
         setSaving(true);
         
         try {
-            console.log('💾 Starting save operation...');
-            console.log('📊 Routes to save:', routes.length, routes);
-            console.log('📍 Locations to save:', dialogData.length, dialogData);
+            // Starting save operation
             
             // Save both routes and locations
             const results = await Promise.all([
@@ -1249,7 +1285,7 @@ export default function FlexibleScrollDemo() {
                 CustomerService.saveLocations(dialogData)
             ]);
             
-            console.log('✅ Save completed successfully:', results);
+            // Save completed successfully
             
             // Refresh location count after save
             const allLocations = await CustomerService.getDetailData();
@@ -1474,6 +1510,71 @@ export default function FlexibleScrollDemo() {
         alert(message);
     };
 
+    const handleSavePreset = () => {
+        if (!presetName.trim()) {
+            alert('⚠️ Please enter a preset name!');
+            return;
+        }
+        
+        // Check if current order has any entries
+        const hasOrders = Object.values(sortOrders).some(order => order !== '' && order !== undefined);
+        if (!hasOrders) {
+            alert('⚠️ Please set some order values before saving!');
+            return;
+        }
+        
+        // Create preset object
+        const preset = {
+            id: Date.now(),
+            name: presetName.trim(),
+            routeId: currentRouteId,
+            routeName: currentRouteName,
+            sortOrders: { ...sortOrders },
+            createdAt: new Date().toISOString()
+        };
+        
+        // Add to saved presets
+        const updatedPresets = [...savedPresets, preset];
+        setSavedPresets(updatedPresets);
+        
+        // Save to localStorage
+        localStorage.setItem('sortPresets', JSON.stringify(updatedPresets));
+        
+        // Close dialog and reset
+        setSavePresetDialogVisible(false);
+        setPresetName('');
+        
+        alert(`✅ Preset "${preset.name}" saved successfully!`);
+    };
+    
+    const handleApplyPreset = (preset) => {
+        // Check if preset is for current route
+        if (preset.routeId !== currentRouteId) {
+            alert('⚠️ This preset is for a different route!');
+            return;
+        }
+        
+        // Apply the saved sort orders
+        setSortOrders(preset.sortOrders);
+        setCustomSortMode(true);
+        setActiveFunction('setOrder');
+        setPresetsListVisible(false);
+        
+        alert(`✅ Preset "${preset.name}" loaded! Click Apply to sort the table.`);
+    };
+    
+    const handleDeletePreset = (presetId) => {
+        if (!confirm('Are you sure you want to delete this preset?')) {
+            return;
+        }
+        
+        const updatedPresets = savedPresets.filter(p => p.id !== presetId);
+        setSavedPresets(updatedPresets);
+        localStorage.setItem('sortPresets', JSON.stringify(updatedPresets));
+        
+        alert('✅ Preset deleted successfully!');
+    };
+
     const handleAddDialogRow = () => {
         const tempId = Date.now(); // Use numeric timestamp for new rows (must be > 1000000000000)
         const highestNo = dialogData.length > 0 ? Math.max(...dialogData.map(d => typeof d.no === 'number' ? d.no : 0)) : 0;
@@ -1502,7 +1603,7 @@ export default function FlexibleScrollDemo() {
             delivery: 'Daily'
         });
         
-        console.log('✅ Added new location with temp ID:', tempId, 'for route:', currentRouteId);
+        // Added new location with temp ID
         
         // Recalculate column widths
         calculateColumnWidths(updatedData);
@@ -1529,7 +1630,7 @@ export default function FlexibleScrollDemo() {
                 location: locationToDelete?.location || 'Unknown'
             });
             
-            console.log('Deleted dialog row:', deleteTarget.id);
+            // Deleted dialog row
             
             // Recalculate column widths after delete
             calculateColumnWidths(updatedData);
@@ -1547,7 +1648,7 @@ export default function FlexibleScrollDemo() {
                 warehouse: routeToDelete?.warehouse || ''
             });
             
-            console.log('Deleted row:', deleteTarget.id);
+            // Deleted row
         }
         setDeleteConfirmVisible(false);
         setDeleteTarget(null);
@@ -1608,7 +1709,7 @@ export default function FlexibleScrollDemo() {
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) {
-            console.log('No file selected');
+            // No file selected
             return;
         }
         
@@ -1652,7 +1753,7 @@ export default function FlexibleScrollDemo() {
                 ? 'http://localhost:5173/api/upload'
                 : '/api/upload';
             
-            console.log('Uploading to:', apiUrl);
+            // Uploading to API
             
             // Upload via our API endpoint with proper error handling
             let response;
@@ -1666,7 +1767,7 @@ export default function FlexibleScrollDemo() {
                 throw new Error(`Network error: ${fetchError.message}`);
             }
             
-            console.log('Upload response status:', response.status);
+            // Upload response received
             
             // Read response body only once
             let responseData;
@@ -1677,7 +1778,7 @@ export default function FlexibleScrollDemo() {
                     responseData = await response.json();
                 } else {
                     const text = await response.text();
-                    console.log('Response text:', text);
+                    // Response text received
                     try {
                         responseData = JSON.parse(text);
                     } catch (e) {
@@ -1699,7 +1800,7 @@ export default function FlexibleScrollDemo() {
                 return;
             }
             
-            console.log('Upload response data:', responseData);
+            // Upload response data received
             
             if (responseData && responseData.success && responseData.data && responseData.data.url) {
                 // Add the uploaded image URL to the list
@@ -1709,7 +1810,7 @@ export default function FlexibleScrollDemo() {
                 setCurrentRowImages(newImages);
                 // Set loading state for uploaded image
                 setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
-                console.log('✓ Image uploaded successfully:', imageUrl);
+                // Image uploaded successfully
                 alert('Image uploaded successfully!');
             } else {
                 console.error('Upload failed - invalid response:', data);
@@ -1740,7 +1841,7 @@ export default function FlexibleScrollDemo() {
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
         setImageDialogVisible(false);
-        console.log('Images saved for row:', selectedRowId, currentRowImages);
+        // Images saved for row
     };
     
     const handleOpenPowerModeDialog = (rowData) => {
@@ -1764,7 +1865,7 @@ export default function FlexibleScrollDemo() {
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
         setPowerModeDialogVisible(false);
-        console.log('Power mode saved for row:', powerModeRowId, selectedPowerMode);
+        // Power mode saved
     };
 
     const handleAddRow = () => {
@@ -1790,7 +1891,7 @@ export default function FlexibleScrollDemo() {
             warehouse: ''
         });
         
-        console.log('✅ Added new route with temp ID:', tempId);
+        // Added new route with temp ID
     };
 
     const handleDeleteRow = (rowId) => {
@@ -1798,6 +1899,18 @@ export default function FlexibleScrollDemo() {
         setDeleteTarget({ id: rowId, data: rowToDelete });
         setDeleteType('route');
         setDeleteConfirmVisible(true);
+    };
+
+    const handleTogglePin = (rowId) => {
+        setPinnedRows(prev => {
+            const newPinned = new Set(prev);
+            if (newPinned.has(rowId)) {
+                newPinned.delete(rowId);
+            } else {
+                newPinned.add(rowId);
+            }
+            return newPinned;
+        });
     };
 
     const textEditor = (options) => {
@@ -1877,8 +1990,21 @@ export default function FlexibleScrollDemo() {
     };
 
     const actionBodyTemplate = (rowData) => {
+        const isPinned = pinnedRows.has(rowData.id);
+        
         return (
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                {/* Pin Button - Always visible */}
+                <Button 
+                    icon={isPinned ? "pi pi-bookmark-fill" : "pi pi-bookmark"} 
+                    size="small"
+                    severity={isPinned ? "warning" : "secondary"}
+                    tooltip={isPinned ? "Unpin from top" : "Pin to top"}
+                    tooltipOptions={{ position: 'top' }}
+                    text
+                    onClick={() => handleTogglePin(rowData.id)} 
+                />
+                
                 {editMode ? (
                     <>
                         <Button 
@@ -2636,7 +2762,7 @@ export default function FlexibleScrollDemo() {
                     </div>
                 )}
                 <DataTable 
-                    value={routes} 
+                    value={displayedRoutes} 
                     scrollable 
                     scrollHeight={deviceInfo.tableScrollHeight} 
                     tableStyle={{ minWidth: '70rem' }}
@@ -2644,6 +2770,7 @@ export default function FlexibleScrollDemo() {
                     className="no-header-border"
                     resizableColumns
                     columnResizeMode="expand"
+                    rowClassName={(rowData) => pinnedRows.has(rowData.id) ? 'pinned-row' : ''}
                 >
                     <Column 
                         field="route" 
@@ -2711,7 +2838,7 @@ export default function FlexibleScrollDemo() {
                         alignHeader="center" 
                         body={actionBodyTemplate}
                         headerStyle={{ color: '#ef4444', textAlign: 'center' }}
-                        style={{ width: editMode ? '220px' : '100px', minWidth: editMode ? '220px' : '100px' }}
+                        style={{ width: editMode ? '260px' : '140px', minWidth: editMode ? '260px' : '140px' }}
                     />
                 </DataTable>
 
@@ -2870,6 +2997,18 @@ export default function FlexibleScrollDemo() {
                                                     }}
                                                 />
                                             )}
+                                            <Button 
+                                                label="View Saved Presets" 
+                                                icon="pi pi-bookmark"
+                                                severity="help"
+                                                size="small"
+                                                text
+                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                onClick={() => {
+                                                    setPresetsListVisible(true);
+                                                    setFunctionDropdownVisible(false);
+                                                }}
+                                            />
                                             <Button 
                                                 label="Columns" 
                                                 icon="pi pi-th-large"
@@ -3153,7 +3292,7 @@ export default function FlexibleScrollDemo() {
                                 body={(rowData) => {
                                     const order = sortOrders[rowData.id];
                                     const isDuplicate = isOrderDuplicate(rowData.id, order);
-                                    console.log('Rendering input for row:', rowData.id, 'order:', order);
+                                    // Rendering input for row
                                     return (
                                         <div 
                                             style={{ padding: '0.5rem' }}
@@ -3166,7 +3305,7 @@ export default function FlexibleScrollDemo() {
                                                 type="text"
                                                 value={order === '' || order === undefined || order === null ? '' : String(order)}
                                                 onChange={(e) => {
-                                                    console.log('Input onChange triggered:', e.target.value);
+                                                    // Input onChange triggered
                                                     const val = e.target.value;
                                                     // Only allow numbers
                                                     if (val === '' || /^[0-9]+$/.test(val)) {
@@ -3180,7 +3319,7 @@ export default function FlexibleScrollDemo() {
                                                     e.target.focus();
                                                 }}
                                                 onFocus={(e) => {
-                                                    console.log('Input focused');
+                                                    // Input focused
                                                     e.stopPropagation();
                                                 }}
                                                 onKeyDown={(e) => e.stopPropagation()}
@@ -3696,16 +3835,16 @@ export default function FlexibleScrollDemo() {
                             
                             {/* Other Information */}
                             <div style={{ 
-                                backgroundColor: '#ffffff',
+                                backgroundColor: isDark ? 'transparent' : '#ffffff',
                                 borderRadius: '8px',
-                                border: '1px solid #e9ecef'
+                                border: isDark ? '1px solid #374151' : '1px solid #e9ecef'
                             }}>
                                 <div style={{ 
                                     padding: '10px 15px',
-                                    borderBottom: '1px solid #e9ecef',
-                                    backgroundColor: '#f8f9fa'
+                                    borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
+                                    backgroundColor: isDark ? 'transparent' : '#f8f9fa'
                                 }}>
-                                    <strong style={{ fontSize: '13px', color: '#495057' }}>
+                                    <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057' }}>
                                         <i className="pi pi-info-circle" style={{ marginRight: '8px' }}></i>
                                         {isRouteInfo ? 'Route Information' : 'General Information'}
                                     </strong>
@@ -3782,8 +3921,8 @@ export default function FlexibleScrollDemo() {
                                             </div>
                                             
                                             {/* Shortcut Section - Only for location info */}
-                                            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #e9ecef' }}>
-                                                <strong style={{ fontSize: '13px', color: '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
+                                            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
+                                                <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
                                                     <i className="pi pi-link" style={{ marginRight: '8px' }}></i>
                                                     Shortcut
                                                 </strong>
@@ -6055,6 +6194,200 @@ export default function FlexibleScrollDemo() {
                             <i className="pi pi-info-circle" style={{ marginRight: '0.5rem' }}></i>
                             Click "Open Link" to visit this URL in a new tab.
                         </p>
+                    </div>
+                </Dialog>
+                
+                {/* Save Preset Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-save" style={{ color: '#10b981', fontSize: '1.25rem' }}></i>
+                            <span>Save Sort Preset</span>
+                        </div>
+                    }
+                    visible={savePresetDialogVisible}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
+                    modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
+                    onHide={() => {
+                        setSavePresetDialogVisible(false);
+                        setPresetName('');
+                    }}
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <p style={{ 
+                            marginBottom: '1rem',
+                            color: isDark ? '#e5e7eb' : '#1f2937',
+                            fontSize: '14px'
+                        }}>
+                            Give your sort preset a name to save it for later use:
+                        </p>
+                        <InputText
+                            value={presetName}
+                            onChange={(e) => setPresetName(e.target.value)}
+                            placeholder="Enter preset name..."
+                            style={{ 
+                                width: '100%',
+                                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#ffffff' : '#000000',
+                                border: isDark ? '1px solid #374151' : '1px solid #d1d5db'
+                            }}
+                            autoFocus
+                        />
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '0.75rem',
+                            backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            color: isDark ? '#93c5fd' : '#1e40af'
+                        }}>
+                            <i className="pi pi-info-circle" style={{ marginRight: '0.5rem' }}></i>
+                            Preset for route: <strong>{currentRouteName}</strong>
+                        </div>
+                    </div>
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: '0.5rem', 
+                        justifyContent: 'flex-end',
+                        padding: '1rem',
+                        borderTop: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
+                    }}>
+                        <Button
+                            label="Cancel"
+                            icon="pi pi-times"
+                            onClick={() => {
+                                setSavePresetDialogVisible(false);
+                                setPresetName('');
+                            }}
+                            severity="secondary"
+                            size="small"
+                            outlined
+                        />
+                        <Button
+                            label="Save"
+                            icon="pi pi-check"
+                            onClick={handleSavePreset}
+                            severity="success"
+                            size="small"
+                            disabled={!presetName.trim()}
+                        />
+                    </div>
+                </Dialog>
+
+                {/* View Saved Presets Dialog */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-bookmark" style={{ color: '#8b5cf6', fontSize: '1.25rem' }}></i>
+                            <span>Saved Sort Presets</span>
+                        </div>
+                    }
+                    visible={presetsListVisible}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '600px' }}
+                    modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
+                    onHide={() => setPresetsListVisible(false)}
+                >
+                    <div style={{ padding: '1rem' }}>
+                        {savedPresets.length === 0 ? (
+                            <div style={{ 
+                                textAlign: 'center', 
+                                padding: '2rem',
+                                color: isDark ? '#9ca3af' : '#6b7280'
+                            }}>
+                                <i className="pi pi-inbox" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}></i>
+                                <p>No saved presets yet.</p>
+                                <p style={{ fontSize: '13px', marginTop: '0.5rem' }}>
+                                    Use "Set Order" and click "Save Preset" to save your custom sort orders.
+                                </p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {savedPresets.map((preset) => (
+                                    <div 
+                                        key={preset.id}
+                                        style={{
+                                            backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+                                            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                                            borderRadius: '8px',
+                                            padding: '1rem',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = isDark ? '#374151' : '#f3f4f6';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = isDark ? '#1f2937' : '#f9fafb';
+                                        }}
+                                    >
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ 
+                                                fontWeight: 'bold',
+                                                fontSize: '14px',
+                                                color: isDark ? '#e5e7eb' : '#1f2937',
+                                                marginBottom: '0.25rem'
+                                            }}>
+                                                {preset.name}
+                                            </div>
+                                            <div style={{ 
+                                                fontSize: '12px',
+                                                color: isDark ? '#9ca3af' : '#6b7280'
+                                            }}>
+                                                Route: <strong>{preset.routeName}</strong>
+                                            </div>
+                                            <div style={{ 
+                                                fontSize: '11px',
+                                                color: isDark ? '#9ca3af' : '#6b7280',
+                                                marginTop: '0.25rem'
+                                            }}>
+                                                {Object.values(preset.sortOrders).filter(o => o !== '' && o !== undefined).length} items sorted
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <Button
+                                                icon="pi pi-check"
+                                                tooltip="Apply Preset"
+                                                tooltipOptions={{ position: 'top' }}
+                                                onClick={() => handleApplyPreset(preset)}
+                                                severity="success"
+                                                size="small"
+                                                text
+                                            />
+                                            <Button
+                                                icon="pi pi-trash"
+                                                tooltip="Delete Preset"
+                                                tooltipOptions={{ position: 'top' }}
+                                                onClick={() => handleDeletePreset(preset.id)}
+                                                severity="danger"
+                                                size="small"
+                                                text
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'flex-end',
+                        padding: '1rem',
+                        borderTop: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
+                    }}>
+                        <Button
+                            label="Close"
+                            icon="pi pi-times"
+                            onClick={() => setPresetsListVisible(false)}
+                            severity="secondary"
+                            size="small"
+                            outlined
+                        />
                     </div>
                 </Dialog>
                 
