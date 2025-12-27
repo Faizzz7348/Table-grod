@@ -27,7 +27,7 @@ const tableStyles = `
         font-weight: 600 !important;
         border-bottom: 1px solid #9ca3af !important;
         padding: 1rem !important;
-        font-size: 13px !important;
+        font-size: 12px !important;
         letter-spacing: 0.5px !important;
     }
     
@@ -2595,7 +2595,7 @@ export default function FlexibleScrollDemo() {
                     value={routes} 
                     scrollable 
                     scrollHeight={deviceInfo.tableScrollHeight} 
-                    tableStyle={{ minWidth: 'auto' }}
+                    tableStyle={{ minWidth: '70rem' }}
                     editMode={editMode ? "cell" : null}
                     className="no-header-border"
                     resizableColumns
@@ -2609,6 +2609,7 @@ export default function FlexibleScrollDemo() {
                         headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
+                        style={{ width: '140px', minWidth: '140px' }}
                     />
                     <Column 
                         field="shift" 
@@ -2618,6 +2619,7 @@ export default function FlexibleScrollDemo() {
                         headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
+                        style={{ width: '120px', minWidth: '120px' }}
                     />
                     <Column 
                         field="warehouse" 
@@ -2627,6 +2629,7 @@ export default function FlexibleScrollDemo() {
                         headerStyle={{ textAlign: 'center' }}
                         editor={editMode ? textEditor : null}
                         onCellEditComplete={editMode ? onCellEditComplete : null}
+                        style={{ width: '140px', minWidth: '140px' }}
                     />
                     <Column 
                         header="Location" 
@@ -2656,6 +2659,7 @@ export default function FlexibleScrollDemo() {
                             );
                         }}
                         headerStyle={{ color: isDark ? '#ffffff' : '#000000', textAlign: 'center', fontWeight: 'bold' }}
+                        style={{ width: '120px', minWidth: '120px' }}
                     />
                     <Column 
                         header="Action" 
@@ -2663,6 +2667,7 @@ export default function FlexibleScrollDemo() {
                         alignHeader="center" 
                         body={actionBodyTemplate}
                         headerStyle={{ color: '#ef4444', textAlign: 'center' }}
+                        style={{ width: editMode ? '220px' : '100px', minWidth: editMode ? '220px' : '100px' }}
                     />
                 </DataTable>
 

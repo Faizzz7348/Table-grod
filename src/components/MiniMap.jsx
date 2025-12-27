@@ -11,6 +11,10 @@ L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [20, 33],        // Smaller size (default is 25x41)
+    iconAnchor: [10, 33],      // Point of the icon which will correspond to marker's location
+    popupAnchor: [0, -33],     // Point from which the popup should open relative to the iconAnchor
+    shadowSize: [33, 33]       // Smaller shadow size
 });
 
 // Component to update map view when coordinates change
