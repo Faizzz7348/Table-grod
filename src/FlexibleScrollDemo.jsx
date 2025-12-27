@@ -10,6 +10,7 @@ import { Calendar } from 'primereact/calendar';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
+import MarkerColorPicker from './components/MarkerColorPicker';
 import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import QrScanner from 'qr-scanner';
@@ -433,6 +434,11 @@ export default function FlexibleScrollDemo() {
     const [scanningQrCode, setScanningQrCode] = useState(false);
     const [scannedUrl, setScannedUrl] = useState(''); // Store scanned URL to display
     const [qrResultDialogVisible, setQrResultDialogVisible] = useState(false); // Simple result dialog
+    
+    // Marker Color Picker State
+    const [colorPickerVisible, setColorPickerVisible] = useState(false);
+    const [colorPickerRowId, setColorPickerRowId] = useState(null);
+    const [colorPickerLocationName, setColorPickerLocationName] = useState('');
 
     // Calculate optimal column widths based on content
     const calculateColumnWidths = (data) => {
@@ -695,6 +701,40 @@ export default function FlexibleScrollDemo() {
         
         // Mark row as modified
         setModifiedRows(prev => new Set(prev).add(rowId));
+    };
+    
+    // Handle Marker Color Change
+    const handleMarkerColorChange = (color) => {
+        if (!colorPickerRowId) return;
+        
+        const location = dialogData.find(d => d.id === colorPickerRowId);
+        const oldColor = location?.markerColor || '#dc3545';
+        
+        const updatedData = dialogData.map(data => 
+            data.id === colorPickerRowId ? { ...data, markerColor: color } : data
+        );
+        setDialogData(sortDialogData(updatedData));
+        setHasUnsavedChanges(true);
+        
+        // Mark row as modified
+        setModifiedRows(prev => new Set(prev).add(colorPickerRowId));
+        
+        // Add to changelog
+        if (oldColor !== color) {
+            addChangelogEntry('edit', 'location', {
+                code: location?.code || 'Unknown',
+                location: location?.location || 'Unknown',
+                field: 'markerColor',
+                oldValue: oldColor,
+                newValue: color
+            });
+        }
+    };
+    
+    const openColorPicker = (rowId, locationName) => {
+        setColorPickerRowId(rowId);
+        setColorPickerLocationName(locationName);
+        setColorPickerVisible(true);
     };
 
     const sortDialogData = (data) => {
@@ -3378,7 +3418,7 @@ export default function FlexibleScrollDemo() {
                                     justifyContent: 'center', 
                                     alignItems: 'center', 
                                     flexWrap: 'nowrap',
-                                    minWidth: editMode ? '180px' : '80px'
+                                    minWidth: editMode ? '220px' : '80px'
                                 }}>
                                     {/* Info Button - Always visible */}
                                     <Button 
@@ -3434,6 +3474,23 @@ export default function FlexibleScrollDemo() {
                                             style={{ backgroundColor: isDark ? '#1a1a1a' : undefined }}
                                         />
                                     )}
+                                    
+                                    {/* Marker Color Button - Only in Edit Mode */}
+                                    {editMode && (
+                                        <Button 
+                                            icon="pi pi-palette"
+                                            size="small"
+                                            severity="help"
+                                            tooltip="Set Marker Color"
+                                            tooltipOptions={{ position: 'top' }}
+                                            text
+                                            onClick={() => openColorPicker(rowData.id, rowData.location)}
+                                            style={{ 
+                                                backgroundColor: isDark ? '#1a1a1a' : undefined,
+                                                color: rowData.markerColor || '#dc3545'
+                                            }}
+                                        />
+                                    )}
 
                                     {/* Delete Button - Only in Edit Mode */}
                                     {editMode && (
@@ -3450,7 +3507,7 @@ export default function FlexibleScrollDemo() {
                                     )}
                                 </div>
                             )}
-                            style={{ width: editMode ? '220px' : '100px', minWidth: editMode ? '220px' : '100px' }}
+                            style={{ width: editMode ? '260px' : '100px', minWidth: editMode ? '260px' : '100px' }}
                         />
                     </DataTable>
                     )}
@@ -5996,6 +6053,23 @@ export default function FlexibleScrollDemo() {
                         </p>
                     </div>
                 </Dialog>
+                
+                {/* Marker Color Picker Dialog */}
+                <MarkerColorPicker
+                    visible={colorPickerVisible}
+                    onHide={() => {
+                        setColorPickerVisible(false);
+                        setColorPickerRowId(null);
+                        setColorPickerLocationName('');
+                    }}
+                    currentColor={
+                        colorPickerRowId 
+                            ? (dialogData.find(d => d.id === colorPickerRowId)?.markerColor || '#dc3545')
+                            : '#dc3545'
+                    }
+                    onColorChange={handleMarkerColorChange}
+                    locationName={colorPickerLocationName}
+                />
             </div>
             
             {/* Device Info Footer */}

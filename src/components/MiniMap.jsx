@@ -17,6 +17,27 @@ L.Icon.Default.mergeOptions({
     shadowSize: [33, 33]       // Smaller shadow size
 });
 
+// Function to create custom colored marker icon
+const createColoredMarkerIcon = (color = '#dc3545') => {
+    return L.divIcon({
+        className: 'custom-marker-icon',
+        html: `
+            <div style="position: relative;">
+                <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 0C8.925 0 4 4.925 4 11c0 8.25 11 29 11 29s11-20.75 11-29c0-6.075-4.925-11-11-11z" 
+                          fill="${color}" 
+                          stroke="white" 
+                          stroke-width="2"/>
+                    <circle cx="15" cy="11" r="4" fill="white"/>
+                </svg>
+            </div>
+        `,
+        iconSize: [30, 40],
+        iconAnchor: [15, 40],
+        popupAnchor: [0, -40]
+    });
+};
+
 // Component to update map view when coordinates change
 function MapUpdater({ center, zoom }) {
     const map = useMap();
@@ -30,8 +51,11 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MiniMap({ latitude, longitude, address, locations = [], style = {} }) {
+export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, onMarkerColorChange }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
+    
+    // Default marker color
+    const defaultMarkerColor = '#dc3545';
     
     // Default coordinates (Kuala Lumpur) if no coordinates provided
     const defaultLat = 3.139;
@@ -101,7 +125,11 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                             .filter(loc => loc.latitude !== null && loc.latitude !== undefined &&
                                          loc.longitude !== null && loc.longitude !== undefined)
                             .map((loc, index) => (
-                                <Marker key={index} position={[loc.latitude, loc.longitude]}>
+                                <Marker 
+                                    key={index} 
+                                    position={[loc.latitude, loc.longitude]}
+                                    icon={createColoredMarkerIcon(loc.markerColor || defaultMarkerColor)}
+                                >
                                     <Popup>
                                         <strong>{loc.location || `Location ${index + 1}`}</strong>
                                         {loc.code && <><br />Code: {loc.code}</>}
@@ -112,7 +140,10 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     ) : (
                         // Single marker
                         hasValidCoordinates && (
-                            <Marker position={center}>
+                            <Marker 
+                                position={center}
+                                icon={createColoredMarkerIcon(locations[0]?.markerColor || defaultMarkerColor)}
+                            >
                                 <Popup>
                                     {address || 'Location'}
                                 </Popup>
@@ -217,7 +248,11 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                             .filter(loc => loc.latitude !== null && loc.latitude !== undefined &&
                                          loc.longitude !== null && loc.longitude !== undefined)
                             .map((loc, index) => (
-                                <Marker key={index} position={[loc.latitude, loc.longitude]}>
+                                <Marker 
+                                    key={index} 
+                                    position={[loc.latitude, loc.longitude]}
+                                    icon={createColoredMarkerIcon(loc.markerColor || defaultMarkerColor)}
+                                >
                                     <Popup>
                                         <strong>{loc.location || `Location ${index + 1}`}</strong>
                                         {loc.code && <><br />Code: {loc.code}</>}
@@ -232,7 +267,10 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     ) : (
                         // Single marker
                         hasValidCoordinates && (
-                            <Marker position={center}>
+                            <Marker 
+                                position={center}
+                                icon={createColoredMarkerIcon(locations[0]?.markerColor || defaultMarkerColor)}
+                            >
                                 <Popup>
                                     <strong>{address || 'Location'}</strong>
                                     <br />
