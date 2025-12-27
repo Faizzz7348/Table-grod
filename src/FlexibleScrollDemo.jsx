@@ -3096,7 +3096,7 @@ export default function FlexibleScrollDemo() {
                                 body={(rowData) => {
                                     const value = rowData.latitude;
                                     return (
-                                        <div style={{ fontSize: '0.85rem' }}>
+                                        <div style={{ fontSize: '11px' }}>
                                             {value !== null && value !== undefined ? value.toFixed(6) : '-'}
                                         </div>
                                     );
@@ -3123,7 +3123,7 @@ export default function FlexibleScrollDemo() {
                                 body={(rowData) => {
                                     const value = rowData.longitude;
                                     return (
-                                        <div style={{ fontSize: '0.85rem' }}>
+                                        <div style={{ fontSize: '11px' }}>
                                             {value !== null && value !== undefined ? value.toFixed(6) : '-'}
                                         </div>
                                     );
@@ -3151,7 +3151,7 @@ export default function FlexibleScrollDemo() {
                                     const value = rowData.address;
                                     return (
                                         <div style={{ 
-                                            fontSize: '0.85rem',
+                                            fontSize: '11px',
                                             maxWidth: '150px',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
@@ -5266,16 +5266,55 @@ export default function FlexibleScrollDemo() {
                                     </div>
                                     {qrCodeImageUrl && (
                                         <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                                            <img 
-                                                src={qrCodeImageUrl} 
-                                                alt="QR Code" 
-                                                style={{ 
-                                                    maxWidth: '200px',
-                                                    maxHeight: '200px',
-                                                    border: '2px solid #e5e7eb',
-                                                    borderRadius: '8px'
-                                                }} 
-                                            />
+                                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                <img 
+                                                    src={qrCodeImageUrl} 
+                                                    alt="QR Code" 
+                                                    style={{ 
+                                                        maxWidth: '200px',
+                                                        maxHeight: '200px',
+                                                        border: '2px solid #e5e7eb',
+                                                        borderRadius: '8px'
+                                                    }} 
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        setQrCodeImageUrl('');
+                                                        const fileInput = document.getElementById('qr-code-upload-input');
+                                                        if (fileInput) fileInput.value = '';
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '-10px',
+                                                        right: '-10px',
+                                                        width: '30px',
+                                                        height: '30px',
+                                                        borderRadius: '50%',
+                                                        border: 'none',
+                                                        backgroundColor: '#ef4444',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '16px',
+                                                        fontWeight: 'bold',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = '#dc2626';
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = '#ef4444';
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    title="Delete QR Code Image"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
