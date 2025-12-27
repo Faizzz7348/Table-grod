@@ -1091,24 +1091,25 @@ export default function FlexibleScrollDemo() {
         }
     };
     
-    // Handle saving QR code
+    // Handle saving QR code (allow saving even if empty to delete QR code)
     const handleSaveQrCode = async () => {
         if (!currentEditingRowId) return;
         
         try {
             console.log('💾 Saving QR code:', {
                 id: currentEditingRowId,
-                qrCodeImageUrl,
-                qrCodeDestinationUrl
+                qrCodeImageUrl: qrCodeImageUrl || null,
+                qrCodeDestinationUrl: qrCodeDestinationUrl || null,
+                action: (!qrCodeImageUrl && !qrCodeDestinationUrl) ? 'DELETE' : 'UPDATE'
             });
             
-            // Update the location in dialogData
+            // Update the location in dialogData (set to null if empty to delete)
             const updatedDialogData = dialogData.map(item => {
                 if (item.id === currentEditingRowId) {
                     return {
                         ...item,
-                        qrCodeImageUrl,
-                        qrCodeDestinationUrl
+                        qrCodeImageUrl: qrCodeImageUrl || null,
+                        qrCodeDestinationUrl: qrCodeDestinationUrl || null
                     };
                 }
                 return item;
@@ -1116,15 +1117,15 @@ export default function FlexibleScrollDemo() {
             
             setDialogData(updatedDialogData);
             
-            // Update the location in routes
+            // Update the location in routes (set to null if empty to delete)
             const updatedRoutes = routes.map(route => ({
                 ...route,
                 locations: route.locations?.map(loc => {
                     if (loc.id === currentEditingRowId) {
                         return {
                             ...loc,
-                            qrCodeImageUrl,
-                            qrCodeDestinationUrl
+                            qrCodeImageUrl: qrCodeImageUrl || null,
+                            qrCodeDestinationUrl: qrCodeDestinationUrl || null
                         };
                     }
                     return loc;
@@ -1133,12 +1134,12 @@ export default function FlexibleScrollDemo() {
             
             setRoutes(updatedRoutes);
             
-            // Update selectedRowInfo if it's the same location
+            // Update selectedRowInfo if it's the same location (set to null if empty)
             if (selectedRowInfo && selectedRowInfo.id === currentEditingRowId) {
                 setSelectedRowInfo({
                     ...selectedRowInfo,
-                    qrCodeImageUrl,
-                    qrCodeDestinationUrl
+                    qrCodeImageUrl: qrCodeImageUrl || null,
+                    qrCodeDestinationUrl: qrCodeDestinationUrl || null
                 });
             }
             
@@ -1148,7 +1149,10 @@ export default function FlexibleScrollDemo() {
             setQrCodeDestinationUrl('');
             setCurrentEditingRowId(null);
             
-            console.log('✅ QR code updated in state, ready to save');
+            const actionMessage = (!qrCodeImageUrl && !qrCodeDestinationUrl) 
+                ? '✅ QR code removed successfully' 
+                : '✅ QR code updated successfully';
+            console.log(actionMessage);
         } catch (error) {
             console.error('❌ Error saving QR code:', error);
             alert('Error saving QR code: ' + error.message);
@@ -5590,7 +5594,7 @@ export default function FlexibleScrollDemo() {
                                     icon="pi pi-check" 
                                     onClick={handleSaveQrCode}
                                     className="p-button-success"
-                                    disabled={!qrCodeImageUrl && !qrCodeDestinationUrl}
+                                    // Allow saving even if empty (to delete QR code)
                                 />
                             </div>
                         ) : (

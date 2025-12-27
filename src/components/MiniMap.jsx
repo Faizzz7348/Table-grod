@@ -61,6 +61,13 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
     const defaultLat = 3.139;
     const defaultLng = 101.6869;
     
+    // Malaysia bounds to restrict map area (reduce lag)
+    // Southwest: [0.8, 99.6], Northeast: [7.4, 119.3]
+    const malaysiaBounds = [
+        [0.8, 99.6],    // Southwest corner (Johor area)
+        [7.4, 119.3]     // Northeast corner (Sabah/Sarawak area)
+    ];
+    
     // If locations array is provided (multiple markers mode)
     const isMultipleMarkers = locations && locations.length > 0;
     
@@ -114,6 +121,10 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     doubleClickZoom={false}
                     zoomControl={false}
                     touchZoom={false}
+                    maxBounds={malaysiaBounds}
+                    maxBoundsViscosity={1.0}
+                    minZoom={6}
+                    maxZoom={18}
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -236,6 +247,10 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     zoom={zoom}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={true}
+                    maxBounds={malaysiaBounds}
+                    maxBoundsViscosity={1.0}
+                    minZoom={6}
+                    maxZoom={18}
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
