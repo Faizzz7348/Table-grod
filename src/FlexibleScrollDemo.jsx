@@ -357,7 +357,7 @@ export default function FlexibleScrollDemo() {
         code: true,
         location: true,
         delivery: true,
-        image: true
+        image: false
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -2977,7 +2977,7 @@ export default function FlexibleScrollDemo() {
                     }
                     visible={dialogVisible} 
                     style={{ width: deviceInfo.dialogWidth }} 
-                    maximizable={!deviceInfo.isMobile}
+                    maximizable
                     modal
                     closeOnEscape
                     dismissableMask 
