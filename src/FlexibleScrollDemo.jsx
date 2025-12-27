@@ -6,6 +6,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Menu } from 'primereact/menu';
+import { Calendar } from 'primereact/calendar';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
@@ -40,6 +41,86 @@ const tableStyles = `
     .p-datatable .p-datatable-tbody > tr > td {
         font-size: 11px !important;
         font-weight: 600 !important;
+    }
+    
+    /* Edit Mode Row Highlighting */
+    .p-datatable .p-datatable-tbody > tr.p-row-editing {
+        background-color: #dbeafe !important;
+        border-left: 3px solid #3b82f6 !important;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-tbody > tr.p-row-editing {
+        background-color: #1e3a5f !important;
+        border-left: 3px solid #60a5fa !important;
+        box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2) !important;
+    }
+    
+    /* Editable Cell Hover Effect */
+    .p-datatable .p-datatable-tbody > tr > td.p-editable-column:hover {
+        background-color: #f3f4f6 !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-tbody > tr > td.p-editable-column:hover {
+        background-color: #374151 !important;
+    }
+    
+    /* Input Field Styling in Edit Mode */
+    .p-datatable .p-datatable-tbody .p-inputtext {
+        border: 2px solid #3b82f6 !important;
+        border-radius: 6px !important;
+        padding: 0.5rem !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    .p-datatable .p-datatable-tbody .p-inputtext:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+        outline: none !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-tbody .p-inputtext {
+        background-color: #1f2937 !important;
+        border-color: #60a5fa !important;
+        color: #f3f4f6 !important;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-tbody .p-inputtext:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    /* Cell editing indicator */
+    .p-datatable .p-datatable-tbody > tr > td.p-cell-editing {
+        background-color: #eff6ff !important;
+        position: relative !important;
+    }
+    
+    body.dark .p-datatable .p-datatable-tbody > tr > td.p-cell-editing {
+        background-color: #1e3a5f !important;
+    }
+    
+    /* Add subtle animation for edit mode activation */
+    @keyframes editModeActivate {
+        0% {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .p-datatable .p-datatable-tbody > tr.p-row-editing {
+        animation: editModeActivate 0.3s ease !important;
     }
     
     @keyframes slideDown {
@@ -320,6 +401,10 @@ export default function FlexibleScrollDemo() {
     
     // Changelog Dialog State
     const [changelogDialogVisible, setChangelogDialogVisible] = useState(false);
+    const [changelogDateRange, setChangelogDateRange] = useState(null);
+    const [changelogSearchText, setChangelogSearchText] = useState('');
+    const [changelogFilterAction, setChangelogFilterAction] = useState('all');
+    const [changelogFilterType, setChangelogFilterType] = useState('all');
     
     // Custom Menu State
     const [customMenuVisible, setCustomMenuVisible] = useState(false);
@@ -655,6 +740,7 @@ export default function FlexibleScrollDemo() {
     
     // Add changelog entry
     const addChangelogEntry = (action, type, details) => {
+        const now = new Date();
         const entry = {
             id: Date.now(),
             timestamp: new Date().toLocaleString('en-MY', { 
@@ -666,11 +752,69 @@ export default function FlexibleScrollDemo() {
                 second: '2-digit',
                 hour12: true 
             }),
+            date: now, // Store actual Date object for filtering
             action, // 'add', 'edit', 'delete'
             type, // 'route', 'location'
             details
         };
-        setChangelog(prev => [entry, ...prev].slice(0, 50)); // Keep last 50 entries
+        setChangelog(prev => [entry, ...prev].slice(0, 100)); // Keep last 100 entries
+    };
+    
+    // Filter changelog entries
+    const getFilteredChangelog = () => {
+        let filtered = [...changelog];
+        
+        // Filter by date range
+        if (changelogDateRange && changelogDateRange[0]) {
+            const startDate = new Date(changelogDateRange[0]);
+            startDate.setHours(0, 0, 0, 0);
+            
+            const endDate = changelogDateRange[1] ? new Date(changelogDateRange[1]) : new Date();
+            endDate.setHours(23, 59, 59, 999);
+            
+            filtered = filtered.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= startDate && entryDate <= endDate;
+            });
+        }
+        
+        // Filter by action
+        if (changelogFilterAction !== 'all') {
+            filtered = filtered.filter(entry => entry.action === changelogFilterAction);
+        }
+        
+        // Filter by type
+        if (changelogFilterType !== 'all') {
+            filtered = filtered.filter(entry => entry.type === changelogFilterType);
+        }
+        
+        // Filter by search text
+        if (changelogSearchText.trim()) {
+            const searchLower = changelogSearchText.toLowerCase();
+            filtered = filtered.filter(entry => {
+                const detailsStr = JSON.stringify(entry.details).toLowerCase();
+                return detailsStr.includes(searchLower) || 
+                       entry.action.toLowerCase().includes(searchLower) ||
+                       entry.type.toLowerCase().includes(searchLower);
+            });
+        }
+        
+        return filtered;
+    };
+    
+    // Export changelog to JSON
+    const exportChangelog = () => {
+        const filtered = getFilteredChangelog();
+        const dataStr = JSON.stringify(filtered, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `changelog_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const handleShowInfo = (rowData, isRoute = false) => {
@@ -4923,22 +5067,44 @@ export default function FlexibleScrollDemo() {
 
                 {/* Changelog Dialog */}
                 <Dialog
-                    header="Changelog"
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-history" style={{ fontSize: '1.25rem' }}></i>
+                            <span>Changelog History</span>
+                        </div>
+                    }
                     visible={changelogDialogVisible}
-                    onHide={() => setChangelogDialogVisible(false)}
-                    style={{ width: '70vw' }}
+                    onHide={() => {
+                        setChangelogDialogVisible(false);
+                        setChangelogDateRange(null);
+                        setChangelogSearchText('');
+                        setChangelogFilterAction('all');
+                        setChangelogFilterType('all');
+                    }}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '80vw' }}
                     maximizable
                     modal
                     footer={
                         changelog.length > 0 && (
                             <div style={{ 
-                                textAlign: 'center',
-                                padding: '1rem 0 0.5rem 0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '0.5rem 0',
                                 borderTop: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
-                                color: isDark ? '#9ca3af' : '#6b7280',
-                                fontSize: '0.875rem'
                             }}>
-                                Last Modified: {changelog[0]?.timestamp || 'N/A'}
+                                <span style={{
+                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                    fontSize: '0.875rem'
+                                }}>
+                                    Total: {getFilteredChangelog().length} of {changelog.length} entries
+                                </span>
+                                <span style={{
+                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                    fontSize: '0.875rem'
+                                }}>
+                                    Last Modified: {changelog[0]?.timestamp || 'N/A'}
+                                </span>
                             </div>
                         )
                     }
@@ -4955,32 +5121,193 @@ export default function FlexibleScrollDemo() {
                         </div>
                     ) : (
                         <>
+                            {/* Filter Controls */}
                             <div style={{
                                 display: 'flex',
-                                justifyContent: 'flex-end',
-                                marginBottom: '1rem'
+                                flexDirection: deviceInfo.isMobile ? 'column' : 'row',
+                                gap: '1rem',
+                                marginBottom: '1.5rem',
+                                padding: '1rem',
+                                backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+                                borderRadius: '8px',
+                                border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`
                             }}>
-                                <Button
-                                    label="Clear All"
-                                    icon="pi pi-trash"
-                                    size="small"
-                                    severity="danger"
-                                    outlined
-                                    onClick={() => {
-                                        setChangelog([]);
-                                        setChangelogDialogVisible(false);
-                                    }}
-                                />
+                                {/* Date Range Picker */}
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ 
+                                        display: 'block',
+                                        marginBottom: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        color: isDark ? '#e5e7eb' : '#374151'
+                                    }}>
+                                        <i className="pi pi-calendar" style={{ marginRight: '0.5rem' }}></i>
+                                        Date Range
+                                    </label>
+                                    <Calendar
+                                        value={changelogDateRange}
+                                        onChange={(e) => setChangelogDateRange(e.value)}
+                                        selectionMode="range"
+                                        readOnlyInput
+                                        placeholder="Select date range"
+                                        dateFormat="dd/mm/yy"
+                                        showIcon
+                                        showButtonBar
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                
+                                {/* Action Filter */}
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ 
+                                        display: 'block',
+                                        marginBottom: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        color: isDark ? '#e5e7eb' : '#374151'
+                                    }}>
+                                        <i className="pi pi-filter" style={{ marginRight: '0.5rem' }}></i>
+                                        Action
+                                    </label>
+                                    <Dropdown
+                                        value={changelogFilterAction}
+                                        onChange={(e) => setChangelogFilterAction(e.value)}
+                                        options={[
+                                            { label: 'All Actions', value: 'all' },
+                                            { label: 'Add', value: 'add' },
+                                            { label: 'Edit', value: 'edit' },
+                                            { label: 'Delete', value: 'delete' }
+                                        ]}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                
+                                {/* Type Filter */}
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ 
+                                        display: 'block',
+                                        marginBottom: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        color: isDark ? '#e5e7eb' : '#374151'
+                                    }}>
+                                        <i className="pi pi-tag" style={{ marginRight: '0.5rem' }}></i>
+                                        Type
+                                    </label>
+                                    <Dropdown
+                                        value={changelogFilterType}
+                                        onChange={(e) => setChangelogFilterType(e.value)}
+                                        options={[
+                                            { label: 'All Types', value: 'all' },
+                                            { label: 'Route', value: 'route' },
+                                            { label: 'Location', value: 'location' }
+                                        ]}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
                             </div>
+                            
+                            {/* Search & Actions Bar */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: deviceInfo.isMobile ? 'column' : 'row',
+                                gap: '1rem',
+                                marginBottom: '1rem',
+                                alignItems: deviceInfo.isMobile ? 'stretch' : 'center'
+                            }}>
+                                <div style={{ flex: 1 }}>
+                                    <span className="p-input-icon-left" style={{ width: '100%' }}>
+                                        <i className="pi pi-search" />
+                                        <InputText
+                                            value={changelogSearchText}
+                                            onChange={(e) => setChangelogSearchText(e.target.value)}
+                                            placeholder="Search in changelog..."
+                                            style={{ width: '100%' }}
+                                        />
+                                    </span>
+                                </div>
+                                
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <Button
+                                        label={deviceInfo.isMobile ? 'Export' : 'Export JSON'}
+                                        icon="pi pi-download"
+                                        size="small"
+                                        severity="info"
+                                        outlined
+                                        onClick={exportChangelog}
+                                        disabled={getFilteredChangelog().length === 0}
+                                    />
+                                    <Button
+                                        label={deviceInfo.isMobile ? 'Clear' : 'Clear All'}
+                                        icon="pi pi-trash"
+                                        size="small"
+                                        severity="danger"
+                                        outlined
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to clear all changelog history?')) {
+                                                setChangelog([]);
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        label="Reset"
+                                        icon="pi pi-refresh"
+                                        size="small"
+                                        severity="secondary"
+                                        outlined
+                                        onClick={() => {
+                                            setChangelogDateRange(null);
+                                            setChangelogSearchText('');
+                                            setChangelogFilterAction('all');
+                                            setChangelogFilterType('all');
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Results Count */}
+                            {(changelogDateRange || changelogSearchText || changelogFilterAction !== 'all' || changelogFilterType !== 'all') && (
+                                <div style={{
+                                    padding: '0.75rem 1rem',
+                                    marginBottom: '1rem',
+                                    backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
+                                    borderLeft: '3px solid #3b82f6',
+                                    borderRadius: '6px',
+                                    fontSize: '0.875rem',
+                                    color: isDark ? '#93c5fd' : '#1e40af',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <i className="pi pi-info-circle"></i>
+                                    <span>Showing {getFilteredChangelog().length} of {changelog.length} entries</span>
+                                </div>
+                            )}
+                            
+                            {/* Changelog Entries */}
                             <div style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '0.75rem',
-                                maxHeight: '60vh',
+                                maxHeight: '50vh',
                                 overflowY: 'auto',
                                 padding: '0.5rem'
                             }}>
-                                {changelog.map((entry) => {
+                                {getFilteredChangelog().length === 0 ? (
+                                    <div style={{
+                                        padding: '2rem',
+                                        textAlign: 'center',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+                                        borderRadius: '8px',
+                                        border: `2px dashed ${isDark ? '#334155' : '#e5e7eb'}`
+                                    }}>
+                                        <i className="pi pi-filter-slash" style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.3 }}></i>
+                                        <p style={{ fontSize: '0.875rem', fontWeight: '500' }}>No matching entries found</p>
+                                        <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>Try adjusting your filters</p>
+                                    </div>
+                                ) : (
+                                    getFilteredChangelog().map((entry) => {
                                     const actionColors = {
                                         add: '#10b981',
                                         edit: '#f59e0b',
@@ -5070,7 +5397,7 @@ export default function FlexibleScrollDemo() {
                                             </div>
                                         </div>
                                     );
-                                })}
+                                }))}
                             </div>
                         </>
                     )}
