@@ -1943,25 +1943,31 @@ export default function FlexibleScrollDemo() {
                     );
                     setDialogData(sortDialogData(updatedData));
                     
-                    // Auto-save to localStorage in development mode
-                    if (import.meta.env.DEV && updatedData) {
-                        localStorage.setItem('locations', JSON.stringify(updatedData));
-                        console.log('💾 Image auto-saved to localStorage');
+                    // AUTO-SAVE TO DATABASE IMMEDIATELY (both dev and production)
+                    try {
+                        console.log('🔄 Auto-saving image to database...');
+                        await CustomerService.saveLocations(updatedData);
+                        console.log('✅ Image saved to database successfully');
+                        
+                        // Also update localStorage in dev mode for backup
+                        if (import.meta.env.DEV) {
+                            localStorage.setItem('locations', JSON.stringify(updatedData));
+                            console.log('💾 Image also backed up to localStorage');
+                        }
+                        
+                        alert('✅ Image uploaded and saved to database successfully!');
+                    } catch (saveError) {
+                        console.error('❌ Failed to auto-save image:', saveError);
+                        alert('⚠️ Image uploaded but failed to save to database.\nPlease click "Save Changes" button to save manually.');
+                        setHasUnsavedChanges(true);
                     }
                 }
-                setHasUnsavedChanges(true);
                 
                 // Set loading state for uploaded image
                 setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
-                
-                // Different message for dev vs production
-                const message = import.meta.env.DEV 
-                    ? 'Image uploaded and saved to localStorage!' 
-                    : 'Image uploaded! Click "Save Changes" to save to database.';
-                alert(message);
             } else {
-                console.error('Upload failed - invalid response:', data);
-                alert(`Failed to upload image: ${data.error || 'Invalid response from server'}`);
+                console.error('Upload failed - invalid response:', responseData);
+                alert(`Failed to upload image: ${responseData?.error || 'Invalid response from server'}`);
             }
         } catch (error) {
             console.error('Error uploading image:', error);
@@ -1973,29 +1979,42 @@ export default function FlexibleScrollDemo() {
         }
     };
     
-    const handleSaveImages = () => {
+    const handleSaveImages = async () => {
         // If saving images for frozen row (QL Kitchen), update global state
         if (selectedRowId === 'frozen-row') {
             setFrozenRowData(prev => ({
                 ...prev,
                 images: currentRowImages
             }));
+            setImageDialogVisible(false);
+            return;
         }
         
         const updatedData = dialogData.map(data => 
             data.id === selectedRowId ? { ...data, images: currentRowImages } : data
         );
         setDialogData(sortDialogData(updatedData));
-        setHasUnsavedChanges(true);
         
-        // Auto-save to localStorage in development mode
-        if (import.meta.env.DEV) {
-            localStorage.setItem('locations', JSON.stringify(updatedData));
-            console.log('💾 Images auto-saved to localStorage');
+        // AUTO-SAVE TO DATABASE IMMEDIATELY
+        try {
+            console.log('🔄 Auto-saving images to database...');
+            await CustomerService.saveLocations(updatedData);
+            console.log('✅ Images saved to database successfully');
+            
+            // Also update localStorage in dev mode for backup
+            if (import.meta.env.DEV) {
+                localStorage.setItem('locations', JSON.stringify(updatedData));
+                console.log('💾 Images also backed up to localStorage');
+            }
+            
+            setImageDialogVisible(false);
+            alert('✅ Images saved to database successfully!');
+        } catch (saveError) {
+            console.error('❌ Failed to auto-save images:', saveError);
+            setHasUnsavedChanges(true);
+            setImageDialogVisible(false);
+            alert('⚠️ Images updated but failed to save to database.\nPlease click "Save Changes" button to save manually.');
         }
-        
-        setImageDialogVisible(false);
-        // Images saved for row
     };
     
     const handleOpenPowerModeDialog = (rowData) => {
