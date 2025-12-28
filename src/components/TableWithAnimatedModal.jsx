@@ -1,53 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { Button } from 'primereact/button';
-import { CustomerService } from '../service/CustomerService';
-import { TableRowModal, QuickViewButton } from './TableRowModal';
-import {
-  Modal,
-  ModalTrigger,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-} from './AnimatedModal';
+// THIS FILE IS UNUSED AND CAN BE DELETED
+// Demo table component not used in main application
+// Main table is in FlexibleScrollDemo.jsx
+// Safe to delete
 
-export function TableWithAnimatedModal() {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    CustomerService.getCustomersLarge().then((data) => {
-      setCustomers(data);
-      setLoading(false);
-    });
-  }, []);
-
-  // Template untuk action column dengan modal
-  const actionBodyTemplate = (rowData) => {
-    return (
-      <div className="flex gap-2">
-        {/* Quick View Modal */}
-        <QuickViewButton rowData={rowData} />
-        
-        {/* Edit Modal */}
-        <Modal>
-          <ModalTrigger className="!px-3 !py-1.5 !text-xs !bg-green-500 hover:!bg-green-600">
-            ✏️ Edit
-          </ModalTrigger>
-          <ModalBody>
-            <ModalContent>
-              <h2 className="text-2xl font-bold mb-4">Edit Route</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Route Code</label>
-                  <input 
-                    type="text" 
-                    defaultValue={rowData.code}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-neutral-800 dark:border-neutral-700"
-                  />
-                </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-2">Route Name</label>

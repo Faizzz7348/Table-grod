@@ -1,53 +1,8 @@
-// ========================================
-// CARA MENGGUNAKAN ANIMATED MODAL
-// ========================================
+// THIS FILE IS UNUSED AND CAN BE DELETED
+// Demo examples not used in main application
+// Only referenced in documentation for reference
+// Safe to delete
 
-// 1. IMPORT KOMPONEN MODAL
-import {
-  Modal,
-  ModalTrigger,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-} from "./AnimatedModal";
-
-// ========================================
-// CONTOH 1: MODAL SIMPLE
-// ========================================
-export function SimpleModal() {
-  return (
-    <Modal>
-      <ModalTrigger>
-        Klik Untuk Buka Modal
-      </ModalTrigger>
-      
-      <ModalBody>
-        <ModalContent>
-          <h2 className="text-2xl font-bold mb-4">Tajuk Modal</h2>
-          <p>Ini adalah kandungan modal yang simple.</p>
-        </ModalContent>
-        
-        <ModalFooter>
-          <button className="px-4 py-2 bg-gray-200 rounded">Tutup</button>
-        </ModalFooter>
-      </ModalBody>
-    </Modal>
-  );
-}
-
-// ========================================
-// CONTOH 2: MODAL DENGAN FORM
-// ========================================
-export function FormModal() {
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted");
-  };
-
-  return (
-    <Modal>
-      <ModalTrigger className="bg-blue-500 text-white">
         Tambah Data Baru
       </ModalTrigger>
       
