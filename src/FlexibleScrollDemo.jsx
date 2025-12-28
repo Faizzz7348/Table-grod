@@ -987,11 +987,13 @@ export default function FlexibleScrollDemo() {
                 // Off on Friday (5) and Saturday (6)
                 return (today === 5 || today === 6) ? 'OFF' : 'ON';
             case 'Alt 1':
-                // On: Mon(1), Wed(3), Fri(5), Sun(0)
-                return [1, 3, 5, 0].includes(today) ? 'ON' : 'OFF';
+                // Alternating: OFF on even dates (2,4,6,8...), ON on odd dates (1,3,5,7...)
+                const dateNum = new Date().getDate();
+                return (dateNum % 2 === 0) ? 'OFF' : 'ON';
             case 'Alt 2':
-                // On: Tue(2), Thu(4), Sat(6)
-                return [2, 4, 6].includes(today) ? 'ON' : 'OFF';
+                // Alternating: ON on even dates (2,4,6,8...), OFF on odd dates (1,3,5,7...)
+                const dateNum2 = new Date().getDate();
+                return (dateNum2 % 2 === 0) ? 'ON' : 'OFF';
             default:
                 return 'OFF';
         }
