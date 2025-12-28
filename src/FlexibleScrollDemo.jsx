@@ -1983,7 +1983,7 @@ export default function FlexibleScrollDemo() {
             }
         } catch (error) {
             console.error('Error uploading image:', error);
-            alert(`Error uploading image: ${error.message}\n\nPlease check:\n- Internet connection\n- File size (<10MB limit)\n- BLOB_READ_WRITE_TOKEN is configured in Vercel`);
+            alert(`Error uploading image: ${error.message}\n\nPlease check:\n- Internet connection\n- File size (<10MB limit)\n- IMGBB_API_KEY is configured in Vercel`);
         } finally {
             setUploadingImage(false);
             // Clear file input

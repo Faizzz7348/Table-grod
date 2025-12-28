@@ -1,4 +1,3 @@
-import { put } from '@vercel/blob';
 import formidable from 'formidable';
 import fs from 'fs/promises';
 
@@ -119,14 +118,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check for Vercel Blob token
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    // Check for ImgBB API key
+    const imgbbApiKey = process.env.IMGBB_API_KEY;
     
-    if (!blobToken) {
-      console.error('BLOB_READ_WRITE_TOKEN not configured');
+    if (!imgbbApiKey) {
+      console.error('IMGBB_API_KEY not configured');
       return res.status(500).json({ 
         error: 'Upload service not configured',
-        message: 'Vercel Blob token is missing. Please configure BLOB_READ_WRITE_TOKEN environment variable in your Vercel project settings.'
+        message: 'ImgBB API key is missing. Please configure IMGBB_API_KEY environment variable in your Vercel project settings.'
       });
     }
 
@@ -140,8 +139,6 @@ export default async function handler(req, res) {
         message: 'File path not available'
       });
     }
-    
-    const fileName = file.originalFilename || file.name || `upload_${Date.now()}.jpg`;
     
     // Read file data
     console.log('Reading file from:', filePath);
@@ -157,17 +154,32 @@ export default async function handler(req, res) {
       });
     }
     
-    // Upload to Vercel Blob
-    console.log('Uploading to Vercel Blob...');
-    console.log('File name:', fileName);
-    console.log('Content type:', mimeType);
-    const blob = await put(fileName, fileData, {
-      access: 'public',
-      contentType: mimeType,
-      token: blobToken,
+    // Convert to base64 for ImgBB
+    const base64Image = fileData.toString('base64');
+    console.log('File converted to base64');
+    
+    // Upload to ImgBB
+    console.log('Uploading to ImgBB...');
+    const FormData = (await import('form-data')).default;
+    const formData = new FormData();
+    formData.append('image', base64Image);
+    
+    const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
+      method: 'POST',
+      body: formData
     });
 
-    console.log('Vercel Blob upload successful:', blob.url);
+    const imgbbData = await imgbbResponse.json();
+    
+    if (!imgbbResponse.ok || !imgbbData.success) {
+      console.error('ImgBB upload failed:', imgbbData);
+      return res.status(500).json({ 
+        error: 'Upload failed',
+        message: imgbbData.error?.message || 'Failed to upload to ImgBB'
+      });
+    }
+
+    console.log('ImgBB upload successful:', imgbbData.data.url);
 
     // Clean up temporary file - use try-catch to avoid blocking on cleanup errors
     try {
@@ -183,10 +195,11 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       data: {
-        url: blob.url,
-        displayUrl: blob.url,
-        pathname: blob.pathname,
-        contentType: blob.contentType,
+        url: imgbbData.data.url,
+        displayUrl: imgbbData.data.display_url,
+        deleteUrl: imgbbData.data.delete_url,
+        thumb: imgbbData.data.thumb?.url,
+        medium: imgbbData.data.medium?.url,
         size: file.size
       }
     });
