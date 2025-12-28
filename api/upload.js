@@ -23,8 +23,6 @@ const parseForm = (req) => {
       filename: (name, ext, part, form) => {
         return `upload_${Date.now()}${ext}`;
       },
-      // Ensure files are written to disk
-      enabledPlugins: ['octetstream', 'querystring', 'multipart'],
       hashAlgorithm: false
     });
 
