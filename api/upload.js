@@ -156,20 +156,23 @@ export default async function handler(req, res) {
     
     // Convert to base64 for ImgBB
     const base64Image = fileData.toString('base64');
-    console.log('File converted to base64');
+    console.log('File converted to base64, length:', base64Image.length);
     
-    // Upload to ImgBB
+    // Upload to ImgBB using URLSearchParams (simpler and more reliable)
     console.log('Uploading to ImgBB...');
-    const FormData = (await import('form-data')).default;
-    const formData = new FormData();
-    formData.append('image', base64Image);
+    const formBody = new URLSearchParams();
+    formBody.append('image', base64Image);
     
     const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody.toString()
     });
 
     const imgbbData = await imgbbResponse.json();
+    console.log('ImgBB response:', imgbbData);
     
     if (!imgbbResponse.ok || !imgbbData.success) {
       console.error('ImgBB upload failed:', imgbbData);
