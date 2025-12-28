@@ -625,6 +625,9 @@ export default function FlexibleScrollDemo() {
     };
 
     useEffect(() => {
+        // Preload cache in background for faster subsequent loads
+        CustomerService.preloadCache();
+        
         const loadData = async () => {
             try {
                 // Check if we should clear data (for fresh start)
@@ -633,6 +636,7 @@ export default function FlexibleScrollDemo() {
                     localStorage.removeItem('routes');
                     localStorage.removeItem('locations');
                     localStorage.removeItem('clearDataOnLoad');
+                    CustomerService.clearAllCache();
                 }
                 
                 const data = await CustomerService.getRoutes();

@@ -2,35 +2,102 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Only use localStorage in development mode
 const USE_LOCALSTORAGE = import.meta.env.DEV === true;
 
-// In-memory cache with expiration
+// Enhanced in-memory cache with expiration and versioning
 const cache = {
-    routes: { data: null, timestamp: null },
-    locations: { data: null, timestamp: null }
+    routes: { data: null, timestamp: null, etag: null },
+    locations: { data: null, timestamp: null, etag: null },
+    routeLocations: {} // Cache locations per route: { routeId: { data, timestamp, etag } }
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Different cache durations for different data types
+const CACHE_DURATION = {
+    routes: 10 * 60 * 1000,      // 10 minutes - routes change less frequently
+    locations: 5 * 60 * 1000,     // 5 minutes - locations change more often
+    routeLocations: 8 * 60 * 1000 // 8 minutes - per-route data
+};
+
+// Request deduplication - prevent multiple simultaneous requests
+const pendingRequests = new Map();
 
 // Cache helper functions
-const isCacheValid = (cacheEntry) => {
-    if (!cacheEntry.data || !cacheEntry.timestamp) return false;
-    return (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
+const isCacheValid = (cacheEntry, type = 'locations') => {
+    if (!cacheEntry || !cacheEntry.data || !cacheEntry.timestamp) return false;
+    const duration = CACHE_DURATION[type] || CACHE_DURATION.locations;
+    return (Date.now() - cacheEntry.timestamp) < duration;
 };
 
-const setCache = (key, data) => {
-    cache[key] = { data, timestamp: Date.now() };
+const setCache = (key, data, etag = null) => {
+    if (key.startsWith('route-')) {
+        // Cache per-route locations
+        cache.routeLocations[key] = { data, timestamp: Date.now(), etag };
+    } else {
+        cache[key] = { data, timestamp: Date.now(), etag };
+    }
 };
 
-const getCache = (key) => {
-    return isCacheValid(cache[key]) ? cache[key].data : null;
+const getCache = (key, type = 'locations') => {
+    if (key.startsWith('route-')) {
+        const entry = cache.routeLocations[key];
+        return isCacheValid(entry, 'routeLocations') ? entry.data : null;
+    }
+    return isCacheValid(cache[key], type) ? cache[key].data : null;
 };
 
 const clearCache = (key = null) => {
     if (key) {
-        cache[key] = { data: null, timestamp: null };
+        if (key.startsWith('route-')) {
+            delete cache.routeLocations[key];
+        } else {
+            cache[key] = { data: null, timestamp: null, etag: null };
+        }
     } else {
-        cache.routes = { data: null, timestamp: null };
-        cache.locations = { data: null, timestamp: null };
+        // Clear all caches
+        cache.routes = { data: null, timestamp: null, etag: null };
+        cache.locations = { data: null, timestamp: null, etag: null };
+        cache.routeLocations = {};
     }
+};
+
+// Preload cache in background
+const preloadCache = async () => {
+    try {
+        if (!USE_LOCALSTORAGE) {
+            // Preload routes and locations in parallel
+            const [routes, locations] = await Promise.all([
+                fetch(`${API_BASE_URL}/routes`).then(r => r.ok ? r.json() : null),
+                fetch(`${API_BASE_URL}/locations`).then(r => r.ok ? r.json() : null)
+            ]);
+            if (routes) setCache('routes', routes);
+            if (locations) setCache('locations', locations);
+            console.log('⚡ Cache preloaded successfully');
+        }
+    } catch (error) {
+        console.log('⚠️ Cache preload failed (non-critical):', error.message);
+    }
+};
+
+// Request deduplication helper
+const dedupedFetch = async (url, key) => {
+    // If there's already a pending request for this key, return that promise
+    if (pendingRequests.has(key)) {
+        console.log('🔄 Reusing pending request for:', key);
+        return pendingRequests.get(key);
+    }
+
+    // Create new request
+    const requestPromise = fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .finally(() => {
+            // Clean up pending request
+            pendingRequests.delete(key);
+        });
+
+    // Store pending request
+    pendingRequests.set(key, requestPromise);
+    return requestPromise;
 };
 
 export const CustomerService = {
@@ -45,12 +112,14 @@ export const CustomerService = {
     },
 
     // Get routes from API or localStorage with caching
-    async getRoutes() {
-        // Check in-memory cache first
-        const cachedData = getCache('routes');
-        if (cachedData) {
-            console.log('⚡ Using cached routes from memory');
-            return cachedData;
+    async getRoutes(forceRefresh = false) {
+        // Check in-memory cache first (unless force refresh)
+        if (!forceRefresh) {
+            const cachedData = getCache('routes', 'routes');
+            if (cachedData) {
+                console.log('⚡ Using cached routes from memory');
+                return cachedData;
+            }
         }
 
         if (USE_LOCALSTORAGE) {
@@ -62,15 +131,18 @@ export const CustomerService = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/routes`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch routes');
-            }
-            const routes = await response.json();
+            const routes = await dedupedFetch(`${API_BASE_URL}/routes`, 'routes');
             setCache('routes', routes);
+            console.log('✅ Routes fetched from API');
             return routes;
         } catch (error) {
-            console.error('Error fetching routes:', error);
+            console.error('❌ Error fetching routes:', error);
+            // Try to return stale cache if available
+            const staleCache = cache.routes?.data;
+            if (staleCache) {
+                console.log('⚠️ Using stale cache due to error');
+                return staleCache;
+            }
             const dummyRoutes = this.getDummyRoutes();
             setCache('routes', dummyRoutes);
             return dummyRoutes;
@@ -78,12 +150,14 @@ export const CustomerService = {
     },
 
     // Get detail locations from API or localStorage with caching
-    async getDetailData(routeId = null) {
-        // For specific routeId, always fetch fresh data (don't use cache)
-        if (!routeId) {
-            const cachedData = getCache('locations');
+    async getDetailData(routeId = null, forceRefresh = false) {
+        const cacheKey = routeId ? `route-${routeId}` : 'locations';
+        
+        // Check in-memory cache first (unless force refresh)
+        if (!forceRefresh) {
+            const cachedData = getCache(cacheKey, routeId ? 'routeLocations' : 'locations');
             if (cachedData) {
-                console.log('⚡ Using cached locations from memory');
+                console.log(`⚡ Using cached locations from memory (${cacheKey})`);
                 return cachedData;
             }
         }
@@ -96,25 +170,28 @@ export const CustomerService = {
             const filteredLocations = routeId ? locations.filter(loc => loc.routeId === routeId) : locations;
             console.log(`📦 Filtered locations for routeId ${routeId}:`, filteredLocations.length, 'locations');
             console.log('📍 Sample location data:', filteredLocations[0]);
-            if (!routeId) setCache('locations', locations);
+            setCache(cacheKey, filteredLocations);
             return filteredLocations;
         }
 
         try {
             const url = routeId ? `${API_BASE_URL}/locations?routeId=${routeId}` : `${API_BASE_URL}/locations`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch locations');
-            }
-            const locations = await response.json();
-            if (!routeId) setCache('locations', locations);
+            const locations = await dedupedFetch(url, cacheKey);
+            setCache(cacheKey, locations);
+            console.log(`✅ Locations fetched from API (${cacheKey})`);
             return locations;
         } catch (error) {
-            console.error('Error fetching locations:', error);
+            console.error('❌ Error fetching locations:', error);
+            // Try to return stale cache if available
+            const staleCache = routeId ? cache.routeLocations[cacheKey]?.data : cache.locations?.data;
+            if (staleCache) {
+                console.log('⚠️ Using stale cache due to error');
+                return staleCache;
+            }
             // Fallback to dummy data and filter by routeId
             const dummyLocations = this.getDummyLocations();
             const filteredLocations = routeId ? dummyLocations.filter(loc => loc.routeId === routeId) : dummyLocations;
-            if (!routeId) setCache('locations', dummyLocations);
+            setCache(cacheKey, filteredLocations);
             return filteredLocations;
         }
     },
@@ -220,7 +297,10 @@ export const CustomerService = {
                 throw new Error(`Failed to save locations: ${response.status} ${errorText}`);
             }
             
-            clearCache('locations'); // Clear cache after successful save
+            clearCache('locations'); // Clear all location caches
+            clearCache('routes'); // Clear routes cache too (locationCount might change)
+            // Clear per-route caches
+            cache.routeLocations = {};
             const result = await response.json();
             console.log('✅ Locations saved successfully to database:', result);
             
@@ -297,5 +377,36 @@ export const CustomerService = {
 
     getCustomersMedium() {
         return Promise.resolve(this.getDummyRoutes());
+    },
+    
+    // Cache management functions
+    preloadCache() {
+        return preloadCache();
+    },
+    
+    clearAllCache() {
+        clearCache();
+        console.log('🗑️ All caches cleared');
+    },
+    
+    getCacheStats() {
+        const stats = {
+            routes: {
+                cached: !!cache.routes?.data,
+                age: cache.routes?.timestamp ? Date.now() - cache.routes.timestamp : null,
+                valid: isCacheValid(cache.routes, 'routes')
+            },
+            locations: {
+                cached: !!cache.locations?.data,
+                age: cache.locations?.timestamp ? Date.now() - cache.locations.timestamp : null,
+                valid: isCacheValid(cache.locations, 'locations')
+            },
+            routeLocations: {
+                count: Object.keys(cache.routeLocations).length,
+                keys: Object.keys(cache.routeLocations)
+            },
+            pendingRequests: pendingRequests.size
+        };
+        return stats;
     }
 };
