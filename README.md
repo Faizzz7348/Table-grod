@@ -26,10 +26,11 @@ React table component with PrimeReact DataTable featuring flexible scrolling, di
 ### Image Upload Features
 - 📤 **Upload Images** - Upload images via drag-and-drop or file selector
 - 🖼️ **Image Management** - Add, edit, or delete image URLs
-- ☁️ **External Hosting** - Images stored on ImgBB (free, permanent, CDN)
+- ☁️ **Vercel Blob Storage** - Images stored permanently on Vercel's CDN (no more image loss!)
 - ✅ **Validation** - File type and size validation (10MB max)
-- 🔒 **Secure** - API key hidden on server (Vercel serverless function)
-- 🚀 **Vercel Compatible** - Optimized for serverless deployment
+- 🔒 **Secure** - Token-based authentication with Vercel Blob
+- 🚀 **Vercel Native** - Optimized for serverless deployment with permanent storage
+- 💪 **No More Disappearing Images** - Fixed using Vercel Blob (see [VERCEL_BLOB_SETUP.md](docs/VERCEL_BLOB_SETUP.md))
 
 ### QR Code Features (NEW! 🎉)
 - 📱 **QR Code Upload** - Upload QR code images for each location
@@ -58,7 +59,7 @@ React table component with PrimeReact DataTable featuring flexible scrolling, di
 - PrimeReact 10.5.1 (DataTable, Dialog, InputSwitch, Image with built-in preview)
 - Vite 5.1.0
 - Prisma (Database ORM)
-- ImgBB API (Image hosting)
+- Vercel Blob (Permanent image storage)
 - Formidable (File upload handling)
 - Vercel (Serverless deployment)
 
@@ -80,19 +81,20 @@ Create a `.env` file in the project root:
 # Database (Required)
 DATABASE_URL="postgresql://user:password@localhost:5432/tablegrod"
 
-# Image Upload (Required for production)
-IMGBB_API_KEY="your_imgbb_api_key_here"
+# Vercel Blob Storage (Required for image uploads)
+BLOB_READ_WRITE_TOKEN="your_vercel_blob_token_here"
 ```
 
-**Get ImgBB API Key (FREE):**
-1. Go to https://api.imgbb.com/
-2. Sign up for free account
-3. Copy your API key
+**Get Vercel Blob Token:**
+1. Go to https://vercel.com/dashboard/stores
+2. Create a Blob Store (or use existing)
+3. Copy the `BLOB_READ_WRITE_TOKEN`
 
 **For Vercel deployment:**
-- Add `IMGBB_API_KEY` to Vercel Environment Variables
-- See [QUICKSTART.md](QUICKSTART.md) for quick setup
-- See [IMAGE_UPLOAD_GUIDE.md](IMAGE_UPLOAD_GUIDE.md) for detailed guide
+- Add `BLOB_READ_WRITE_TOKEN` to Vercel Environment Variables
+- **CRITICAL:** This prevents images from disappearing after deployment!
+- See [VERCEL_BLOB_SETUP.md](docs/VERCEL_BLOB_SETUP.md) for detailed setup guide
+- See [QUICKSTART.md](docs/QUICKSTART.md) for quick setup
 
 ## Running the Project
 
@@ -156,7 +158,7 @@ vercel --prod
 
 **Setup Image Upload:**
 1. Add environment variable in Vercel Dashboard:
-   - `IMGBB_API_KEY` = your ImgBB API key
+   - `BLOB_READ_WRITE_TOKEN` = your Vercel Blob token (get from https://vercel.com/dashboard/stores)
 2. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for complete guide
 
 **Documentation:**

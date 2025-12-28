@@ -1,3 +1,4 @@
+import { put } from '@vercel/blob';
 import formidable from 'formidable';
 import fs from 'fs/promises';
 
@@ -34,17 +35,6 @@ const parseForm = (req) => {
       }
     });
   });
-};
-
-// Helper to convert file to base64 (without data URI prefix)
-const fileToBase64 = async (filePath) => {
-  try {
-    const data = await fs.readFile(filePath);
-    return data.toString('base64');
-  } catch (error) {
-    console.error('Error reading file:', error);
-    throw error;
-  }
 };
 
 export default async function handler(req, res) {
@@ -112,78 +102,35 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get ImgBB API key from environment
-    const imgbbApiKey = process.env.IMGBB_API_KEY;
+    // Check for Vercel Blob token
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
     
-    if (!imgbbApiKey) {
-      console.error('IMGBB_API_KEY not configured');
+    if (!blobToken) {
+      console.error('BLOB_READ_WRITE_TOKEN not configured');
       return res.status(500).json({ 
         error: 'Upload service not configured',
-        message: 'ImgBB API key is missing. Please configure IMGBB_API_KEY environment variable.'
+        message: 'Vercel Blob token is missing. Please configure BLOB_READ_WRITE_TOKEN environment variable in your Vercel project settings.'
       });
     }
 
     // Get file path
     const filePath = file.filepath || file.path;
+    const fileName = file.originalFilename || file.name || `upload_${Date.now()}`;
     
-    // Convert file to base64
-    console.log('Converting file to base64...');
-    const base64Image = await fileToBase64(filePath);
-    console.log('Base64 conversion complete, length:', base64Image.length);
+    // Read file data
+    console.log('Reading file data...');
+    const fileData = await fs.readFile(filePath);
+    console.log('File data read, size:', fileData.length, 'bytes');
     
-    // Upload to ImgBB using FormData-like structure
-    const formBody = new URLSearchParams();
-    formBody.append('image', base64Image);
-    
-    console.log('Uploading to ImgBB...');
-    
-    // Create a proper FormData-like body string
-    const bodyString = formBody.toString();
-    
-    const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(bodyString).toString(),
-      },
-      body: bodyString
+    // Upload to Vercel Blob
+    console.log('Uploading to Vercel Blob...');
+    const blob = await put(fileName, fileData, {
+      access: 'public',
+      contentType: mimeType,
+      token: blobToken,
     });
 
-    console.log('ImgBB response status:', imgbbResponse.status);
-    
-    // Read response only once
-    const responseText = await imgbbResponse.text();
-    console.log('ImgBB raw response:', responseText.substring(0, 200));
-    
-    if (!imgbbResponse.ok) {
-      console.error('ImgBB HTTP error:', imgbbResponse.status, responseText);
-      return res.status(500).json({ 
-        error: 'Upload failed',
-        message: `ImgBB returned error: ${imgbbResponse.status}`
-      });
-    }
-
-    // Parse the response
-    let imgbbData;
-    try {
-      imgbbData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Failed to parse ImgBB response:', parseError);
-      return res.status(500).json({ 
-        error: 'Upload failed',
-        message: 'Invalid response from ImgBB'
-      });
-    }
-    
-    console.log('ImgBB parsed response:', imgbbData.success ? 'Success' : 'Failed');
-
-    if (!imgbbData.success) {
-      console.error('ImgBB upload failed:', imgbbData);
-      return res.status(500).json({ 
-        error: 'Upload failed',
-        message: imgbbData.error?.message || 'Failed to upload to ImgBB'
-      });
-    }
+    console.log('Vercel Blob upload successful:', blob.url);
 
     // Clean up temporary file
     try {
@@ -195,15 +142,14 @@ export default async function handler(req, res) {
     }
 
     // Return the uploaded image URL
-    console.log('Upload successful:', imgbbData.data.url);
     return res.status(200).json({
       success: true,
       data: {
-        url: imgbbData.data.url,
-        displayUrl: imgbbData.data.display_url,
-        thumb: imgbbData.data.thumb?.url,
-        deleteUrl: imgbbData.data.delete_url,
-        size: imgbbData.data.size
+        url: blob.url,
+        displayUrl: blob.url,
+        pathname: blob.pathname,
+        contentType: blob.contentType,
+        size: file.size
       }
     });
 
