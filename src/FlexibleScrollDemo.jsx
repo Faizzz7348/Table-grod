@@ -311,6 +311,21 @@ const DuplicateCheckEditor = ({ options, allData, field }) => {
     );
 };
 
+// Haversine formula to calculate distance between two coordinates in kilometers
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
 export default function FlexibleScrollDemo() {
     const menuRef = useRef(null);
     
@@ -334,7 +349,9 @@ export default function FlexibleScrollDemo() {
         location: 'QL Kitchen',
         delivery: 'Available',
         images: [],
-        powerMode: 'Daily'
+        powerMode: 'Daily',
+        latitude: 3.0738,
+        longitude: 101.5183
     });
     
     // Frozen row data for dialog table
@@ -357,6 +374,7 @@ export default function FlexibleScrollDemo() {
         code: true,
         location: true,
         delivery: true,
+        kilometer: true,
         image: true
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
@@ -503,6 +521,7 @@ export default function FlexibleScrollDemo() {
             code: isMobileDevice ? (columnWidths.code ? columnWidths.code * 0.8 : 100) : (columnWidths.code || 120),
             location: isMobileDevice ? (columnWidths.location ? columnWidths.location * 0.7 : 160) : (columnWidths.location || 220),
             delivery: isMobileDevice ? (columnWidths.delivery ? columnWidths.delivery * 0.8 : 90) : (columnWidths.delivery || 110),
+            kilometer: isMobileDevice ? 90 : 100,
             image: isMobileDevice ? 80 : 120
         };
         
@@ -610,6 +629,58 @@ export default function FlexibleScrollDemo() {
         return [...pinned, ...unpinned];
     }, [routes, pinnedRows]);
 
+    // Calculate kilometer values for dialog data based on custom sort order
+    const dialogDataWithKilometers = React.useMemo(() => {
+        if (!dialogData || dialogData.length === 0) return dialogData;
+        
+        // QL Kitchen coordinates
+        const qlLat = frozenRowData.latitude;
+        const qlLng = frozenRowData.longitude;
+        
+        // Check if custom sort is active
+        const hasCustomSort = Object.values(sortOrders).some(order => order !== '' && order !== undefined && order !== null);
+        
+        if (!hasCustomSort) {
+            // Default mode: Calculate direct distance from QL Kitchen to each location
+            return dialogData.map(row => {
+                if (!row.latitude || !row.longitude) {
+                    return { ...row, kilometer: null, segmentDistance: 0 };
+                }
+                
+                const distance = calculateDistance(qlLat, qlLng, row.latitude, row.longitude);
+                return { ...row, kilometer: distance, segmentDistance: distance };
+            });
+        } else {
+            // Custom sort mode: Calculate cumulative distance through the route
+            // Sort by custom order first
+            const sorted = [...dialogData].sort((a, b) => {
+                const orderA = sortOrders[a.id];
+                const orderB = sortOrders[b.id];
+                if (orderA === '' || orderA === undefined) return 1;
+                if (orderB === '' || orderB === undefined) return -1;
+                return parseInt(orderA) - parseInt(orderB);
+            });
+            
+            let cumulativeDistance = 0;
+            let previousLat = qlLat;
+            let previousLng = qlLng;
+            
+            return sorted.map(row => {
+                if (!row.latitude || !row.longitude) {
+                    return { ...row, kilometer: null, segmentDistance: 0 };
+                }
+                
+                const segmentDistance = calculateDistance(previousLat, previousLng, row.latitude, row.longitude);
+                cumulativeDistance += segmentDistance;
+                
+                previousLat = row.latitude;
+                previousLng = row.longitude;
+                
+                return { ...row, kilometer: cumulativeDistance, segmentDistance };
+            });
+        }
+    }, [dialogData, sortOrders, frozenRowData]);
+
     // Natural sort function for routes (handles both alphabetic and numeric sorting)
     const sortRoutes = (routesData) => {
         return [...routesData].sort((a, b) => {
@@ -715,7 +786,7 @@ export default function FlexibleScrollDemo() {
         // Update browser tab theme-color based on mode
         const themeColorMeta = document.querySelector('meta[name="theme-color"]');
         if (themeColorMeta) {
-            themeColorMeta.setAttribute('content', isDark ? '#0a0a0a' : '#06b6d4');
+            themeColorMeta.setAttribute('content', isDark ? '#0f172a' : '#e5e7eb');
         }
     }, [isDark]);
     
@@ -3691,6 +3762,55 @@ export default function FlexibleScrollDemo() {
                                 style={{ width: `${columnWidths.delivery}px`, minWidth: '90px' }}
                             />
                         )}
+                        {visibleColumns.kilometer && (
+                            <Column 
+                                header="Kilometer" 
+                                align="center" 
+                                alignHeader="center"
+                                body={(rowData) => {
+                                    // For frozen row (QL Kitchen), show 0.0 Km with tooltip
+                                    if (rowData.id === 'frozen-row') {
+                                        return (
+                                            <div 
+                                                style={{ fontSize: '11px', fontWeight: '600', cursor: 'help' }}
+                                                title="Starting Point"
+                                            >
+                                                0.0 Km
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    // Find the row with kilometer data
+                                    const rowWithKm = dialogDataWithKilometers.find(r => r.id === rowData.id);
+                                    
+                                    if (!rowWithKm || rowWithKm.kilometer === null || rowWithKm.kilometer === undefined) {
+                                        return <div style={{ fontSize: '11px', color: '#999' }}>-</div>;
+                                    }
+                                    
+                                    // Format kilometer value
+                                    const kmValue = rowWithKm.kilometer.toFixed(1);
+                                    const segmentDistance = rowWithKm.segmentDistance || 0;
+                                    
+                                    // Check if custom sort is active
+                                    const hasCustomSort = Object.values(sortOrders).some(order => order !== '' && order !== undefined && order !== null);
+                                    
+                                    // Tooltip text
+                                    const tooltipText = hasCustomSort 
+                                        ? `+${segmentDistance.toFixed(1)} km from previous location`
+                                        : `${segmentDistance.toFixed(1)} km from QL Kitchen`;
+                                    
+                                    return (
+                                        <div 
+                                            style={{ fontSize: '11px', fontWeight: '600', cursor: 'help' }}
+                                            title={tooltipText}
+                                        >
+                                            {kmValue} Km
+                                        </div>
+                                    );
+                                }}
+                                style={{ width: '100px', minWidth: '100px' }}
+                            />
+                        )}
                         {editMode && (
                             <Column 
                                 field="latitude" 
@@ -5585,6 +5705,7 @@ export default function FlexibleScrollDemo() {
                                 { key: 'code', label: 'Code' },
                                 { key: 'location', label: 'Location' },
                                 { key: 'delivery', label: 'Delivery' },
+                                { key: 'kilometer', label: 'Kilometer' },
                                 { key: 'image', label: 'Image' }
                             ].map(col => (
                                 <div key={col.key} style={{
