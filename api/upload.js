@@ -22,7 +22,10 @@ const parseForm = (req) => {
       uploadDir: '/tmp',
       filename: (name, ext, part, form) => {
         return `upload_${Date.now()}${ext}`;
-      }
+      },
+      // Ensure files are written to disk
+      enabledPlugins: ['octetstream', 'querystring', 'multipart'],
+      hashAlgorithm: false
     });
 
     form.parse(req, (err, fields, files) => {
@@ -31,6 +34,8 @@ const parseForm = (req) => {
         reject(err);
       } else {
         console.log('Form parsed successfully');
+        console.log('Fields:', fields);
+        console.log('Files:', JSON.stringify(files, null, 2));
         resolve({ fields, files });
       }
     });
@@ -62,14 +67,28 @@ export default async function handler(req, res) {
     // Parse the multipart form data
     const { fields, files } = await parseForm(req);
     
+    console.log('Raw files object:', files);
+    
     // Get the uploaded file - handle different formidable versions
     let file = null;
+    
+    // Try different ways to access the file
     if (files.image) {
+      // Formidable v3 might return an array or single object
       file = Array.isArray(files.image) ? files.image[0] : files.image;
+    } else if (files.file) {
+      file = Array.isArray(files.file) ? files.file[0] : files.file;
+    } else {
+      // Try to get first file from any field
+      const fileKeys = Object.keys(files);
+      if (fileKeys.length > 0) {
+        const firstFile = files[fileKeys[0]];
+        file = Array.isArray(firstFile) ? firstFile[0] : firstFile;
+      }
     }
     
     if (!file) {
-      console.error('No file found in request');
+      console.error('No file found in request. Files object:', files);
       return res.status(400).json({ 
         error: 'No file uploaded',
         message: 'Please select an image file to upload'
@@ -115,15 +134,35 @@ export default async function handler(req, res) {
 
     // Get file path
     const filePath = file.filepath || file.path;
-    const fileName = file.originalFilename || file.name || `upload_${Date.now()}`;
+    
+    if (!filePath) {
+      console.error('No file path available');
+      return res.status(400).json({ 
+        error: 'Upload failed',
+        message: 'File path not available'
+      });
+    }
+    
+    const fileName = file.originalFilename || file.name || `upload_${Date.now()}.jpg`;
     
     // Read file data
-    console.log('Reading file data...');
-    const fileData = await fs.readFile(filePath);
-    console.log('File data read, size:', fileData.length, 'bytes');
+    console.log('Reading file from:', filePath);
+    let fileData;
+    try {
+      fileData = await fs.readFile(filePath);
+      console.log('File data read successfully, size:', fileData.length, 'bytes');
+    } catch (readError) {
+      console.error('Error reading file:', readError);
+      return res.status(500).json({ 
+        error: 'Failed to read uploaded file',
+        message: readError.message
+      });
+    }
     
     // Upload to Vercel Blob
     console.log('Uploading to Vercel Blob...');
+    console.log('File name:', fileName);
+    console.log('Content type:', mimeType);
     const blob = await put(fileName, fileData, {
       access: 'public',
       contentType: mimeType,
@@ -132,13 +171,14 @@ export default async function handler(req, res) {
 
     console.log('Vercel Blob upload successful:', blob.url);
 
-    // Clean up temporary file
+    // Clean up temporary file - use try-catch to avoid blocking on cleanup errors
     try {
+      console.log('Attempting to delete temporary file:', filePath);
       await fs.unlink(filePath);
-      console.log('Temporary file deleted');
+      console.log('Temporary file deleted successfully');
     } catch (unlinkError) {
-      console.error('Failed to delete temp file:', unlinkError);
-      // Don't fail the request if cleanup fails
+      // Log but don't fail - file might be auto-cleaned by Vercel
+      console.warn('Could not delete temp file (this is usually fine on serverless):', unlinkError.message);
     }
 
     // Return the uploaded image URL
