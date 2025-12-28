@@ -1925,10 +1925,25 @@ export default function FlexibleScrollDemo() {
                 const newImages = [...currentRowImages, imageUrl];
                 const newIndex = newImages.length - 1;
                 setCurrentRowImages(newImages);
+                
+                // Auto-save images to dialogData immediately
+                if (selectedRowId === 'frozen-row') {
+                    setFrozenRowData(prev => ({
+                        ...prev,
+                        images: newImages
+                    }));
+                } else {
+                    const updatedData = dialogData.map(data => 
+                        data.id === selectedRowId ? { ...data, images: newImages } : data
+                    );
+                    setDialogData(sortDialogData(updatedData));
+                }
+                setHasUnsavedChanges(true);
+                
                 // Set loading state for uploaded image
                 setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
                 // Image uploaded successfully
-                alert('Image uploaded successfully!');
+                alert('Image uploaded successfully! Remember to click "Save Changes" to save to database.');
             } else {
                 console.error('Upload failed - invalid response:', data);
                 alert(`Failed to upload image: ${data.error || 'Invalid response from server'}`);
