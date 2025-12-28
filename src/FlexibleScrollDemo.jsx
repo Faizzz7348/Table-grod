@@ -1931,27 +1931,38 @@ export default function FlexibleScrollDemo() {
                 setCurrentRowImages(newImages);
                 
                 // Auto-save images to dialogData immediately
-                let updatedData;
                 if (selectedRowId === 'frozen-row') {
                     setFrozenRowData(prev => ({
                         ...prev,
                         images: newImages
                     }));
+                    alert('✅ Image uploaded and saved!');
                 } else {
-                    updatedData = dialogData.map(data => 
+                    const updatedData = dialogData.map(data => 
                         data.id === selectedRowId ? { ...data, images: newImages } : data
                     );
-                    setDialogData(sortDialogData(updatedData));
                     
-                    // AUTO-SAVE TO DATABASE IMMEDIATELY (both dev and production)
+                    // AUTO-SAVE TO DATABASE IMMEDIATELY
                     try {
                         console.log('🔄 Auto-saving image to database...');
                         await CustomerService.saveLocations(updatedData);
                         console.log('✅ Image saved to database successfully');
                         
+                        // RELOAD DATA FROM DATABASE to ensure UI is in sync
+                        const freshData = await CustomerService.getDetailData(currentRouteId);
+                        const sortedFreshData = sortDialogData(freshData);
+                        setDialogData(sortedFreshData);
+                        setOriginalDialogData(sortedFreshData);
+                        
+                        // Update currentRowImages with fresh data
+                        const updatedRow = sortedFreshData.find(row => row.id === selectedRowId);
+                        if (updatedRow && updatedRow.images) {
+                            setCurrentRowImages(updatedRow.images);
+                        }
+                        
                         // Also update localStorage in dev mode for backup
                         if (import.meta.env.DEV) {
-                            localStorage.setItem('locations', JSON.stringify(updatedData));
+                            localStorage.setItem('locations', JSON.stringify(sortedFreshData));
                             console.log('💾 Image also backed up to localStorage');
                         }
                         
@@ -1959,6 +1970,7 @@ export default function FlexibleScrollDemo() {
                     } catch (saveError) {
                         console.error('❌ Failed to auto-save image:', saveError);
                         alert('⚠️ Image uploaded but failed to save to database.\nPlease click "Save Changes" button to save manually.');
+                        setDialogData(sortDialogData(updatedData));
                         setHasUnsavedChanges(true);
                     }
                 }
@@ -1987,13 +1999,13 @@ export default function FlexibleScrollDemo() {
                 images: currentRowImages
             }));
             setImageDialogVisible(false);
+            alert('✅ Images saved!');
             return;
         }
         
         const updatedData = dialogData.map(data => 
             data.id === selectedRowId ? { ...data, images: currentRowImages } : data
         );
-        setDialogData(sortDialogData(updatedData));
         
         // AUTO-SAVE TO DATABASE IMMEDIATELY
         try {
@@ -2001,9 +2013,15 @@ export default function FlexibleScrollDemo() {
             await CustomerService.saveLocations(updatedData);
             console.log('✅ Images saved to database successfully');
             
+            // RELOAD DATA FROM DATABASE to ensure UI is in sync
+            const freshData = await CustomerService.getDetailData(currentRouteId);
+            const sortedFreshData = sortDialogData(freshData);
+            setDialogData(sortedFreshData);
+            setOriginalDialogData(sortedFreshData);
+            
             // Also update localStorage in dev mode for backup
             if (import.meta.env.DEV) {
-                localStorage.setItem('locations', JSON.stringify(updatedData));
+                localStorage.setItem('locations', JSON.stringify(sortedFreshData));
                 console.log('💾 Images also backed up to localStorage');
             }
             
@@ -2011,6 +2029,7 @@ export default function FlexibleScrollDemo() {
             alert('✅ Images saved to database successfully!');
         } catch (saveError) {
             console.error('❌ Failed to auto-save images:', saveError);
+            setDialogData(sortDialogData(updatedData));
             setHasUnsavedChanges(true);
             setImageDialogVisible(false);
             alert('⚠️ Images updated but failed to save to database.\nPlease click "Save Changes" button to save manually.');
