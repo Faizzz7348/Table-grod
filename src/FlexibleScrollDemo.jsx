@@ -1927,23 +1927,34 @@ export default function FlexibleScrollDemo() {
                 setCurrentRowImages(newImages);
                 
                 // Auto-save images to dialogData immediately
+                let updatedData;
                 if (selectedRowId === 'frozen-row') {
                     setFrozenRowData(prev => ({
                         ...prev,
                         images: newImages
                     }));
                 } else {
-                    const updatedData = dialogData.map(data => 
+                    updatedData = dialogData.map(data => 
                         data.id === selectedRowId ? { ...data, images: newImages } : data
                     );
                     setDialogData(sortDialogData(updatedData));
+                    
+                    // Auto-save to localStorage in development mode
+                    if (import.meta.env.DEV && updatedData) {
+                        localStorage.setItem('locations', JSON.stringify(updatedData));
+                        console.log('💾 Image auto-saved to localStorage');
+                    }
                 }
                 setHasUnsavedChanges(true);
                 
                 // Set loading state for uploaded image
                 setImageLoadingStates(prev => ({ ...prev, [newIndex]: true }));
-                // Image uploaded successfully
-                alert('Image uploaded successfully! Remember to click "Save Changes" to save to database.');
+                
+                // Different message for dev vs production
+                const message = import.meta.env.DEV 
+                    ? 'Image uploaded and saved to localStorage!' 
+                    : 'Image uploaded! Click "Save Changes" to save to database.';
+                alert(message);
             } else {
                 console.error('Upload failed - invalid response:', data);
                 alert(`Failed to upload image: ${data.error || 'Invalid response from server'}`);
@@ -1972,6 +1983,13 @@ export default function FlexibleScrollDemo() {
         );
         setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
+        
+        // Auto-save to localStorage in development mode
+        if (import.meta.env.DEV) {
+            localStorage.setItem('locations', JSON.stringify(updatedData));
+            console.log('💾 Images auto-saved to localStorage');
+        }
+        
         setImageDialogVisible(false);
         // Images saved for row
     };
