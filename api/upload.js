@@ -159,9 +159,11 @@ export default async function handler(req, res) {
     console.log('File converted to base64, length:', base64Image.length);
     
     // Upload to ImgBB using URLSearchParams (simpler and more reliable)
-    console.log('Uploading to ImgBB...');
+    // Set expiration to 0 = NEVER EXPIRE (permanent storage)
+    console.log('Uploading to ImgBB with permanent storage...');
     const formBody = new URLSearchParams();
     formBody.append('image', base64Image);
+    formBody.append('expiration', '0'); // 0 = Never expire (permanent)
     
     const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
       method: 'POST',
