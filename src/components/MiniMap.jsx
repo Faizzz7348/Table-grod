@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, ZoomControl } from 'react-leaflet';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+
+const { BaseLayer } = LayersControl;
 
 // Fix for default marker icons in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -112,11 +114,13 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     center={center}
                     zoom={zoom}
                     style={{ 
-                        height: '200px', 
+                        height: '250px', 
                         width: '100%', 
-                        borderRadius: '8px',
-                        border: '2px solid #e0e0e0'
+                        borderRadius: '12px',
+                        border: '2px solid rgba(0,0,0,0.1)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}
+                    className="mini-map-container"
                     scrollWheelZoom={false}
                     dragging={false}
                     doubleClickZoom={false}
@@ -172,16 +176,20 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                         position: 'absolute',
                         top: '10px',
                         right: '10px',
-                        zIndex: 1000
+                        zIndex: 1000,
+                        width: '40px',
+                        height: '40px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                     }}
                     onClick={() => setFullscreenVisible(true)}
-                    tooltip="Fullscreen Map"
+                    tooltip="Open Fullscreen Map"
                     tooltipOptions={{ position: 'left' }}
                 />
                 
                 {/* Address Caption */}
                 {!isMultipleMarkers && address && (
                     <div 
+                        className="map-address-caption"
                         style={{
                             marginTop: '10px',
                             padding: '6px 8px',
@@ -189,7 +197,7 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                             borderRadius: '4px',
                             fontSize: '10px',
                             fontFamily: "'Open Sans', sans-serif",
-                            color: '#555',
+                            color: 'var(--text-color)',
                             textAlign: 'center',
                             cursor: 'pointer',
                             userSelect: 'none',
@@ -222,32 +230,34 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                 )}
                 
                 {isMultipleMarkers && (
-                    <div style={{
+                    <div className="map-info-box map-info-multiple" style={{
                         marginTop: '10px',
-                        padding: '8px',
+                        padding: '10px',
                         backgroundColor: '#e3f2fd',
-                        borderRadius: '4px',
+                        borderRadius: '8px',
                         fontSize: '13px',
                         color: '#1565c0',
                         textAlign: 'center',
-                        fontWeight: 'bold'
+                        fontWeight: '600',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}>
-                        <i className="pi pi-map-marker" style={{ marginRight: '5px' }}></i>
+                        <i className="pi pi-map-marker" style={{ marginRight: '5px', fontSize: '14px' }}></i>
                         {locations.filter(loc => loc.latitude && loc.longitude).length} locations shown on map
                     </div>
                 )}
                 
                 {!hasValidCoordinates && (
-                    <div style={{
+                    <div className="map-info-box map-info-warning" style={{
                         marginTop: '10px',
-                        padding: '8px',
+                        padding: '10px',
                         backgroundColor: '#fff3cd',
-                        borderRadius: '4px',
+                        borderRadius: '8px',
                         fontSize: '12px',
                         color: '#856404',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}>
-                        <i className="pi pi-info-circle" style={{ marginRight: '5px' }}></i>
+                        <i className="pi pi-info-circle" style={{ marginRight: '5px', fontSize: '14px' }}></i>
                         {isMultipleMarkers ? 'No locations with coordinates found.' : 'No coordinates set. Showing default location (KL).'}
                     </div>
                 )}
@@ -256,33 +266,54 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
             {/* Fullscreen Dialog */}
             <Dialog
                 header={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <i className="pi pi-map" style={{ fontSize: '1.2rem' }}></i>
-                        <span>{isMultipleMarkers ? 'Route Map View' : 'Map View'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <i className="pi pi-map" style={{ fontSize: '1.3rem', color: '#06b6d4' }}></i>
+                        <span style={{ fontSize: '1.1rem', fontWeight: '600' }}>
+                            {isMultipleMarkers ? 'Route Map View' : 'Map View'}
+                        </span>
                     </div>
                 }
                 visible={fullscreenVisible}
-                style={{ width: '90vw', height: '90vh' }}
+                style={{ width: '95vw', height: '95vh' }}
                 maximizable
                 modal
                 onHide={() => setFullscreenVisible(false)}
-                contentStyle={{ height: 'calc(100% - 60px)', padding: 0 }}
+                contentStyle={{ height: 'calc(100% - 60px)', padding: 0, overflow: 'hidden' }}
+                className="fullscreen-map-dialog"
             >
                 <MapContainer
                     center={center}
-                    zoom={zoom}
+                    zoom={zoom + 1}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={true}
+                    zoomControl={false}
                     maxBounds={malaysiaBounds}
                     maxBoundsViscosity={1.0}
                     minZoom={6}
-                    maxZoom={18}
+                    maxZoom={19}
                 >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <MapUpdater center={center} zoom={zoom} />
+                    <LayersControl position="topright">
+                        <BaseLayer checked name="Street Map">
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                        </BaseLayer>
+                        <BaseLayer name="Satellite View">
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.esri.com">Esri</a>'
+                                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                            />
+                        </BaseLayer>
+                        <BaseLayer name="Topographic">
+                            <TileLayer
+                                attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+                                url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                            />
+                        </BaseLayer>
+                    </LayersControl>
+                    <ZoomControl position="bottomright" />
+                    <MapUpdater center={center} zoom={zoom + 1} />
                     {isMultipleMarkers ? (
                         // Multiple markers
                         locations
@@ -325,40 +356,44 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                 </MapContainer>
                 
                 {!isMultipleMarkers && address && (
-                    <div style={{
+                    <div className="fullscreen-map-badge" style={{
                         position: 'absolute',
-                        bottom: '20px',
+                        bottom: '30px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        backgroundColor: 'white',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        padding: '12px 24px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                         zIndex: 1000,
-                        maxWidth: '80%',
-                        textAlign: 'center'
+                        maxWidth: '85%',
+                        textAlign: 'center',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(0,0,0,0.1)'
                     }}>
-                        <i className="pi pi-map-marker" style={{ marginRight: '8px', color: '#dc3545' }}></i>
-                        <strong>{address}</strong>
+                        <i className="pi pi-map-marker" style={{ marginRight: '10px', color: '#dc3545', fontSize: '16px' }}></i>
+                        <strong style={{ fontSize: '14px' }}>{address}</strong>
                     </div>
                 )}
                 
                 {isMultipleMarkers && (
-                    <div style={{
+                    <div className="fullscreen-map-badge" style={{
                         position: 'absolute',
-                        bottom: '20px',
+                        bottom: '30px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        backgroundColor: 'white',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        padding: '12px 24px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                         zIndex: 1000,
-                        maxWidth: '80%',
-                        textAlign: 'center'
+                        maxWidth: '85%',
+                        textAlign: 'center',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(0,0,0,0.1)'
                     }}>
-                        <i className="pi pi-map-marker" style={{ marginRight: '8px', color: '#1565c0' }}></i>
-                        <strong>{locations.filter(loc => loc.latitude && loc.longitude).length} Locations</strong>
+                        <i className="pi pi-map-marker" style={{ marginRight: '10px', color: '#06b6d4', fontSize: '16px' }}></i>
+                        <strong style={{ fontSize: '14px' }}>{locations.filter(loc => loc.latitude && loc.longitude).length} Locations on Map</strong>
                     </div>
                 )}
             </Dialog>

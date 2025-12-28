@@ -18,6 +18,10 @@ const parseForm = (req) => {
       multiples: false,
       allowEmptyFiles: false,
       minFileSize: 1,
+      uploadDir: '/tmp',
+      filename: (name, ext, part, form) => {
+        return `upload_${Date.now()}${ext}`;
+      }
     });
 
     form.parse(req, (err, fields, files) => {

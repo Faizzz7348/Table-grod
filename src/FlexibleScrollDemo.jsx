@@ -711,7 +711,7 @@ export default function FlexibleScrollDemo() {
         // Update browser tab theme-color based on mode
         const themeColorMeta = document.querySelector('meta[name="theme-color"]');
         if (themeColorMeta) {
-            themeColorMeta.setAttribute('content', isDark ? '#1a1a1a' : '#ffffff');
+            themeColorMeta.setAttribute('content', isDark ? '#0a0a0a' : '#06b6d4');
         }
     }, [isDark]);
     
@@ -1867,10 +1867,8 @@ export default function FlexibleScrollDemo() {
             const formData = new FormData();
             formData.append('image', file);
             
-            // Determine API endpoint based on environment
-            const apiUrl = window.location.hostname === 'localhost' 
-                ? 'http://localhost:5173/api/upload'
-                : '/api/upload';
+            // Determine API endpoint - always use relative path for Vercel compatibility
+            const apiUrl = '/api/upload';
             
             // Uploading to API
             
@@ -3873,6 +3871,7 @@ export default function FlexibleScrollDemo() {
                     modal
                     dismissableMask
                     closeOnEscape
+                    closable={false}
                     transitionOptions={{ timeout: 300 }}
                     onHide={() => {
                         setInfoDialogVisible(false);
@@ -4041,7 +4040,7 @@ export default function FlexibleScrollDemo() {
                                     borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
                                     backgroundColor: isDark ? 'transparent' : '#f8f9fa'
                                 }}>
-                                    <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
+                                    <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
                                         {isRouteInfo ? 'Route Information' : 'General Information'}
                                     </strong>
                                 </div>
@@ -4052,23 +4051,23 @@ export default function FlexibleScrollDemo() {
                                             display: 'grid', 
                                             gridTemplateColumns: '1fr 1fr',
                                             gap: '10px',
-                                            fontSize: '13px'
+                                            fontSize: '11px'
                                         }}>
                                             <div>
                                                 <strong style={{ color: '#6c757d' }}>Route:</strong>
-                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.route}</div>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
                                             </div>
                                             <div>
                                                 <strong style={{ color: '#6c757d' }}>Shift:</strong>
-                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.shift}</div>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
                                             </div>
                                             <div>
                                                 <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
-                                                <div style={{ marginTop: '3px' }}>{selectedRowInfo.warehouse}</div>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
                                             </div>
                                             <div>
                                                 <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
-                                                <div style={{ marginTop: '3px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
                                                     {selectedRowInfo.locationCount || 0}
                                                 </div>
                                             </div>
@@ -4080,7 +4079,7 @@ export default function FlexibleScrollDemo() {
                                                 display: 'grid', 
                                                 gridTemplateColumns: '1fr 1fr',
                                                 gap: '10px',
-                                                fontSize: '13px'
+                                                fontSize: '11px'
                                             }}>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>No:</strong>
@@ -4097,10 +4096,10 @@ export default function FlexibleScrollDemo() {
                                                                 setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
                                                                 setHasUnsavedChanges(true);
                                                             }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
                                                         />
                                                     ) : (
-                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.no}</div>
+                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.no}</div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -4118,10 +4117,10 @@ export default function FlexibleScrollDemo() {
                                                                 setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
                                                                 setHasUnsavedChanges(true);
                                                             }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
                                                         />
                                                     ) : (
-                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.code}</div>
+                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.code}</div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -4139,20 +4138,21 @@ export default function FlexibleScrollDemo() {
                                                                 setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
                                                                 setHasUnsavedChanges(true);
                                                             }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '13px' }}
+                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
                                                         />
                                                     ) : (
-                                                        <div style={{ marginTop: '3px' }}>{selectedRowInfo.delivery}</div>
+                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.delivery}</div>
                                                     )}
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
-                                                    <div style={{ marginTop: '3px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Current Status:</strong>
                                                     <div style={{ 
                                                         marginTop: '3px',
+                                                        fontSize: '11px',
                                                         color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), 
                                                         fontWeight: 'bold' 
                                                     }}>
@@ -4161,7 +4161,7 @@ export default function FlexibleScrollDemo() {
                                                 </div>
                                                 <div>
                                                     <strong style={{ color: '#6c757d' }}>Total Images:</strong>
-                                                    <div style={{ marginTop: '3px' }}>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>
                                                         {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
                                                     </div>
                                                 </div>
@@ -4169,7 +4169,7 @@ export default function FlexibleScrollDemo() {
                                             
                                             {/* Shortcut Section - Only for location info */}
                                             <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
-                                                <strong style={{ fontSize: '13px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
+                                                <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
                                                     Shortcut
                                                 </strong>
                                                 <div style={{ 
@@ -5084,11 +5084,12 @@ export default function FlexibleScrollDemo() {
                         <div style={{ marginBottom: '1.5rem' }}>
                             <label style={{ 
                                 display: 'block',
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
+                                marginBottom: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '13px',
+                                color: isDark ? '#e5e5e5' : '#374151'
                             }}>
-                                Or Upload Image:
+                                Upload Image:
                             </label>
                             <div style={{ position: 'relative' }}>
                                 <input
@@ -5096,32 +5097,87 @@ export default function FlexibleScrollDemo() {
                                     accept="image/*"
                                     onChange={handleFileUpload}
                                     disabled={uploadingImage}
+                                    id="file-upload-input"
                                     style={{
-                                        padding: '0.5rem',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
+                                        position: 'absolute',
+                                        opacity: 0,
                                         width: '100%',
+                                        height: '100%',
                                         cursor: uploadingImage ? 'not-allowed' : 'pointer',
-                                        opacity: uploadingImage ? 0.6 : 1
+                                        zIndex: 2
                                     }}
                                 />
-                                {uploadingImage && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        right: '1rem',
-                                        transform: 'translateY(-50%)',
+                                <label 
+                                    htmlFor="file-upload-input"
+                                    style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '0.5rem',
-                                        color: '#3b82f6',
-                                        fontSize: '0.875rem',
-                                        fontWeight: '600'
-                                    }}>
-                                        <i className="pi pi-spin pi-spinner"></i>
-                                        Uploading...
-                                    </div>
-                                )}
+                                        justifyContent: 'center',
+                                        gap: '0.75rem',
+                                        padding: '1rem',
+                                        border: `2px dashed ${isDark ? '#4b5563' : '#d1d5db'}`,
+                                        borderRadius: '12px',
+                                        backgroundColor: isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(249, 250, 251, 0.5)',
+                                        cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                                        opacity: uploadingImage ? 0.6 : 1,
+                                        transition: 'all 0.3s ease',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!uploadingImage) {
+                                            e.currentTarget.style.borderColor = '#3b82f6';
+                                            e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)';
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!uploadingImage) {
+                                            e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#d1d5db';
+                                            e.currentTarget.style.backgroundColor = isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(249, 250, 251, 0.5)';
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                        }
+                                    }}
+                                >
+                                    {uploadingImage ? (
+                                        <>
+                                            <i className="pi pi-spin pi-spinner" style={{ 
+                                                fontSize: '1.5rem',
+                                                color: '#3b82f6'
+                                            }}></i>
+                                            <span style={{ 
+                                                fontSize: '14px',
+                                                fontWeight: '600',
+                                                color: isDark ? '#93c5fd' : '#3b82f6'
+                                            }}>
+                                                Uploading...
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="pi pi-cloud-upload" style={{ 
+                                                fontSize: '1.5rem',
+                                                color: isDark ? '#60a5fa' : '#3b82f6'
+                                            }}></i>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ 
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    color: isDark ? '#e5e5e5' : '#374151',
+                                                    marginBottom: '2px'
+                                                }}>
+                                                    Choose File or Drag & Drop
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '11px',
+                                                    color: isDark ? '#9ca3af' : '#6b7280'
+                                                }}>
+                                                    PNG, JPG, GIF up to 10MB
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </label>
                             </div>
                         </div>
 
@@ -5139,12 +5195,23 @@ export default function FlexibleScrollDemo() {
                                 <div style={{
                                     padding: '2rem',
                                     textAlign: 'center',
-                                    backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
+                                    backgroundColor: 'transparent',
                                     borderRadius: '8px',
                                     color: isDark ? '#9ca3af' : '#6b7280'
                                 }}>
-                                    <i className="pi pi-image" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}></i>
-                                    <p>No images added yet</p>
+                                    <i className="pi pi-image" style={{ 
+                                        fontSize: '3rem', 
+                                        marginBottom: '1rem', 
+                                        opacity: 0.3,
+                                        animation: 'floatImage 3s ease-in-out infinite'
+                                    }}></i>
+                                    <p style={{ margin: 0 }}>No images added yet</p>
+                                    <style>{`
+                                        @keyframes floatImage {
+                                            0%, 100% { transform: translateY(0px); }
+                                            50% { transform: translateY(-10px); }
+                                        }
+                                    `}</style>
                                 </div>
                             ) : (
                                 <div style={{
