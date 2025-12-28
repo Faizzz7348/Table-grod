@@ -357,7 +357,7 @@ export default function FlexibleScrollDemo() {
         code: true,
         location: true,
         delivery: true,
-        image: false
+        image: true
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
     const [loading, setLoading] = useState(true);
