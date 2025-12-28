@@ -3785,6 +3785,12 @@ export default function FlexibleScrollDemo() {
                                 align="center" 
                                 alignHeader="center"
                                 body={(rowData) => {
+                                    console.log('Image column render for row:', rowData.id, {
+                                        hasImages: !!rowData.images,
+                                        imageCount: rowData.images?.length || 0,
+                                        images: rowData.images
+                                    });
+                                    
                                     if (!rowData.images || rowData.images.length === 0) {
                                         return (
                                             <div style={{

@@ -1,4 +1,19 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+
+// Add keyframes for spin animation
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `;
+  if (!document.querySelector('style[data-image-lightbox-styles]')) {
+    style.setAttribute('data-image-lightbox-styles', 'true');
+    document.head.appendChild(style);
+  }
+}
 
 // Global variable to track current open gallery
 let currentOpenGallery = null;
@@ -14,6 +29,9 @@ export function ImageLightbox({ images, rowId }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const isInitialized = useRef(false);
+
+  // Debug logging
+  console.log('ImageLightbox render:', { rowId, images, imageCount: images?.length });
 
   const handleImageClick = async (e) => {
     e.preventDefault();
@@ -92,6 +110,7 @@ export function ImageLightbox({ images, rowId }) {
   };
 
   if (images.length === 0) {
+    console.log('No images to display for rowId:', rowId);
     return (
       <div className="flex items-center justify-center mx-auto">
         <div className="flex items-center justify-center w-10 h-8 rounded-lg border border-gray-200 bg-gray-50">
@@ -100,6 +119,9 @@ export function ImageLightbox({ images, rowId }) {
       </div>
     );
   }
+
+  const firstImage = typeof images[0] === 'object' ? images[0].url : images[0];
+  console.log('First image URL:', firstImage);
 
   return (
     <div ref={containerRef} style={{ 
@@ -116,16 +138,55 @@ export function ImageLightbox({ images, rowId }) {
           position: 'relative', 
           width: '50px', 
           height: '40px',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          backgroundColor: imageError ? '#fee2e2' : 'transparent'
         }}
       >
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
-            <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '4px'
+          }}>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid #3b82f6',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+          </div>
+        )}
+        {imageError && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#fee2e2',
+            borderRadius: '4px',
+            border: '1px solid #fca5a5'
+          }}>
+            <i className="pi pi-exclamation-triangle" style={{ 
+              fontSize: '1rem', 
+              color: '#dc2626'
+            }}></i>
           </div>
         )}
         <img
-          src={typeof images[0] === 'object' ? images[0].url : images[0]}
+          src={firstImage}
           alt={typeof images[0] === 'object' && images[0].caption ? images[0].caption : "Image"}
           style={{ 
             width: '100%', 
@@ -133,12 +194,17 @@ export function ImageLightbox({ images, rowId }) {
             objectFit: 'cover',
             borderRadius: '4px',
             border: '1px solid #e5e7eb',
+            display: imageError ? 'none' : 'block',
+            opacity: imageLoaded ? 1 : 0,
             transition: 'opacity 0.3s'
           }}
-          className={imageLoaded ? 'opacity-100' : 'opacity-0'}
           loading="lazy"
-          onLoad={() => setImageLoaded(true)}
-          onError={() => {
+          onLoad={() => {
+            console.log('Image loaded successfully:', firstImage);
+            setImageLoaded(true);
+          }}
+          onError={(e) => {
+            console.error('Image failed to load:', firstImage, e);
             setImageError(true);
             setImageLoaded(true);
           }}
