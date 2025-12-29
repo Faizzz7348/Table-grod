@@ -5,7 +5,6 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
-import { Menu } from 'primereact/menu';
 import { Calendar } from 'primereact/calendar';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
@@ -327,7 +326,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 export default function FlexibleScrollDemo() {
-    const menuRef = useRef(null);
     
     // Device Detection
     const deviceInfo = useDeviceDetect();
@@ -484,8 +482,57 @@ export default function FlexibleScrollDemo() {
         image: 90
     });
     
-    // Changelog State
-    const [changelog, setChangelog] = useState([]);
+    // Changelog State with localStorage persistence
+    const [changelog, setChangelog] = useState(() => {
+        try {
+            const saved = localStorage.getItem('appChangelog');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Convert date strings back to Date objects
+                return parsed.map(entry => ({
+                    ...entry,
+                    date: new Date(entry.date)
+                }));
+            }
+        } catch (error) {
+            console.error('Failed to load changelog from localStorage:', error);
+        }
+        return [];
+    });
+    
+    // Initialize changelog from localStorage on mount
+    useEffect(() => {
+        // Auto-cleanup old entries (remove entries older than 1 day from display)
+        const cleanupOldEntries = () => {
+            const now = new Date();
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            
+            setChangelog(prev => {
+                const cleaned = prev.map(entry => ({
+                    ...entry,
+                    // Mark entries older than 1 day as archived (they stay in history)
+                    isArchived: (now - new Date(entry.date)) > oneDayMs
+                }));
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('appChangelog', JSON.stringify(cleaned));
+                } catch (error) {
+                    console.error('Failed to save changelog to localStorage:', error);
+                }
+                
+                return cleaned;
+            });
+        };
+        
+        // Run cleanup on component mount
+        cleanupOldEntries();
+        
+        // Set up interval to check every minute
+        const cleanupInterval = setInterval(cleanupOldEntries, 60000);
+        
+        return () => clearInterval(cleanupInterval);
+    }, []);
     
     // Website Link Modal State
     const [websiteLinkDialogVisible, setWebsiteLinkDialogVisible] = useState(false);
@@ -509,6 +556,20 @@ export default function FlexibleScrollDemo() {
     // Update Notification State
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
     const APP_VERSION = '1.0.1'; // Increment this when pushing updates
+
+    // Screen Resize State
+    const [resizeScreenDialogVisible, setResizeScreenDialogVisible] = useState(false);
+    const [screenWidth, setScreenWidth] = useState(() => {
+        const saved = localStorage.getItem('screenWidth');
+        return saved ? parseInt(saved) : null;
+    });
+    const [screenHeight, setScreenHeight] = useState(() => {
+        const saved = localStorage.getItem('screenHeight');
+        return saved ? parseInt(saved) : null;
+    });
+    const [resizeInputWidth, setResizeInputWidth] = useState('');
+    const [resizeInputHeight, setResizeInputHeight] = useState('');
+    const [resizeError, setResizeError] = useState('');
 
     // Calculate dynamic table width based on visible columns
     const calculateTableWidth = () => {
@@ -1020,12 +1081,22 @@ export default function FlexibleScrollDemo() {
             date: now, // Store actual Date object for filtering
             action, // 'add', 'edit', 'delete'
             type, // 'route', 'location'
-            details
+            details,
+            isArchived: false // Mark as current/not archived
         };
-        setChangelog(prev => [entry, ...prev].slice(0, 100)); // Keep last 100 entries
+        
+        const updatedChangelog = [entry, ...changelog].slice(0, 100); // Keep last 100 entries
+        setChangelog(updatedChangelog);
+        
+        // Save to localStorage
+        try {
+            localStorage.setItem('appChangelog', JSON.stringify(updatedChangelog));
+        } catch (error) {
+            console.error('Failed to save changelog to localStorage:', error);
+        }
     };
     
-    // Filter changelog entries
+    // Filter changelog entries - separates active from archived
     const getFilteredChangelog = () => {
         let filtered = [...changelog];
         
@@ -1065,6 +1136,17 @@ export default function FlexibleScrollDemo() {
         }
         
         return filtered;
+    };
+    
+    // Get only active (non-archived) entries for the main view
+    const getActiveChangelog = () => {
+        return getFilteredChangelog().filter(entry => !entry.isArchived);
+    };
+    
+    // Get latest changes for display
+    const getLatestChanges = () => {
+        const active = getActiveChangelog();
+        return active.length > 0 ? active.slice(0, 5) : [];
     };
     
     // Export changelog to JSON
@@ -2368,139 +2450,6 @@ export default function FlexibleScrollDemo() {
         }
     };
 
-    // Menu items configuration
-    const menuItems = [
-        ...(editMode && hasUnsavedChanges ? [{
-            template: () => (
-                <div style={{
-                    backgroundColor: isDark ? '#fbbf24' : '#fef3c7',
-                    color: isDark ? '#000000' : '#92400e',
-                    padding: '0.75rem 1rem',
-                    margin: '0.5rem',
-                    borderRadius: '8px',
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    border: `2px solid ${isDark ? '#f59e0b' : '#fbbf24'}`,
-                    transition: 'all 0.3s ease'
-                }}>
-                    <i className="pi pi-exclamation-triangle"></i>
-                    Unsaved Changes
-                </div>
-            )
-        }] : []),
-        ...(isInstallable && !isInstalled ? [{
-            label: 'Install App',
-            icon: 'pi pi-download',
-            command: () => promptInstall(),
-            className: 'menu-install-item',
-            template: (item) => (
-                <div 
-                    onClick={item.command}
-                    style={{
-                        backgroundColor: isDark ? '#10b981' : '#d1fae5',
-                        color: isDark ? '#ffffff' : '#065f46',
-                        padding: '0.75rem 1rem',
-                        margin: '0.5rem',
-                        borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        border: `2px solid ${isDark ? '#059669' : '#10b981'}`,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                >
-                    <i className="pi pi-download"></i>
-                    Install App
-                </div>
-            )
-        }] : []),
-        ...(isInstalled ? [{
-            template: () => (
-                <div style={{
-                    backgroundColor: isDark ? '#10b981' : '#d1fae5',
-                    color: isDark ? '#ffffff' : '#065f46',
-                    padding: '0.75rem 1rem',
-                    margin: '0.5rem',
-                    borderRadius: '8px',
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    border: `2px solid ${isDark ? '#059669' : '#10b981'}`,
-                    transition: 'all 0.3s ease'
-                }}>
-                    <i className="pi pi-check-circle"></i>
-                    App Installed
-                </div>
-            )
-        }] : []),
-        {
-            label: isDark ? 'Light Mode' : 'Dark Mode',
-            icon: isDark ? 'pi pi-sun' : 'pi pi-moon',
-            command: () => setIsDark(!isDark)
-        },
-        {
-            label: 'Changelog',
-            icon: 'pi pi-history',
-            command: () => setChangelogDialogVisible(true),
-            badge: changelog.length > 0 ? changelog.length.toString() : null,
-            badgeClass: 'p-badge-info'
-        },
-        {
-            label: modeTransitioning ? 'Switching...' : (editMode ? 'View Mode' : 'Edit Mode'),
-            icon: modeTransitioning ? 'pi pi-spin pi-spinner' : (editMode ? 'pi pi-eye' : 'pi pi-pencil'),
-            command: () => handleToggleEditMode(),
-            disabled: saving || modeTransitioning
-        },
-        ...(editMode ? [
-            {
-                label: 'Change Password',
-                icon: 'pi pi-lock',
-                command: () => setChangePasswordDialogVisible(true)
-            },
-            { separator: true },
-            {
-                label: 'Clear All Data',
-                icon: 'pi pi-trash',
-                command: () => handleClearAllData(),
-                className: 'menu-danger-item',
-                style: { color: '#ef4444' }
-            }
-        ] : []),
-        ...(editMode && hasUnsavedChanges ? [
-            { separator: true },
-            {
-                label: saving ? 'Saving...' : 'Save Changes',
-                icon: saving ? 'pi pi-spin pi-spinner' : 'pi pi-save',
-                command: () => handleSaveChanges(),
-                disabled: saving,
-                className: 'menu-save-item'
-            },
-            {
-                label: 'Cancel',
-                icon: 'pi pi-times',
-                command: () => handleCancelChanges(),
-                disabled: saving,
-                className: 'menu-cancel-item'
-            }
-        ] : [])
-    ];
-
     // Loading state with smooth animation
     if (loading) {
         return (
@@ -2560,12 +2509,16 @@ export default function FlexibleScrollDemo() {
     return (
         <div style={{ 
             minHeight: '100vh',
+            width: screenWidth ? `${screenWidth}px` : '100%',
+            height: screenHeight ? `${screenHeight}px` : 'auto',
             background: isDark 
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
                 : 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)',
             color: isDark ? '#e5e5e5' : '#1f2937',
             transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            animation: 'fadeIn 0.6s ease-out'
+            animation: 'fadeIn 0.6s ease-out',
+            overflowY: screenHeight ? 'auto' : 'visible',
+            margin: screenWidth || screenHeight ? '0 auto' : 'auto'
         }}>
             <style>{tableStyles}</style>
             {/* Navigation Header */}
@@ -2799,6 +2752,62 @@ export default function FlexibleScrollDemo() {
                                             textAlign: 'center'
                                         }}>
                                             {changelog.length}
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                {/* Resize Screen */}
+                                <div
+                                    onClick={() => {
+                                        setResizeScreenDialogVisible(true);
+                                        setCustomMenuVisible(false);
+                                    }}
+                                    style={{
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        backgroundColor: 'transparent',
+                                        marginBottom: '0.5rem'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        background: 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <i className="pi pi-window-maximize" style={{
+                                            color: '#f59e0b',
+                                            fontSize: '1.1rem'
+                                        }}></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                            Resize Screen
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                            Set custom dimensions
+                                        </p>
+                                    </div>
+                                    {screenWidth && screenHeight && (
+                                        <span style={{
+                                            backgroundColor: '#f59e0b',
+                                            color: '#ffffff',
+                                            fontSize: '0.7rem',
+                                            fontWeight: '700',
+                                            padding: '0.25rem 0.6rem',
+                                            borderRadius: '12px'
+                                        }}>
+                                            {screenWidth}×{screenHeight}
                                         </span>
                                     )}
                                 </div>
@@ -4683,6 +4692,42 @@ export default function FlexibleScrollDemo() {
                                                 </Button>
                                             );
                                             })()}
+                                            
+                                            {/* Marker Color Picker Button - Only in Edit Mode and for Locations */}
+                                            {editMode && !isRouteInfo && (
+                                                <Button
+                                                    tooltip="Set Marker Color"
+                                                    tooltipOptions={{ position: 'top' }}
+                                                    size="small"
+                                                    text
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: 'none',
+                                                        backgroundColor: 'transparent',
+                                                        color: selectedRowInfo.markerColor || '#dc3545',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    onClick={() => {
+                                                        setCurrentEditingRowId(selectedRowInfo.id);
+                                                        setColorPickerLocationName(selectedRowInfo.code || selectedRowInfo.location);
+                                                        setColorPickerVisible(true);
+                                                    }}
+                                                >
+                                                    <i className="pi pi-palette" style={{ fontSize: '20px' }}></i>
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                         </>
@@ -4693,7 +4738,7 @@ export default function FlexibleScrollDemo() {
                     )}
                 </Dialog>
 
-                {/* View Mode Route Info Dialog */}
+                {/* View Mode Route Info Dialog - Enhanced */}
                 <Dialog
                     header={
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -4702,7 +4747,7 @@ export default function FlexibleScrollDemo() {
                         </div>
                     }
                     visible={viewDialogVisible}
-                    style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '650px' }}
                     modal
                     dismissableMask
                     transitionOptions={{ timeout: 300 }}
@@ -4713,88 +4758,222 @@ export default function FlexibleScrollDemo() {
                 >
                     {selectedViewRoute && (
                         <div style={{ padding: '1rem' }}>
+                            {/* Header Info */}
                             <div style={{ 
                                 backgroundColor: isDark ? '#1f2937' : '#f8f9fa',
                                 borderRadius: '8px',
                                 padding: '1.5rem',
-                                border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`
+                                border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`,
+                                marginBottom: '1rem'
                             }}>
                                 <div style={{ 
-                                    display: 'grid', 
-                                    gap: '1rem',
-                                    fontSize: '14px'
+                                    display: 'flex', 
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    paddingBottom: '1rem',
+                                    borderBottom: `2px solid ${isDark ? '#374151' : '#dee2e6'}`
                                 }}>
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        paddingBottom: '0.75rem',
-                                        borderBottom: `2px solid ${isDark ? '#374151' : '#dee2e6'}`
-                                    }}>
-                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d', fontSize: '13px' }}>Route:</strong>
+                                    <div>
                                         <div style={{ 
-                                            fontSize: '16px', 
+                                            fontSize: '18px', 
                                             fontWeight: 'bold',
                                             color: isDark ? '#60a5fa' : '#3b82f6'
                                         }}>
                                             {selectedViewRoute.route}
                                         </div>
-                                    </div>
-                                    
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Shift:</strong>
-                                        <div style={{ color: isDark ? '#e5e7eb' : '#212529' }}>
-                                            {selectedViewRoute.shift}
-                                        </div>
-                                    </div>
-                                    
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Warehouse:</strong>
-                                        <div style={{ color: isDark ? '#e5e7eb' : '#212529' }}>
+                                        <div style={{ 
+                                            fontSize: '12px',
+                                            color: isDark ? '#9ca3af' : '#6c757d',
+                                            marginTop: '0.25rem'
+                                        }}>
                                             {selectedViewRoute.warehouse}
                                         </div>
                                     </div>
-                                    
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between',
+                                    <div style={{
+                                        display: 'flex',
                                         alignItems: 'center',
-                                        paddingTop: '0.75rem',
-                                        borderTop: `1px solid ${isDark ? '#374151' : '#dee2e6'}`
+                                        gap: '1rem'
                                     }}>
-                                        <strong style={{ color: isDark ? '#9ca3af' : '#6c757d' }}>Total Locations:</strong>
-                                        <div style={{ 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem'
+                                        <i className="pi pi-map-marker" style={{ 
+                                            color: isDark ? '#60a5fa' : '#3b82f6',
+                                            fontSize: '1.5rem'
+                                        }}></i>
+                                        <div style={{
+                                            textAlign: 'center'
                                         }}>
-                                            <i className="pi pi-map-marker" style={{ 
-                                                color: isDark ? '#60a5fa' : '#3b82f6',
-                                                fontSize: '1rem'
-                                            }}></i>
-                                            <span style={{
+                                            <div style={{
                                                 fontWeight: 'bold',
-                                                fontSize: '18px',
+                                                fontSize: '24px',
                                                 color: isDark ? '#60a5fa' : '#3b82f6'
                                             }}>
                                                 {selectedViewRoute.locationCount || 0}
-                                            </span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: '11px',
+                                                color: isDark ? '#9ca3af' : '#6c757d'
+                                            }}>
+                                                Locations
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Control Bar - Search, Date, History */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '0.75rem',
+                                flexWrap: 'wrap',
+                                marginBottom: '1rem',
+                                padding: '0.75rem',
+                                backgroundColor: isDark ? '#111827' : '#f9fafb',
+                                borderRadius: '6px',
+                                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+                            }}>
+                                <div style={{ flex: '1', minWidth: '180px', position: 'relative' }}>
+                                    <span className="p-input-icon-left" style={{ width: '100%' }}>
+                                        <i className="pi pi-search" style={{ fontSize: '0.75rem', opacity: 0.5 }}></i>
+                                        <InputText
+                                            placeholder="Search..."
+                                            style={{ width: '100%', fontSize: '12px' }}
+                                        />
+                                    </span>
+                                </div>
+                                <input
+                                    type="date"
+                                    style={{
+                                        padding: '0.5rem',
+                                        fontSize: '12px',
+                                        border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
+                                        borderRadius: '4px',
+                                        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                                        color: isDark ? '#e5e7eb' : '#111827'
+                                    }}
+                                />
+                                <Button
+                                    icon="pi pi-history"
+                                    label="History"
+                                    size="small"
+                                    severity="info"
+                                    outlined
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        fontSize: '12px'
+                                    }}
+                                    onClick={() => {
+                                        // History toggle functionality
+                                    }}
+                                />
+                            </div>
+
+                            {/* Details Grid */}
+                            <div style={{ 
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                                gap: '1rem',
+                                marginBottom: '1rem'
+                            }}>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: isDark ? '#1f2937' : '#f8f9fa',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`
+                                }}>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: isDark ? '#9ca3af' : '#6c757d',
+                                        marginBottom: '0.5rem',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '600'
+                                    }}>
+                                        Shift
+                                    </div>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        fontWeight: 'bold',
+                                        color: isDark ? '#e5e7eb' : '#212529'
+                                    }}>
+                                        {selectedViewRoute.shift || 'N/A'}
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: isDark ? '#1f2937' : '#f8f9fa',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`
+                                }}>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: isDark ? '#9ca3af' : '#6c757d',
+                                        marginBottom: '0.5rem',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '600'
+                                    }}>
+                                        Warehouse
+                                    </div>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        fontWeight: 'bold',
+                                        color: isDark ? '#e5e7eb' : '#212529'
+                                    }}>
+                                        {selectedViewRoute.warehouse || 'N/A'}
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: isDark ? '#1f2937' : '#f8f9fa',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${isDark ? '#374151' : '#e9ecef'}`
+                                }}>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        color: isDark ? '#9ca3af' : '#6c757d',
+                                        marginBottom: '0.5rem',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '600'
+                                    }}>
+                                        Status
+                                    </div>
+                                    <div style={{
+                                        display: 'inline-block',
+                                        padding: '0.25rem 0.75rem',
+                                        backgroundColor: '#10b981',
+                                        color: 'white',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: '600'
+                                    }}>
+                                        Active
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Additional Info */}
+                            <div style={{
+                                padding: '1rem',
+                                backgroundColor: isDark ? '#1a1a2e' : '#f0f7ff',
+                                borderLeft: '3px solid #3b82f6',
+                                borderRadius: '4px',
+                                marginBottom: '1rem'
+                            }}>
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: isDark ? '#93c5fd' : '#1e40af',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <i className="pi pi-info-circle" style={{ fontSize: '0.875rem' }}></i>
+                                    <span>Last updated: {new Date().toLocaleDateString('ms-MY')}</span>
+                                </div>
+                            </div>
                             
                             <div style={{ 
-                                marginTop: '1rem',
-                                textAlign: 'center'
+                                display: 'flex',
+                                gap: '0.5rem',
+                                justifyContent: 'flex-end'
                             }}>
                                 <Button 
                                     label="Close"
@@ -4802,7 +4981,13 @@ export default function FlexibleScrollDemo() {
                                     onClick={() => setViewDialogVisible(false)}
                                     severity="secondary"
                                     size="small"
-                                    text
+                                />
+                                <Button 
+                                    label="Edit Route"
+                                    icon="pi pi-pencil"
+                                    onClick={() => setViewDialogVisible(false)}
+                                    severity="info"
+                                    size="small"
                                 />
                             </div>
                         </div>
@@ -5815,18 +6000,30 @@ export default function FlexibleScrollDemo() {
                                 alignItems: 'center',
                                 padding: '0.5rem 0',
                                 borderTop: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
+                                flexWrap: 'wrap',
+                                gap: '1rem'
                             }}>
+                                <div style={{
+                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                    fontSize: '0.875rem',
+                                    display: 'flex',
+                                    gap: '1rem'
+                                }}>
+                                    <span>
+                                        Active: <span style={{ fontWeight: 'bold', color: isDark ? '#10b981' : '#059669' }}>{getActiveChangelog().length}</span>
+                                    </span>
+                                    <span>
+                                        Archived: <span style={{ fontWeight: 'bold', color: isDark ? '#6b7280' : '#9ca3af' }}>{changelog.filter(e => e.isArchived).length}</span>
+                                    </span>
+                                    <span>
+                                        Total: <span style={{ fontWeight: 'bold' }}>{changelog.length}</span>
+                                    </span>
+                                </div>
                                 <span style={{
                                     color: isDark ? '#9ca3af' : '#6b7280',
                                     fontSize: '0.875rem'
                                 }}>
-                                    Total: {getFilteredChangelog().length} of {changelog.length} entries
-                                </span>
-                                <span style={{
-                                    color: isDark ? '#9ca3af' : '#6b7280',
-                                    fontSize: '0.875rem'
-                                }}>
-                                    Last Modified: {changelog[0]?.timestamp || 'N/A'}
+                                    Last: {changelog[0]?.timestamp || 'N/A'}
                                 </span>
                             </div>
                         )
@@ -5844,6 +6041,58 @@ export default function FlexibleScrollDemo() {
                         </div>
                     ) : (
                         <>
+                            {/* Latest Changes Summary - Show if no filters applied */}
+                            {!changelogDateRange && !changelogSearchText && changelogFilterAction === 'all' && changelogFilterType === 'all' && getLatestChanges().length > 0 && (
+                                <div style={{
+                                    padding: '1rem',
+                                    marginBottom: '1.5rem',
+                                    backgroundColor: isDark ? '#064e3b' : '#d1fae5',
+                                    borderLeft: '4px solid #10b981',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${isDark ? '#047857' : '#a7f3d0'}`
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        marginBottom: '1rem',
+                                        color: isDark ? '#a7f3d0' : '#047857',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        <i className="pi pi-star-fill" style={{ fontSize: '1rem' }}></i>
+                                        Latest Changes (Last 24 Hours)
+                                    </div>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: deviceInfo.isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
+                                        gap: '0.5rem'
+                                    }}>
+                                        {getLatestChanges().map((entry) => (
+                                            <div key={entry.id} style={{
+                                                padding: '0.75rem',
+                                                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                                                borderRadius: '6px',
+                                                fontSize: '0.75rem',
+                                                color: isDark ? '#e5e7eb' : '#374151'
+                                            }}>
+                                                <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                                                    {entry.action.toUpperCase()} {entry.type}
+                                                </div>
+                                                <div style={{ opacity: 0.8 }}>
+                                                    {entry.type === 'route' 
+                                                        ? `Route: ${entry.details.route || 'N/A'}`
+                                                        : `Location: ${entry.details.code || 'N/A'}`
+                                                    }
+                                                </div>
+                                                <div style={{ opacity: 0.6, marginTop: '0.25rem' }}>
+                                                    {entry.timestamp}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Filter Controls */}
                             <div style={{
                                 display: 'flex',
@@ -6045,18 +6294,21 @@ export default function FlexibleScrollDemo() {
                                     return (
                                         <div key={entry.id} style={{
                                             padding: '1rem',
-                                            backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
-                                            borderLeft: `4px solid ${actionColors[entry.action]}`,
+                                            backgroundColor: entry.isArchived 
+                                                ? (isDark ? '#0f172a' : '#f3f4f6')
+                                                : (isDark ? '#1a1a1a' : '#f9fafb'),
+                                            borderLeft: `4px solid ${entry.isArchived ? '#6b7280' : actionColors[entry.action]}`,
                                             borderRadius: '8px',
                                             fontSize: '0.875rem',
                                             display: 'flex',
                                             gap: '1rem',
                                             alignItems: 'flex-start',
                                             transition: 'all 0.2s ease',
-                                            boxShadow: isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)'
+                                            boxShadow: isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
+                                            opacity: entry.isArchived ? 0.7 : 1
                                         }}>
                                             <i className={`pi ${actionIcons[entry.action]}`} style={{
-                                                color: actionColors[entry.action],
+                                                color: entry.isArchived ? '#6b7280' : actionColors[entry.action],
                                                 fontSize: '1.25rem',
                                                 marginTop: '0.1rem'
                                             }}></i>
@@ -6065,19 +6317,28 @@ export default function FlexibleScrollDemo() {
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     marginBottom: '0.5rem',
-                                                    alignItems: 'center'
+                                                    alignItems: 'center',
+                                                    flexWrap: 'wrap',
+                                                    gap: '0.5rem'
                                                 }}>
                                                     <span style={{
                                                         fontWeight: '700',
-                                                        color: actionColors[entry.action],
+                                                        color: entry.isArchived ? '#6b7280' : actionColors[entry.action],
                                                         textTransform: 'uppercase',
                                                         fontSize: '0.75rem',
                                                         letterSpacing: '1px',
                                                         padding: '0.25rem 0.75rem',
-                                                        backgroundColor: `${actionColors[entry.action]}20`,
+                                                        backgroundColor: entry.isArchived 
+                                                            ? '#d1d5db40'
+                                                            : `${actionColors[entry.action]}20`,
                                                         borderRadius: '4px'
                                                     }}>
                                                         {entry.action} {entry.type}
+                                                        {entry.isArchived && (
+                                                            <span style={{ marginLeft: '0.5rem', opacity: 0.7 }}>
+                                                                📦 ARCHIVED
+                                                            </span>
+                                                        )}
                                                     </span>
                                                     <span style={{
                                                         color: isDark ? '#9ca3af' : '#6b7280',
@@ -6923,6 +7184,179 @@ export default function FlexibleScrollDemo() {
                     onColorChange={handleMarkerColorChange}
                     locationName={colorPickerLocationName}
                 />
+
+                {/* Resize Screen Dialog */}
+                <Dialog
+                    header={
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            color: isDark ? '#ffffff' : '#000000'
+                        }}>
+                            <i className="pi pi-window-maximize" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
+                            <span>Resize Screen</span>
+                        </div>
+                    }
+                    visible={resizeScreenDialogVisible}
+                    style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
+                    modal
+                    dismissableMask
+                    transitionOptions={{ timeout: 300 }}
+                    onHide={() => {
+                        setResizeScreenDialogVisible(false);
+                        setResizeInputWidth('');
+                        setResizeInputHeight('');
+                        setResizeError('');
+                    }}
+                >
+                    <div style={{ padding: '1rem' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: isDark ? '#e5e5e5' : '#000000'
+                            }}>
+                                Width (px)
+                            </label>
+                            <InputText
+                                type="number"
+                                value={resizeInputWidth}
+                                onChange={(e) => {
+                                    setResizeInputWidth(e.target.value);
+                                    setResizeError('');
+                                }}
+                                placeholder="e.g. 500"
+                                min="300"
+                                max="1920"
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                color: isDark ? '#e5e5e5' : '#000000'
+                            }}>
+                                Height (px)
+                            </label>
+                            <InputText
+                                type="number"
+                                value={resizeInputHeight}
+                                onChange={(e) => {
+                                    setResizeInputHeight(e.target.value);
+                                    setResizeError('');
+                                }}
+                                placeholder="e.g. 1200"
+                                min="300"
+                                max="2160"
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        {resizeError && (
+                            <div style={{
+                                padding: '0.75rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#991b1b',
+                                borderRadius: '6px',
+                                marginBottom: '1rem',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-times-circle"></i>
+                                {resizeError}
+                            </div>
+                        )}
+
+                        {screenWidth && screenHeight && (
+                            <div style={{
+                                padding: '0.75rem',
+                                backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
+                                color: isDark ? '#93c5fd' : '#0c4a6e',
+                                borderRadius: '6px',
+                                marginBottom: '1rem',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="pi pi-check-circle"></i>
+                                <span>Current size: {screenWidth}×{screenHeight}px</span>
+                            </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Cancel"
+                                icon="pi pi-times"
+                                onClick={() => {
+                                    setResizeScreenDialogVisible(false);
+                                    setResizeInputWidth('');
+                                    setResizeInputHeight('');
+                                    setResizeError('');
+                                }}
+                                className="p-button-text"
+                                size="small"
+                            />
+                            <Button
+                                label="Clear Size"
+                                icon="pi pi-trash"
+                                onClick={() => {
+                                    localStorage.removeItem('screenWidth');
+                                    localStorage.removeItem('screenHeight');
+                                    setScreenWidth(null);
+                                    setScreenHeight(null);
+                                    setResizeInputWidth('');
+                                    setResizeInputHeight('');
+                                    setResizeError('');
+                                    setResizeScreenDialogVisible(false);
+                                }}
+                                severity="warning"
+                                size="small"
+                            />
+                            <Button
+                                label="Save & Apply"
+                                icon="pi pi-check"
+                                onClick={() => {
+                                    const width = parseInt(resizeInputWidth);
+                                    const height = parseInt(resizeInputHeight);
+
+                                    if (!width || !height) {
+                                        setResizeError('Both width and height are required');
+                                        return;
+                                    }
+
+                                    if (width < 300 || width > 1920) {
+                                        setResizeError('Width must be between 300 and 1920');
+                                        return;
+                                    }
+
+                                    if (height < 300 || height > 2160) {
+                                        setResizeError('Height must be between 300 and 2160');
+                                        return;
+                                    }
+
+                                    localStorage.setItem('screenWidth', width);
+                                    localStorage.setItem('screenHeight', height);
+                                    setScreenWidth(width);
+                                    setScreenHeight(height);
+                                    setResizeInputWidth('');
+                                    setResizeInputHeight('');
+                                    setResizeError('');
+                                    setResizeScreenDialogVisible(false);
+                                }}
+                                severity="success"
+                                size="small"
+                            />
+                        </div>
+                    </div>
+                </Dialog>
             </div>
             
             {/* Device Info Footer */}

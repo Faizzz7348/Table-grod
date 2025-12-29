@@ -13,10 +13,10 @@ L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    iconSize: [20, 33],        // Smaller size (default is 25x41)
-    iconAnchor: [10, 33],      // Point of the icon which will correspond to marker's location
-    popupAnchor: [0, -33],     // Point from which the popup should open relative to the iconAnchor
-    shadowSize: [33, 33]       // Smaller shadow size
+    iconSize: [15, 25],        // Smaller size (reduced from 20x33)
+    iconAnchor: [7, 25],       // Point of the icon which will correspond to marker's location
+    popupAnchor: [0, -25],     // Point from which the popup should open relative to the iconAnchor
+    shadowSize: [25, 25]       // Smaller shadow size
 });
 
 // Function to create custom colored marker icon
@@ -25,7 +25,7 @@ const createColoredMarkerIcon = (color = '#dc3545') => {
         className: 'custom-marker-icon',
         html: `
             <div style="position: relative;">
-                <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+                <svg width="24" height="32" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
                     <path d="M15 0C8.925 0 4 4.925 4 11c0 8.25 11 29 11 29s11-20.75 11-29c0-6.075-4.925-11-11-11z" 
                           fill="${color}" 
                           stroke="white" 
@@ -34,9 +34,9 @@ const createColoredMarkerIcon = (color = '#dc3545') => {
                 </svg>
             </div>
         `,
-        iconSize: [30, 40],
-        iconAnchor: [15, 40],
-        popupAnchor: [0, -40]
+        iconSize: [24, 32],
+        iconAnchor: [12, 32],
+        popupAnchor: [0, -32]
     });
 };
 
