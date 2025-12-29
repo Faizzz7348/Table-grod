@@ -979,6 +979,7 @@ export default function FlexibleScrollDemo() {
 
     const getPowerStatus = (powerMode) => {
         const today = new Date().getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        const dateNum = new Date().getDate(); // 1-31
         
         switch(powerMode) {
             case 'Daily':
@@ -987,13 +988,11 @@ export default function FlexibleScrollDemo() {
                 // Off on Friday (5) and Saturday (6)
                 return (today === 5 || today === 6) ? 'OFF' : 'ON';
             case 'Alt 1':
-                // Alternating: OFF on even dates (2,4,6,8...), ON on odd dates (1,3,5,7...)
-                const dateNum = new Date().getDate();
-                return (dateNum % 2 === 0) ? 'OFF' : 'ON';
+                // Alternating daily: ON on odd dates (1,3,5,7,9...)
+                return (dateNum % 2 === 1) ? 'ON' : 'OFF';
             case 'Alt 2':
-                // Alternating: ON on even dates (2,4,6,8...), OFF on odd dates (1,3,5,7...)
-                const dateNum2 = new Date().getDate();
-                return (dateNum2 % 2 === 0) ? 'ON' : 'OFF';
+                // Alternating daily: ON on even dates (2,4,6,8,10...)
+                return (dateNum % 2 === 0) ? 'ON' : 'OFF';
             default:
                 return 'OFF';
         }
@@ -5571,13 +5570,13 @@ export default function FlexibleScrollDemo() {
                                 { 
                                     value: 'Alt 1', 
                                     label: 'Alternate 1', 
-                                    description: 'ON: Mon, Wed, Fri, Sun',
+                                    description: 'ON: Odd dates (1,3,5,7...)',
                                     icon: 'pi-chart-line'
                                 },
                                 { 
                                     value: 'Alt 2', 
                                     label: 'Alternate 2', 
-                                    description: 'ON: Tue, Thu, Sat',
+                                    description: 'ON: Even dates (2,4,6,8...)',
                                     icon: 'pi-chart-bar'
                                 }
                             ].map((mode) => {
