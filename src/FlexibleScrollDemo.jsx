@@ -336,6 +336,7 @@ export default function FlexibleScrollDemo() {
     
     const [routes, setRoutes] = useState([]);
     const [dialogVisible, setDialogVisible] = useState(false);
+    const [dialogMaximized, setDialogMaximized] = useState(false);
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
@@ -561,20 +562,6 @@ export default function FlexibleScrollDemo() {
     // Update Notification State
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
     const APP_VERSION = '1.0.1'; // Increment this when pushing updates
-
-    // Screen Resize State
-    const [resizeScreenDialogVisible, setResizeScreenDialogVisible] = useState(false);
-    const [screenWidth, setScreenWidth] = useState(() => {
-        const saved = localStorage.getItem('screenWidth');
-        return saved ? parseInt(saved) : null;
-    });
-    const [screenHeight, setScreenHeight] = useState(() => {
-        const saved = localStorage.getItem('screenHeight');
-        return saved ? parseInt(saved) : null;
-    });
-    const [resizeInputWidth, setResizeInputWidth] = useState('');
-    const [resizeInputHeight, setResizeInputHeight] = useState('');
-    const [resizeError, setResizeError] = useState('');
 
     // Calculate dynamic table width based on visible columns
     const calculateTableWidth = () => {
@@ -2538,16 +2525,12 @@ export default function FlexibleScrollDemo() {
     return (
         <div style={{ 
             minHeight: '100vh',
-            width: screenWidth ? `${screenWidth}px` : '100%',
-            height: screenHeight ? `${screenHeight}px` : 'auto',
             background: isDark 
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
                 : 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)',
             color: isDark ? '#e5e5e5' : '#1f2937',
             transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            animation: 'fadeIn 0.6s ease-out',
-            overflowY: screenHeight ? 'auto' : 'visible',
-            margin: screenWidth || screenHeight ? '0 auto' : 'auto'
+            animation: 'fadeIn 0.6s ease-out'
         }}>
             <style>{tableStyles}</style>
             {/* Navigation Header */}
@@ -2781,62 +2764,6 @@ export default function FlexibleScrollDemo() {
                                             textAlign: 'center'
                                         }}>
                                             {changelog.length}
-                                        </span>
-                                    )}
-                                </div>
-                                
-                                {/* Resize Screen */}
-                                <div
-                                    onClick={() => {
-                                        setResizeScreenDialogVisible(true);
-                                        setCustomMenuVisible(false);
-                                    }}
-                                    style={{
-                                        padding: '1rem 1.25rem',
-                                        borderRadius: '12px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '1rem',
-                                        backgroundColor: 'transparent',
-                                        marginBottom: '0.5rem'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                    <div style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '10px',
-                                        background: 'transparent',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <i className="pi pi-window-maximize" style={{
-                                            color: '#f59e0b',
-                                            fontSize: '1.1rem'
-                                        }}></i>
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
-                                            Resize Screen
-                                        </p>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
-                                            Set custom dimensions
-                                        </p>
-                                    </div>
-                                    {screenWidth && screenHeight && (
-                                        <span style={{
-                                            backgroundColor: '#f59e0b',
-                                            color: '#ffffff',
-                                            fontSize: '0.7rem',
-                                            fontWeight: '700',
-                                            padding: '0.25rem 0.6rem',
-                                            borderRadius: '12px'
-                                        }}>
-                                            {screenWidth}×{screenHeight}
                                         </span>
                                     )}
                                 </div>
@@ -3259,12 +3186,12 @@ export default function FlexibleScrollDemo() {
                         })()
                     }
                     visible={dialogVisible} 
-                    style={{ width: deviceInfo.dialogWidth }} 
-                    maximizable
+                    style={{ width: dialogMaximized ? '95vw' : deviceInfo.dialogWidth }} 
                     modal
+                    closable={false}
                     closeOnEscape
                     dismissableMask 
-                    contentStyle={{ height: deviceInfo.isMobile ? '400px' : '500px' }} 
+                    contentStyle={{ height: dialogMaximized ? '90vh' : (deviceInfo.isMobile ? '400px' : '500px') }} 
                     onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
                     headerStyle={{ color: isDark ? '#fff' : '#000' }}
@@ -3329,6 +3256,21 @@ export default function FlexibleScrollDemo() {
                                 onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
                                 raised
                             />
+                            {functionDropdownVisible && (
+                                <div 
+                                    style={{
+                                        position: 'fixed',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                        backdropFilter: 'blur(4px)',
+                                        zIndex: 999
+                                    }}
+                                    onClick={() => setFunctionDropdownVisible(false)}
+                                />
+                            )}
                             {functionDropdownVisible && (
                                 <div style={{
                                     position: 'absolute',
@@ -3395,10 +3337,22 @@ export default function FlexibleScrollDemo() {
                                                 severity="secondary"
                                                 size="small"
                                                 text
-                                                style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
+                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
                                                 onClick={() => {
                                                     setTempVisibleColumns({...visibleColumns});
                                                     setColumnModalVisible(true);
+                                                    setFunctionDropdownVisible(false);
+                                                }}
+                                            />
+                                            <Button 
+                                                label={dialogMaximized ? 'Exit Full View' : 'Full View'}
+                                                icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
+                                                severity={dialogMaximized ? 'warning' : 'secondary'}
+                                                size="small"
+                                                text
+                                                style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
+                                                onClick={() => {
+                                                    setDialogMaximized(!dialogMaximized);
                                                     setFunctionDropdownVisible(false);
                                                 }}
                                             />
@@ -7460,178 +7414,6 @@ export default function FlexibleScrollDemo() {
                     locationName={colorPickerLocationName}
                 />
 
-                {/* Resize Screen Dialog */}
-                <Dialog
-                    header={
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            color: isDark ? '#ffffff' : '#000000'
-                        }}>
-                            <i className="pi pi-window-maximize" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
-                            <span>Resize Screen</span>
-                        </div>
-                    }
-                    visible={resizeScreenDialogVisible}
-                    style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
-                    modal
-                    dismissableMask
-                    transitionOptions={{ timeout: 300 }}
-                    onHide={() => {
-                        setResizeScreenDialogVisible(false);
-                        setResizeInputWidth('');
-                        setResizeInputHeight('');
-                        setResizeError('');
-                    }}
-                >
-                    <div style={{ padding: '1rem' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ 
-                                display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
-                            }}>
-                                Width (px)
-                            </label>
-                            <InputText
-                                type="number"
-                                value={resizeInputWidth}
-                                onChange={(e) => {
-                                    setResizeInputWidth(e.target.value);
-                                    setResizeError('');
-                                }}
-                                placeholder="e.g. 500"
-                                min="300"
-                                max="1920"
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-                        
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ 
-                                display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
-                            }}>
-                                Height (px)
-                            </label>
-                            <InputText
-                                type="number"
-                                value={resizeInputHeight}
-                                onChange={(e) => {
-                                    setResizeInputHeight(e.target.value);
-                                    setResizeError('');
-                                }}
-                                placeholder="e.g. 1200"
-                                min="300"
-                                max="2160"
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-
-                        {resizeError && (
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
-                                borderRadius: '6px',
-                                marginBottom: '1rem',
-                                fontSize: '0.875rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
-                                <i className="pi pi-times-circle"></i>
-                                {resizeError}
-                            </div>
-                        )}
-
-                        {screenWidth && screenHeight && (
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
-                                color: isDark ? '#93c5fd' : '#0c4a6e',
-                                borderRadius: '6px',
-                                marginBottom: '1rem',
-                                fontSize: '0.875rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
-                                <i className="pi pi-check-circle"></i>
-                                <span>Current size: {screenWidth}×{screenHeight}px</span>
-                            </div>
-                        )}
-                        
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                            <Button
-                                label="Cancel"
-                                icon="pi pi-times"
-                                onClick={() => {
-                                    setResizeScreenDialogVisible(false);
-                                    setResizeInputWidth('');
-                                    setResizeInputHeight('');
-                                    setResizeError('');
-                                }}
-                                className="p-button-text"
-                                size="small"
-                            />
-                            <Button
-                                label="Clear Size"
-                                icon="pi pi-trash"
-                                onClick={() => {
-                                    localStorage.removeItem('screenWidth');
-                                    localStorage.removeItem('screenHeight');
-                                    setScreenWidth(null);
-                                    setScreenHeight(null);
-                                    setResizeInputWidth('');
-                                    setResizeInputHeight('');
-                                    setResizeError('');
-                                    setResizeScreenDialogVisible(false);
-                                }}
-                                severity="warning"
-                                size="small"
-                            />
-                            <Button
-                                label="Save & Apply"
-                                icon="pi pi-check"
-                                onClick={() => {
-                                    const width = parseInt(resizeInputWidth);
-                                    const height = parseInt(resizeInputHeight);
-
-                                    if (!width || !height) {
-                                        setResizeError('Both width and height are required');
-                                        return;
-                                    }
-
-                                    if (width < 300 || width > 1920) {
-                                        setResizeError('Width must be between 300 and 1920');
-                                        return;
-                                    }
-
-                                    if (height < 300 || height > 2160) {
-                                        setResizeError('Height must be between 300 and 2160');
-                                        return;
-                                    }
-
-                                    localStorage.setItem('screenWidth', width);
-                                    localStorage.setItem('screenHeight', height);
-                                    setScreenWidth(width);
-                                    setScreenHeight(height);
-                                    setResizeInputWidth('');
-                                    setResizeInputHeight('');
-                                    setResizeError('');
-                                    setResizeScreenDialogVisible(false);
-                                }}
-                                severity="success"
-                                size="small"
-                            />
-                        </div>
-                    </div>
-                </Dialog>
             </div>
             
             {/* Device Info Footer */}
