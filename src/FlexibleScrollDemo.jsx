@@ -389,6 +389,7 @@ export default function FlexibleScrollDemo() {
     
     // Pin Row State
     const [pinnedRows, setPinnedRows] = useState(new Set());
+    const [pinnedDialogRows, setPinnedDialogRows] = useState(new Set()); // Pin state for dialog table rows
     
     // Save Order Preset State
     const [savePresetDialogVisible, setSavePresetDialogVisible] = useState(false);
@@ -428,6 +429,7 @@ export default function FlexibleScrollDemo() {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [passwordError, setPasswordError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     
     // General operation loading state
     const [savingInfo, setSavingInfo] = useState(false);
@@ -440,6 +442,9 @@ export default function FlexibleScrollDemo() {
         confirmPassword: ''
     });
     const [changePasswordError, setChangePasswordError] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
     // Function Dropdown State
     const [functionDropdownVisible, setFunctionDropdownVisible] = useState(false);
@@ -689,6 +694,13 @@ export default function FlexibleScrollDemo() {
         const unpinned = routes.filter(route => !pinnedRows.has(route.id));
         return [...pinned, ...unpinned];
     }, [routes, pinnedRows]);
+
+    // Compute displayed dialog data with pinned rows at top
+    const displayedDialogData = React.useMemo(() => {
+        const pinned = dialogData.filter(row => pinnedDialogRows.has(row.id));
+        const unpinned = dialogData.filter(row => !pinnedDialogRows.has(row.id));
+        return [...pinned, ...unpinned];
+    }, [dialogData, pinnedDialogRows]);
 
     // Calculate kilometer values for dialog data based on custom sort order
     const dialogDataWithKilometers = React.useMemo(() => {
@@ -1647,6 +1659,7 @@ export default function FlexibleScrollDemo() {
                 setPasswordLoading(false);
                 setPasswordDialogVisible(false);
                 setPasswordInput('');
+                setShowPassword(false);
                 
                 // Enter edit mode
                 setOriginalData([...routes]);
@@ -1657,6 +1670,7 @@ export default function FlexibleScrollDemo() {
         } else {
             setPasswordError('Incorrect password. Please try again.');
             setPasswordInput('');
+            setShowPassword(false);
         }
     };
     
@@ -1693,6 +1707,9 @@ export default function FlexibleScrollDemo() {
             newPassword: '',
             confirmPassword: ''
         });
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
         setChangePasswordError('');
         
         alert('✅ Password changed successfully!');
@@ -2249,6 +2266,18 @@ export default function FlexibleScrollDemo() {
 
     const handleTogglePin = (rowId) => {
         setPinnedRows(prev => {
+            const newPinned = new Set(prev);
+            if (newPinned.has(rowId)) {
+                newPinned.delete(rowId);
+            } else {
+                newPinned.add(rowId);
+            }
+            return newPinned;
+        });
+    };
+
+    const handleTogglePinDialog = (rowId) => {
+        setPinnedDialogRows(prev => {
             const newPinned = new Set(prev);
             if (newPinned.has(rowId)) {
                 newPinned.delete(rowId);
@@ -3553,7 +3582,7 @@ export default function FlexibleScrollDemo() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {dialogData.map((rowData) => {
+                                    {displayedDialogData.map((rowData) => {
                                         const order = sortOrders[rowData.id];
                                         const isDuplicate = isOrderDuplicate(rowData.id, order);
                                         return (
@@ -3599,7 +3628,7 @@ export default function FlexibleScrollDemo() {
                         </div>
                     ) : (
                     <DataTable 
-                        value={dialogData}
+                        value={displayedDialogData}
                         frozenValue={frozenRow}
                         scrollable 
                         scrollHeight="flex" 
@@ -3624,6 +3653,11 @@ export default function FlexibleScrollDemo() {
                             // Highlight modified rows with light yellow background
                             else if (modifiedRows.has(rowData.id)) {
                                 classes += isDark ? 'modified-row-dark' : 'modified-row-light';
+                            }
+                            
+                            // Add pinned class for pinned rows
+                            if (pinnedDialogRows.has(rowData.id)) {
+                                classes += (classes ? ' ' : '') + 'pinned-row';
                             }
                             
                             // Add disabled class for power off status
@@ -3960,7 +3994,9 @@ export default function FlexibleScrollDemo() {
                             align="center" 
                             alignHeader="center"
                             headerStyle={{ color: '#ef4444' }}
-                            body={(rowData) => (
+                            body={(rowData) => {
+                                const isPinnedDialog = pinnedDialogRows.has(rowData.id);
+                                return (
                                 <div style={{ 
                                     display: 'flex', 
                                     gap: '0.5rem', 
@@ -4023,23 +4059,6 @@ export default function FlexibleScrollDemo() {
                                             style={{ backgroundColor: isDark ? '#1a1a1a' : undefined }}
                                         />
                                     )}
-                                    
-                                    {/* Marker Color Button - Only in Edit Mode */}
-                                    {editMode && (
-                                        <Button 
-                                            icon="pi pi-palette"
-                                            size="small"
-                                            severity="help"
-                                            tooltip="Set Marker Color"
-                                            tooltipOptions={{ position: 'top' }}
-                                            text
-                                            onClick={() => openColorPicker(rowData.id, rowData.location)}
-                                            style={{ 
-                                                backgroundColor: isDark ? '#1a1a1a' : undefined,
-                                                color: rowData.markerColor || '#dc3545'
-                                            }}
-                                        />
-                                    )}
 
                                     {/* Delete Button - Only in Edit Mode */}
                                     {editMode && (
@@ -4055,8 +4074,9 @@ export default function FlexibleScrollDemo() {
                                         />
                                     )}
                                 </div>
-                            )}
-                            style={{ width: editMode ? '260px' : '100px', minWidth: editMode ? '260px' : '100px' }}
+                                );
+                            }}
+                            style={{ width: editMode ? '220px' : '80px', minWidth: editMode ? '220px' : '80px' }}
                         />
                     </DataTable>
                     )}
@@ -4378,6 +4398,69 @@ export default function FlexibleScrollDemo() {
                                                 </div>
                                             </div>
                                             
+                                            {/* Marker Color Picker Section - Only in Edit Mode and for Locations */}
+                                            {editMode && !isRouteInfo && (
+                                                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
+                                                    <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
+                                                        <i className="pi pi-palette" style={{ marginRight: '8px' }}></i>
+                                                        Marker Color
+                                                    </strong>
+                                                    <div style={{ 
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: '12px',
+                                                        alignItems: 'center',
+                                                        padding: '15px',
+                                                        backgroundColor: isDark ? 'rgba(99, 102, 241, 0.05)' : '#f8f9fa',
+                                                        borderRadius: '8px',
+                                                        border: isDark ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid #e9ecef'
+                                                    }}>
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '12px'
+                                                        }}>
+                                                            <span style={{ fontSize: '11px', color: isDark ? '#9ca3af' : '#6c757d' }}>Current Color:</span>
+                                                            <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+                                                                <path 
+                                                                    d="M15 0C8.925 0 4 4.925 4 11c0 8.25 11 29 11 29s11-20.75 11-29c0-6.075-4.925-11-11-11z" 
+                                                                    fill={selectedRowInfo.markerColor || '#dc3545'}
+                                                                    stroke="white" 
+                                                                    strokeWidth="2"
+                                                                />
+                                                                <circle cx="15" cy="11" r="4" fill="white"/>
+                                                            </svg>
+                                                            <code style={{ 
+                                                                padding: '5px 10px',
+                                                                backgroundColor: isDark ? '#1f2937' : 'white',
+                                                                border: isDark ? '1px solid #374151' : '1px solid #dee2e6',
+                                                                borderRadius: '4px',
+                                                                fontFamily: 'monospace',
+                                                                fontSize: '11px',
+                                                                color: isDark ? '#e5e5e5' : '#495057'
+                                                            }}>
+                                                                {selectedRowInfo.markerColor || '#dc3545'}
+                                                            </code>
+                                                        </div>
+                                                        <Button
+                                                            label="Change Marker Color"
+                                                            icon="pi pi-palette"
+                                                            size="small"
+                                                            severity="secondary"
+                                                            onClick={() => {
+                                                                setCurrentEditingRowId(selectedRowInfo.id);
+                                                                setColorPickerLocationName(selectedRowInfo.code || selectedRowInfo.location);
+                                                                setColorPickerVisible(true);
+                                                            }}
+                                                            style={{
+                                                                fontSize: '11px',
+                                                                padding: '8px 16px'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
                                             {/* Shortcut Section - Only for location info */}
                                             <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
                                                 <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
@@ -4692,42 +4775,6 @@ export default function FlexibleScrollDemo() {
                                                 </Button>
                                             );
                                             })()}
-                                            
-                                            {/* Marker Color Picker Button - Only in Edit Mode and for Locations */}
-                                            {editMode && !isRouteInfo && (
-                                                <Button
-                                                    tooltip="Set Marker Color"
-                                                    tooltipOptions={{ position: 'top' }}
-                                                    size="small"
-                                                    text
-                                                    style={{
-                                                        width: '40px',
-                                                        height: '40px',
-                                                        padding: 0,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        border: 'none',
-                                                        backgroundColor: 'transparent',
-                                                        color: selectedRowInfo.markerColor || '#dc3545',
-                                                        transition: 'all 0.2s ease',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1.1)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1)';
-                                                    }}
-                                                    onClick={() => {
-                                                        setCurrentEditingRowId(selectedRowInfo.id);
-                                                        setColorPickerLocationName(selectedRowInfo.code || selectedRowInfo.location);
-                                                        setColorPickerVisible(true);
-                                                    }}
-                                                >
-                                                    <i className="pi pi-palette" style={{ fontSize: '20px' }}></i>
-                                                </Button>
-                                            )}
                                         </div>
                                     </div>
                                         </>
@@ -5012,60 +5059,134 @@ export default function FlexibleScrollDemo() {
                             setPasswordDialogVisible(false);
                             setPasswordInput('');
                             setPasswordError('');
+                            setShowPassword(false);
                         }
                     }}
                 >
-                    <div style={{ padding: '1rem' }}>
-                        <p style={{ marginBottom: '1rem', color: isDark ? '#9ca3af' : '#6b7280' }}>
-                            Please enter your 4-digit password to access Edit Mode
-                        </p>
-                        
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ 
-                                display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
-                            }}>
-                                Password
-                            </label>
-                            <InputText
-                                type="password"
-                                value={passwordInput}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length <= 4 && /^\d*$/.test(value)) {
-                                        setPasswordInput(value);
-                                        setPasswordError('');
-                                    }
-                                }}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
-                                        handlePasswordSubmit();
-                                    }
-                                }}
-                                placeholder="Enter 4-digit password"
-                                maxLength={4}
-                                style={{ width: '100%' }}
-                                disabled={passwordLoading}
-                                autoFocus
-                            />
-                        </div>
-                        
-                        {passwordError && (
-                            <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
-                                borderRadius: '6px',
-                                marginBottom: '1rem',
+                    <div style={{ padding: '1.5rem' }}>
+                        <div style={{ 
+                            padding: '1rem',
+                            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
+                            borderRadius: '8px',
+                            marginBottom: '1.5rem',
+                            border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe'
+                        }}>
+                            <p style={{ 
+                                margin: 0,
+                                color: isDark ? '#93c5fd' : '#1e40af',
                                 fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.5rem'
                             }}>
-                                <i className="pi pi-times-circle"></i>
-                                {passwordError}
+                                <i className="pi pi-info-circle"></i>
+                                Please enter your 4-digit password to access Edit Mode
+                            </p>
+                        </div>
+                        
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ 
+                                display: 'block', 
+                                marginBottom: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: isDark ? '#e5e5e5' : '#1f2937',
+                                letterSpacing: '0.025em'
+                            }}>
+                                Password
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <InputText
+                                    type={showPassword ? "text" : "password"}
+                                    value={passwordInput}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length <= 4 && /^\d*$/.test(value)) {
+                                            setPasswordInput(value);
+                                            setPasswordError('');
+                                        }
+                                    }}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
+                                            handlePasswordSubmit();
+                                        }
+                                    }}
+                                    placeholder="Enter 4-digit password"
+                                    maxLength={4}
+                                    style={{ 
+                                        width: '100%',
+                                        paddingRight: '3rem',
+                                        fontSize: '1.125rem',
+                                        letterSpacing: showPassword ? 'normal' : '0.25rem',
+                                        fontWeight: '500'
+                                    }}
+                                    disabled={passwordLoading}
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    disabled={passwordLoading}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '0.75rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: passwordLoading ? 'not-allowed' : 'pointer',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        padding: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '4px',
+                                        transition: 'all 0.2s ease',
+                                        opacity: passwordLoading ? 0.5 : 1
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!passwordLoading) {
+                                            e.currentTarget.style.color = '#3b82f6';
+                                            e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <i className={showPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
+                                </button>
+                            </div>
+                            <div style={{ 
+                                marginTop: '0.5rem',
+                                fontSize: '0.75rem',
+                                color: isDark ? '#9ca3af' : '#6b7280',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                            }}>
+                                <i className="pi pi-shield" style={{ fontSize: '0.7rem' }}></i>
+                                {passwordInput.length}/4 digits entered
+                            </div>
+                        </div>
+                        
+                        {passwordError && (
+                            <div style={{
+                                padding: '1rem',
+                                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fee2e2',
+                                color: isDark ? '#fca5a5' : '#991b1b',
+                                borderRadius: '8px',
+                                marginBottom: '1.5rem',
+                                fontSize: '0.875rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca',
+                                animation: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)'
+                            }}>
+                                <i className="pi pi-times-circle" style={{ fontSize: '1rem' }}></i>
+                                <span style={{ fontWeight: '500' }}>{passwordError}</span>
                             </div>
                         )}
                         
@@ -5077,6 +5198,7 @@ export default function FlexibleScrollDemo() {
                                     setPasswordDialogVisible(false);
                                     setPasswordInput('');
                                     setPasswordError('');
+                                    setShowPassword(false);
                                 }}
                                 className="p-button-text"
                                 size="small"
@@ -5115,107 +5237,257 @@ export default function FlexibleScrollDemo() {
                             confirmPassword: ''
                         });
                         setChangePasswordError('');
+                        setShowCurrentPassword(false);
+                        setShowNewPassword(false);
+                        setShowConfirmPassword(false);
                     }}
                 >
-                    <div style={{ padding: '1rem' }}>
-                        <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ padding: '1.5rem' }}>
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <label style={{ 
                                 display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
+                                marginBottom: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: isDark ? '#e5e5e5' : '#1f2937',
+                                letterSpacing: '0.025em'
                             }}>
                                 Current Password
                             </label>
-                            <InputText
-                                type="password"
-                                value={changePasswordData.currentPassword}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length <= 4 && /^\d*$/.test(value)) {
-                                        setChangePasswordData({
-                                            ...changePasswordData,
-                                            currentPassword: value
-                                        });
-                                        setChangePasswordError('');
-                                    }
-                                }}
-                                placeholder="Enter current password"
-                                maxLength={4}
-                                style={{ width: '100%' }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <InputText
+                                    type={showCurrentPassword ? "text" : "password"}
+                                    value={changePasswordData.currentPassword}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length <= 4 && /^\d*$/.test(value)) {
+                                            setChangePasswordData({
+                                                ...changePasswordData,
+                                                currentPassword: value
+                                            });
+                                            setChangePasswordError('');
+                                        }
+                                    }}
+                                    placeholder="Enter current password"
+                                    maxLength={4}
+                                    style={{ 
+                                        width: '100%',
+                                        paddingRight: '3rem',
+                                        fontSize: '1.125rem',
+                                        letterSpacing: showCurrentPassword ? 'normal' : '0.25rem',
+                                        fontWeight: '500'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '0.75rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        padding: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '4px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = '#3b82f6';
+                                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <i className={showCurrentPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
+                                </button>
+                            </div>
                         </div>
                         
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <label style={{ 
                                 display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
+                                marginBottom: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: isDark ? '#e5e5e5' : '#1f2937',
+                                letterSpacing: '0.025em'
                             }}>
                                 New Password
                             </label>
-                            <InputText
-                                type="password"
-                                value={changePasswordData.newPassword}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length <= 4 && /^\d*$/.test(value)) {
-                                        setChangePasswordData({
-                                            ...changePasswordData,
-                                            newPassword: value
-                                        });
-                                        setChangePasswordError('');
-                                    }
-                                }}
-                                placeholder="Enter new 4-digit password"
-                                maxLength={4}
-                                style={{ width: '100%' }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <InputText
+                                    type={showNewPassword ? "text" : "password"}
+                                    value={changePasswordData.newPassword}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length <= 4 && /^\d*$/.test(value)) {
+                                            setChangePasswordData({
+                                                ...changePasswordData,
+                                                newPassword: value
+                                            });
+                                            setChangePasswordError('');
+                                        }
+                                    }}
+                                    placeholder="Enter new 4-digit password"
+                                    maxLength={4}
+                                    style={{ 
+                                        width: '100%',
+                                        paddingRight: '3rem',
+                                        fontSize: '1.125rem',
+                                        letterSpacing: showNewPassword ? 'normal' : '0.25rem',
+                                        fontWeight: '500'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '0.75rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        padding: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '4px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = '#3b82f6';
+                                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <i className={showNewPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
+                                </button>
+                            </div>
                         </div>
                         
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <label style={{ 
                                 display: 'block', 
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                color: isDark ? '#e5e5e5' : '#000000'
+                                marginBottom: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: isDark ? '#e5e5e5' : '#1f2937',
+                                letterSpacing: '0.025em'
                             }}>
                                 Confirm New Password
                             </label>
-                            <InputText
-                                type="password"
-                                value={changePasswordData.confirmPassword}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length <= 4 && /^\d*$/.test(value)) {
-                                        setChangePasswordData({
-                                            ...changePasswordData,
-                                            confirmPassword: value
-                                        });
-                                        setChangePasswordError('');
-                                    }
-                                }}
-                                placeholder="Confirm new password"
-                                maxLength={4}
-                                style={{ width: '100%' }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <InputText
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={changePasswordData.confirmPassword}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length <= 4 && /^\d*$/.test(value)) {
+                                            setChangePasswordData({
+                                                ...changePasswordData,
+                                                confirmPassword: value
+                                            });
+                                            setChangePasswordError('');
+                                        }
+                                    }}
+                                    placeholder="Confirm new password"
+                                    maxLength={4}
+                                    style={{ 
+                                        width: '100%',
+                                        paddingRight: '3rem',
+                                        fontSize: '1.125rem',
+                                        letterSpacing: showConfirmPassword ? 'normal' : '0.25rem',
+                                        fontWeight: '500'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '0.75rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        padding: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '4px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = '#3b82f6';
+                                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <i className={showConfirmPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
+                                </button>
+                            </div>
+                            <div style={{ 
+                                marginTop: '0.5rem',
+                                fontSize: '0.75rem',
+                                color: changePasswordData.newPassword && changePasswordData.confirmPassword && changePasswordData.newPassword === changePasswordData.confirmPassword
+                                    ? isDark ? '#86efac' : '#16a34a'
+                                    : isDark ? '#9ca3af' : '#6b7280',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                fontWeight: '500'
+                            }}>
+                                {changePasswordData.newPassword && changePasswordData.confirmPassword ? (
+                                    changePasswordData.newPassword === changePasswordData.confirmPassword ? (
+                                        <>
+                                            <i className="pi pi-check-circle" style={{ fontSize: '0.75rem' }}></i>
+                                            Passwords match
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="pi pi-times-circle" style={{ fontSize: '0.75rem', color: isDark ? '#fca5a5' : '#dc2626' }}></i>
+                                            <span style={{ color: isDark ? '#fca5a5' : '#dc2626' }}>Passwords don't match</span>
+                                        </>
+                                    )
+                                ) : null}
+                            </div>
                         </div>
                         
                         {changePasswordError && (
                             <div style={{
-                                padding: '0.75rem',
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
-                                borderRadius: '6px',
-                                marginBottom: '1rem',
+                                padding: '1rem',
+                                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fee2e2',
+                                color: isDark ? '#fca5a5' : '#991b1b',
+                                borderRadius: '8px',
+                                marginBottom: '1.5rem',
                                 fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.5rem'
+                                gap: '0.5rem',
+                                border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca',
+                                animation: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)'
                             }}>
-                                <i className="pi pi-times-circle"></i>
-                                {changePasswordError}
+                                <i className="pi pi-times-circle" style={{ fontSize: '1rem' }}></i>
+                                <span style={{ fontWeight: '500' }}>{changePasswordError}</span>
                             </div>
                         )}
                         
@@ -5231,6 +5503,9 @@ export default function FlexibleScrollDemo() {
                                         confirmPassword: ''
                                     });
                                     setChangePasswordError('');
+                                    setShowCurrentPassword(false);
+                                    setShowNewPassword(false);
+                                    setShowConfirmPassword(false);
                                 }}
                                 className="p-button-text"
                                 size="small"

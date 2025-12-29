@@ -204,34 +204,15 @@ body.dark .p-datatable .p-datatable-tbody > tr.row-disabled {
   color: #4a4a4a;
 }
 
-/* Pinned Row Styling */
+/* Pinned Row Styling - Only affects position, no background color */
 .p-datatable .p-datatable-tbody > tr.pinned-row {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
-  border-left: 4px solid #0ea5e9 !important;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15) !important;
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
 .p-datatable .p-datatable-tbody > tr.pinned-row > td {
-  background: transparent !important;
-  font-weight: 700 !important;
-}
-
-.p-datatable .p-datatable-tbody > tr.pinned-row:hover {
-  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%) !important;
-  transform: none !important;
-}
-
-body.dark .p-datatable .p-datatable-tbody > tr.pinned-row {
-  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%) !important;
-  border-left: 4px solid #0ea5e9 !important;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25) !important;
-}
-
-body.dark .p-datatable .p-datatable-tbody > tr.pinned-row:hover {
-  background: linear-gradient(135deg, #075985 0%, #0369a1 100%) !important;
+  font-weight: 600 !important;
 }
 
 /* New/Modified Row Highlight */
