@@ -2543,7 +2543,7 @@ export default function FlexibleScrollDemo() {
                 alignItems: 'center',
                 borderBottom: isDark ? '1px solid #334155' : '1px solid #9ca3af',
                 marginBottom: '2rem',
-                boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.6)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative'
             }}>
@@ -2596,7 +2596,7 @@ export default function FlexibleScrollDemo() {
                             WebkitBackdropFilter: isDark ? 'none' : 'blur(30px) saturate(200%)',
                             borderRadius: '16px',
                             boxShadow: isDark 
-                                ? '0 20px 60px rgba(0, 0, 0, 0.5)' 
+                                ? '0 8px 24px rgba(0, 0, 0, 0.3)' 
                                 : '0 8px 32px rgba(31, 38, 135, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
                             minWidth: '320px',
                             zIndex: 1000,
@@ -4216,270 +4216,124 @@ export default function FlexibleScrollDemo() {
                             )}
                             
                             {/* Other Information */}
-                            <div style={{ 
-                                backgroundColor: isDark ? 'transparent' : '#ffffff',
-                                borderRadius: '8px',
-                                border: isDark ? '1px solid #374151' : '1px solid #e9ecef'
-                            }}>
-                                <div style={{
-                                    padding: '10px 15px',
-                                    borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
-                                    backgroundColor: isDark ? 'transparent' : '#f8f9fa'
+                            {isRouteInfo && (
+                                <div style={{ 
+                                    backgroundColor: isDark ? 'transparent' : '#ffffff',
+                                    borderRadius: '8px',
+                                    border: isDark ? '1px solid #374151' : '1px solid #e9ecef'
                                 }}>
-                                    <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
-                                        {isRouteInfo ? 'Route Information' : 'General Information'}
-                                    </strong>
+                                    <div style={{
+                                        padding: '10px 15px',
+                                        borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
+                                        backgroundColor: isDark ? 'transparent' : '#f8f9fa'
+                                    }}>
+                                        <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
+                                            Route Information
+                                        </strong>
+                                    </div>
+                                    <div style={{ padding: '15px' }}>
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '10px',
+                                            fontSize: '11px'
+                                        }}>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Route:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Shift:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                                    {selectedRowInfo.locationCount || 0}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Description Section */}
+                                        <div style={{ 
+                                            marginTop: '15px', 
+                                            paddingTop: '15px', 
+                                            borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
+                                            </div>
+                                            <EditableDescriptionList
+                                                value={selectedRowInfo.description || ''}
+                                                onSave={(value) => {
+                                                    const updatedInfo = { ...selectedRowInfo, description: value };
+                                                    setSelectedRowInfo(updatedInfo);
+                                                    const updatedRoutes = routes.map(route => 
+                                                        route.id === selectedRowInfo.id ? { ...route, description: value } : route
+                                                    );
+                                                    setRoutes(updatedRoutes);
+                                                    setHasUnsavedChanges(true);
+                                                }}
+                                                isEditable={editMode}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style={{ padding: '15px' }}>
-                                    {isRouteInfo ? (
-                                        // Route Information
-                                        <>
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: '1fr 1fr',
-                                                gap: '10px',
-                                                fontSize: '11px'
-                                            }}>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Route:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Shift:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
-                                                        {selectedRowInfo.locationCount || 0}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Description Section */}
-                                            <div style={{ 
-                                                marginTop: '15px', 
-                                                paddingTop: '15px', 
-                                                borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                    <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
-                                                </div>
-                                                <EditableDescriptionList
-                                                    value={selectedRowInfo.description || ''}
-                                                    onSave={(value) => {
-                                                        const updatedInfo = { ...selectedRowInfo, description: value };
-                                                        setSelectedRowInfo(updatedInfo);
-                                                        const updatedRoutes = routes.map(route => 
-                                                            route.id === selectedRowInfo.id ? { ...route, description: value } : route
-                                                        );
-                                                        setRoutes(updatedRoutes);
-                                                        setHasUnsavedChanges(true);
-                                                    }}
-                                                    isEditable={editMode}
-                                                />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Location Information
-                                        <>
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: '1fr 1fr',
-                                                gap: '10px',
-                                                fontSize: '11px'
-                                            }}>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>No:</strong>
-                                                    {editMode ? (
-                                                        <InputText
-                                                            value={selectedRowInfo.no}
-                                                            onChange={(e) => {
-                                                                const updatedInfo = { ...selectedRowInfo, no: e.target.value };
-                                                                setSelectedRowInfo(updatedInfo);
-                                                                const updatedData = dialogData.map(item => 
-                                                                    item.id === selectedRowInfo.id ? { ...item, no: e.target.value } : item
-                                                                );
-                                                                setDialogData(updatedData);
-                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
-                                                                setHasUnsavedChanges(true);
-                                                            }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.no}</div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Code:</strong>
-                                                    {editMode ? (
-                                                        <InputText
-                                                            value={selectedRowInfo.code}
-                                                            onChange={(e) => {
-                                                                const updatedInfo = { ...selectedRowInfo, code: e.target.value };
-                                                                setSelectedRowInfo(updatedInfo);
-                                                                const updatedData = dialogData.map(item => 
-                                                                    item.id === selectedRowInfo.id ? { ...item, code: e.target.value } : item
-                                                                );
-                                                                setDialogData(updatedData);
-                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
-                                                                setHasUnsavedChanges(true);
-                                                            }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.code}</div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Delivery:</strong>
-                                                    {editMode ? (
-                                                        <InputText
-                                                            value={selectedRowInfo.delivery}
-                                                            onChange={(e) => {
-                                                                const updatedInfo = { ...selectedRowInfo, delivery: e.target.value };
-                                                                setSelectedRowInfo(updatedInfo);
-                                                                const updatedData = dialogData.map(item => 
-                                                                    item.id === selectedRowInfo.id ? { ...item, delivery: e.target.value } : item
-                                                                );
-                                                                setDialogData(updatedData);
-                                                                setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
-                                                                setHasUnsavedChanges(true);
-                                                            }}
-                                                            style={{ width: '100%', marginTop: '3px', fontSize: '11px' }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.delivery}</div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Power Mode:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.powerMode || 'Daily'}</div>
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Current Status:</strong>
-                                                    <div style={{ 
-                                                        marginTop: '3px',
-                                                        fontSize: '11px',
-                                                        color: getPowerColor(selectedRowInfo.powerMode || 'Daily'), 
-                                                        fontWeight: 'bold' 
-                                                    }}>
-                                                        {getPowerStatus(selectedRowInfo.powerMode || 'Daily')}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <strong style={{ color: '#6c757d' }}>Total Images:</strong>
-                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>
-                                                        {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Description Section */}
-                                            <div style={{ 
-                                                marginTop: '15px', 
-                                                paddingTop: '15px', 
-                                                borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                    <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
-                                                </div>
-                                                <EditableDescriptionList
-                                                    value={selectedRowInfo.description || ''}
-                                                    onSave={(value) => {
-                                                        const updatedInfo = { ...selectedRowInfo, description: value };
-                                                        setSelectedRowInfo(updatedInfo);
-                                                        const updatedData = dialogData.map(item => 
-                                                            item.id === selectedRowInfo.id ? { ...item, description: value } : item
-                                                        );
-                                                        setDialogData(updatedData);
-                                                        setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
-                                                        setHasUnsavedChanges(true);
-                                                    }}
-                                                    isEditable={editMode}
-                                                />
-                                            </div>
-                                            
-                                            {/* Marker Color Picker Section - Only in Edit Mode and for Locations */}
-                                            {editMode && !isRouteInfo && (
-                                                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
-                                                    <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
-                                                        <i className="pi pi-palette" style={{ marginRight: '8px' }}></i>
-                                                        Marker Color
-                                                    </strong>
-                                                    <div style={{ 
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: '12px',
-                                                        alignItems: 'center',
-                                                        padding: '15px',
-                                                        backgroundColor: isDark ? 'rgba(99, 102, 241, 0.05)' : '#f8f9fa',
-                                                        borderRadius: '8px',
-                                                        border: isDark ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid #e9ecef'
-                                                    }}>
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '12px'
-                                                        }}>
-                                                            <span style={{ fontSize: '11px', color: isDark ? '#9ca3af' : '#6c757d' }}>Current Color:</span>
-                                                            <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
-                                                                <path 
-                                                                    d="M15 0C8.925 0 4 4.925 4 11c0 8.25 11 29 11 29s11-20.75 11-29c0-6.075-4.925-11-11-11z" 
-                                                                    fill={selectedRowInfo.markerColor || '#dc3545'}
-                                                                    stroke="white" 
-                                                                    strokeWidth="2"
-                                                                />
-                                                                <circle cx="15" cy="11" r="4" fill="white"/>
-                                                            </svg>
-                                                            <code style={{ 
-                                                                padding: '5px 10px',
-                                                                backgroundColor: isDark ? '#1f2937' : 'white',
-                                                                border: isDark ? '1px solid #374151' : '1px solid #dee2e6',
-                                                                borderRadius: '4px',
-                                                                fontFamily: 'monospace',
-                                                                fontSize: '11px',
-                                                                color: isDark ? '#e5e5e5' : '#495057'
-                                                            }}>
-                                                                {selectedRowInfo.markerColor || '#dc3545'}
-                                                            </code>
-                                                        </div>
-                                                        <Button
-                                                            label="Change Marker Color"
-                                                            icon="pi pi-palette"
-                                                            size="small"
-                                                            severity="secondary"
-                                                            onClick={() => {
-                                                                setCurrentEditingRowId(selectedRowInfo.id);
-                                                                setColorPickerLocationName(selectedRowInfo.code || selectedRowInfo.location);
-                                                                setColorPickerVisible(true);
-                                                            }}
-                                                            style={{
-                                                                fontSize: '11px',
-                                                                padding: '8px 16px'
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Shortcut Section - Only for location info */}
-                                            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
-                                                <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
-                                                    Shortcut
-                                                </strong>
-                                                <div style={{ 
-                                                    display: 'flex', 
-                                                    gap: '12px',
-                                                    justifyContent: 'center',
-                                                    flexWrap: 'wrap'
-                                                }}>
-                                            {/* Web Portal Button - Only show if code contains numbers */}
-                                            {(() => {
+                            )}
+                            
+                            {/* Location Description Section */}
+                            {!isRouteInfo && (
+                                <div style={{ 
+                                    backgroundColor: isDark ? 'transparent' : '#ffffff',
+                                    borderRadius: '8px',
+                                    border: isDark ? '1px solid #374151' : '1px solid #e9ecef',
+                                    marginTop: '15px'
+                                }}>
+                                    <div style={{
+                                        padding: '10px 15px',
+                                        borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
+                                        backgroundColor: isDark ? 'transparent' : '#f8f9fa'
+                                    }}>
+                                        <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
+                                            Description
+                                        </strong>
+                                    </div>
+                                    <div style={{ padding: '15px' }}>
+                                        <EditableDescriptionList
+                                            value={selectedRowInfo.description || ''}
+                                            onSave={(value) => {
+                                                const updatedInfo = { ...selectedRowInfo, description: value };
+                                                setSelectedRowInfo(updatedInfo);
+                                                const updatedLocations = locations.map(location => 
+                                                    location.id === selectedRowInfo.id ? { ...location, description: value } : location
+                                                );
+                                                setLocations(updatedLocations);
+                                                setHasUnsavedChanges(true);
+                                            }}
+                                            isEditable={editMode}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Shortcut Section - Only for location info */}
+                            {!isRouteInfo && (
+                                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef' }}>
+                                    <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', marginBottom: '12px', textAlign: 'center' }}>
+                                        Shortcut
+                                    </strong>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        gap: '12px',
+                                        justifyContent: 'center',
+                                        flexWrap: 'wrap'
+                                    }}>
+                                        {/* Web Portal Button - Only show if code contains numbers */}
+                                        {(() => {
                                                 const code = selectedRowInfo.code || '';
                                                 const hasNumber = /\d/.test(code);
                                                 
@@ -4524,15 +4378,15 @@ export default function FlexibleScrollDemo() {
                                                             handleOpenLink(webPortalUrl, 'Web Portal');
                                                         }}
                                                     >
-                                                        <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
-                                                    </Button>
-                                                );
-                                            })()}
-                                            
-                                            {/* Website Link Button */}
-                                            {!editMode ? (
-                                                // View Mode - Only show if website link exists
-                                                selectedRowInfo.websiteLink && (
+                                                    <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
+                                                </Button>
+                                            );
+                                        })()}
+                                        
+                                        {/* Website Link Button */}
+                                        {!editMode ? (
+                                            // View Mode - Only show if website link exists
+                                            selectedRowInfo.websiteLink && (
                                                     <Button
                                                         tooltip="Visit Website"
                                                         tooltipOptions={{ position: 'top' }}
@@ -4566,9 +4420,9 @@ export default function FlexibleScrollDemo() {
                                                         <i className="pi pi-external-link" style={{ fontSize: '20px' }}></i>
                                                     </Button>
                                                 )
-                                            ) : (
-                                                // Edit Mode - Always show to manage website link
-                                                <Button
+                                        ) : (
+                                            // Edit Mode - Always show to manage website link
+                                            <Button
                                                     tooltip={selectedRowInfo.websiteLink ? "Edit Website Link" : "Add Website Link"}
                                                     tooltipOptions={{ position: 'top' }}
                                                     size="small"
@@ -4602,10 +4456,10 @@ export default function FlexibleScrollDemo() {
                                                 >
                                                     <i className={`pi ${selectedRowInfo.websiteLink ? 'pi-pencil' : 'pi-plus-circle'}`} style={{ fontSize: '20px' }}></i>
                                                 </Button>
-                                            )}
-                                            
-                                            {/* Google Maps Button - Only show if lat/long exists */}
-                                            {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
+                                        )}
+                                        
+                                        {/* Google Maps Button - Only show if lat/long exists */}
+                                        {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
                                              selectedRowInfo.longitude !== null && selectedRowInfo.longitude !== undefined && (
                                                 <Button
                                                     tooltip="Google Maps - Get Directions"
@@ -4639,10 +4493,10 @@ export default function FlexibleScrollDemo() {
                                                 >
                                                     <img src="/google-maps.svg" alt="Google Maps" style={{ width: '24px', height: '24px' }} />
                                                 </Button>
-                                            )}
-                                            
-                                            {/* Waze Button - Only show if lat/long exists */}
-                                            {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
+                                        )}
+                                        
+                                        {/* Waze Button - Only show if lat/long exists */}
+                                        {selectedRowInfo.latitude !== null && selectedRowInfo.latitude !== undefined &&
                                              selectedRowInfo.longitude !== null && selectedRowInfo.longitude !== undefined && (
                                                 <Button
                                                     tooltip="Waze - Get Directions"
@@ -4676,10 +4530,10 @@ export default function FlexibleScrollDemo() {
                                                 >
                                                     <img src="/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
                                                 </Button>
-                                            )}
-                                            
-                                            {/* QR Code Button */}
-                                            {(() => {
+                                        )}
+                                        
+                                        {/* QR Code Button */}
+                                        {(() => {
                                                 // Debug log
                                                 console.log('🔍 QR Button Check:', {
                                                     editMode,
@@ -4690,9 +4544,9 @@ export default function FlexibleScrollDemo() {
                                                     selectedRowId: selectedRowInfo.id
                                                 });
                                                 
-                                                return !editMode ? (
-                                                    // View Mode - Show if QR code exists
-                                                    (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? (
+                                            return !editMode ? (
+                                                // View Mode - Show if QR code exists
+                                                (selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? (
                                                     <Button
                                                         tooltip={scanningQrCode ? "Scanning..." : "Scan QR Code"}
                                                         tooltipOptions={{ position: 'top' }}
@@ -4742,9 +4596,9 @@ export default function FlexibleScrollDemo() {
                                                         <i className={`pi ${scanningQrCode ? 'pi-spin pi-spinner' : 'pi-qrcode'}`} style={{ fontSize: '20px' }}></i>
                                                     </Button>
                                                 ) : null
-                                            ) : (
-                                                // Edit Mode - Always show to manage QR code
-                                                <Button
+                                        ) : (
+                                            // Edit Mode - Always show to manage QR code
+                                            <Button
                                                     tooltip={selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl ? "Edit QR Code" : "Add QR Code"}
                                                     tooltipOptions={{ position: 'top' }}
                                                     size="small"
@@ -4779,14 +4633,11 @@ export default function FlexibleScrollDemo() {
                                                 >
                                                     <i className={`pi ${(selectedRowInfo.qrCodeImageUrl || selectedRowInfo.qrCodeDestinationUrl) ? 'pi-pencil' : 'pi-plus-circle'}`} style={{ fontSize: '20px' }}></i>
                                                 </Button>
-                                            );
-                                            })()}
-                                        </div>
+                                        );
+                                        })()}
                                     </div>
-                                        </>
-                                    )}
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </Dialog>
@@ -6585,7 +6436,7 @@ export default function FlexibleScrollDemo() {
                                             gap: '1rem',
                                             alignItems: 'flex-start',
                                             transition: 'all 0.2s ease',
-                                            boxShadow: isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
+                                            boxShadow: isDark ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
                                             opacity: entry.isArchived ? 0.7 : 1
                                         }}>
                                             <i className={`pi ${actionIcons[entry.action]}`} style={{
@@ -7477,7 +7328,7 @@ export default function FlexibleScrollDemo() {
                 border: `1px solid ${isDark ? '#334155' : '#e5e7eb'}`,
                 borderRadius: '12px',
                 padding: '0.75rem 1rem',
-                boxShadow: isDark ? '0 4px 12px rgba(0, 0, 0, 0.5)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
+                boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
                 zIndex: 100,
                 backdropFilter: 'blur(8px)',
                 fontSize: '0.75rem',
