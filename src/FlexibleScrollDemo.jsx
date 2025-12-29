@@ -10,6 +10,7 @@ import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
 import MarkerColorPicker from './components/MarkerColorPicker';
+import { EditableDescriptionList } from './components/EditableDescriptionList';
 import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import QrScanner from 'qr-scanner';
@@ -4232,31 +4233,57 @@ export default function FlexibleScrollDemo() {
                                 <div style={{ padding: '15px' }}>
                                     {isRouteInfo ? (
                                         // Route Information
-                                        <div style={{ 
-                                            display: 'grid', 
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: '10px',
-                                            fontSize: '11px'
-                                        }}>
-                                            <div>
-                                                <strong style={{ color: '#6c757d' }}>Route:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
-                                            </div>
-                                            <div>
-                                                <strong style={{ color: '#6c757d' }}>Shift:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
-                                            </div>
-                                            <div>
-                                                <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
-                                            </div>
-                                            <div>
-                                                <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
-                                                    {selectedRowInfo.locationCount || 0}
+                                        <>
+                                            <div style={{ 
+                                                display: 'grid', 
+                                                gridTemplateColumns: '1fr 1fr',
+                                                gap: '10px',
+                                                fontSize: '11px'
+                                            }}>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Route:</strong>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Shift:</strong>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
+                                                </div>
+                                                <div>
+                                                    <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
+                                                    <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                                        {selectedRowInfo.locationCount || 0}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                            
+                                            {/* Description Section */}
+                                            <div style={{ 
+                                                marginTop: '15px', 
+                                                paddingTop: '15px', 
+                                                borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
+                                                </div>
+                                                <EditableDescriptionList
+                                                    value={selectedRowInfo.description || ''}
+                                                    onSave={(value) => {
+                                                        const updatedInfo = { ...selectedRowInfo, description: value };
+                                                        setSelectedRowInfo(updatedInfo);
+                                                        const updatedRoutes = routes.map(route => 
+                                                            route.id === selectedRowInfo.id ? { ...route, description: value } : route
+                                                        );
+                                                        setRoutes(updatedRoutes);
+                                                        setHasUnsavedChanges(true);
+                                                    }}
+                                                    isEditable={editMode}
+                                                />
+                                            </div>
+                                        </>
                                     ) : (
                                         // Location Information
                                         <>
@@ -4350,6 +4377,31 @@ export default function FlexibleScrollDemo() {
                                                         {selectedRowInfo.images ? selectedRowInfo.images.length : 0}
                                                     </div>
                                                 </div>
+                                            </div>
+                                            
+                                            {/* Description Section */}
+                                            <div style={{ 
+                                                marginTop: '15px', 
+                                                paddingTop: '15px', 
+                                                borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
+                                                </div>
+                                                <EditableDescriptionList
+                                                    value={selectedRowInfo.description || ''}
+                                                    onSave={(value) => {
+                                                        const updatedInfo = { ...selectedRowInfo, description: value };
+                                                        setSelectedRowInfo(updatedInfo);
+                                                        const updatedData = dialogData.map(item => 
+                                                            item.id === selectedRowInfo.id ? { ...item, description: value } : item
+                                                        );
+                                                        setDialogData(updatedData);
+                                                        setModifiedRows(prev => new Set([...prev, selectedRowInfo.id]));
+                                                        setHasUnsavedChanges(true);
+                                                    }}
+                                                    isEditable={editMode}
+                                                />
                                             </div>
                                             
                                             {/* Marker Color Picker Section - Only in Edit Mode and for Locations */}
