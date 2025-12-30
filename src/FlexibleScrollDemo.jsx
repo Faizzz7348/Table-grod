@@ -342,32 +342,18 @@ export default function FlexibleScrollDemo() {
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
     
-    // Global frozen row data - shared across all flex tables
-    const [frozenRowData, setFrozenRowData] = useState(() => {
-        const saved = localStorage.getItem('frozenRowData');
-        if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch (e) {
-                console.error('Error loading frozen row data:', e);
-            }
-        }
-        // Default frozen row data
-        return {
-            id: 'frozen-row',
-            code: 'QLK',
-            location: 'QL Kitchen',
-            delivery: 'Available',
-            images: [
-                '/photo/IMG_8310.jpeg',
-                '/photo/IMG_8311.jpeg',
-                '/photo/IMG_8312.jpeg'
-            ],
-            powerMode: 'Daily',
-            latitude: 3.06955,
-            longitude: 101.5469179,
-            address: 'QL Kitchen Plant 2 (Gate A), Jalan Kawat 15/18, Seksyen 15, 40200 Shah Alam, Selangor'
-        };
+    // Global frozen row data - fetched from database (PUBLIC/SHARED)
+    // This will be loaded from database with a special ID or flag
+    const [frozenRowData, setFrozenRowData] = useState({
+        id: 'frozen-row',
+        code: 'QLK',
+        location: 'QL Kitchen',
+        delivery: 'Available',
+        images: [],
+        powerMode: 'Daily',
+        latitude: null,
+        longitude: null,
+        address: ''
     });
     
     // Frozen row data for dialog table
@@ -826,6 +812,26 @@ export default function FlexibleScrollDemo() {
                 // Fetch all locations to count them for each route
                 const allLocations = await CustomerService.getDetailData();
                 
+                // Load frozen row from database (QL Kitchen with code 'QLK')
+                const frozenLocation = allLocations.find(loc => loc.code === 'QLK' || loc.location === 'QL Kitchen');
+                if (frozenLocation) {
+                    console.log('✅ Loaded frozen row from database:', frozenLocation);
+                    setFrozenRowData({
+                        id: frozenLocation.id,
+                        code: frozenLocation.code || 'QLK',
+                        location: frozenLocation.location || 'QL Kitchen',
+                        delivery: frozenLocation.delivery || 'Available',
+                        images: frozenLocation.images || [],
+                        powerMode: frozenLocation.powerMode || 'Daily',
+                        latitude: frozenLocation.latitude || null,
+                        longitude: frozenLocation.longitude || null,
+                        address: frozenLocation.address || '',
+                        description: frozenLocation.description || ''
+                    });
+                } else {
+                    console.warn('⚠️ Frozen row (QL Kitchen) not found in database');
+                }
+                
                 // Add location count to each route
                 const routesWithLocationCount = data.map(route => {
                     const locationCount = allLocations.filter(loc => loc.routeId === route.id).length;
@@ -1281,21 +1287,6 @@ export default function FlexibleScrollDemo() {
             // Simulate a brief delay for visual feedback
             await new Promise(resolve => setTimeout(resolve, 300));
             
-            // If editing frozen row (QL Kitchen), update global state
-            if (selectedRowInfo.id === 'frozen-row') {
-                const updatedFrozenRow = {
-                    ...frozenRowData,
-                    description: tempInfoData.description
-                };
-                setFrozenRowData(updatedFrozenRow);
-                localStorage.setItem('frozenRowData', JSON.stringify(updatedFrozenRow));
-                setSelectedRowInfo(updatedFrozenRow);
-                setInfoModalHasChanges(false);
-                setTempInfoData(null);
-                setSavingInfo(false);
-                return;
-            }
-            
             // Update the appropriate data
             if (isRouteInfo) {
                 // Update route description
@@ -1377,22 +1368,6 @@ export default function FlexibleScrollDemo() {
             
             // Simulate a brief delay for visual feedback
             await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // If editing frozen row (QL Kitchen), update global state
-            if (selectedRowInfo.id === 'frozen-row') {
-                const updatedFrozenRow = {
-                    ...frozenRowData,
-                    latitude: infoEditData.latitude,
-                    longitude: infoEditData.longitude,
-                    address: infoEditData.address
-                };
-                setFrozenRowData(updatedFrozenRow);
-                localStorage.setItem('frozenRowData', JSON.stringify(updatedFrozenRow));
-                setSelectedRowInfo(updatedFrozenRow);
-                setInfoEditMode(false);
-                setSavingInfo(false);
-                return;
-            }
             
             // Update the location in dialogData
             const locationExists = dialogData.some(item => item.id === selectedRowInfo.id);
@@ -2366,17 +2341,13 @@ export default function FlexibleScrollDemo() {
     };
     
     const handleSaveImages = async () => {
-        // If saving images for frozen row (QL Kitchen), update global state
-        if (selectedRowId === 'frozen-row') {
-            const updatedFrozenRow = {
-                ...frozenRowData,
+        // Frozen row is now treated as a regular location in database
+        // Update dialogData and frozen row state if editing frozen row
+        if (selectedRowId === frozenRowData.id) {
+            setFrozenRowData(prev => ({
+                ...prev,
                 images: currentRowImages
-            };
-            setFrozenRowData(updatedFrozenRow);
-            localStorage.setItem('frozenRowData', JSON.stringify(updatedFrozenRow));
-            setImageDialogVisible(false);
-            alert('✅ Images saved!');
-            return;
+            }));
         }
         
         const updatedData = dialogData.map(data => 
@@ -2419,16 +2390,13 @@ export default function FlexibleScrollDemo() {
     };
     
     const handleSavePowerMode = () => {
-        // If saving power mode for frozen row (QL Kitchen), update global state
-        if (powerModeRowId === 'frozen-row') {
-            const updatedFrozenRow = {
-                ...frozenRowData,
+        // Frozen row is now treated as a regular location in database
+        // Update dialogData and frozen row state if editing frozen row
+        if (powerModeRowId === frozenRowData.id) {
+            setFrozenRowData(prev => ({
+                ...prev,
                 powerMode: selectedPowerMode
-            };
-            setFrozenRowData(updatedFrozenRow);
-            localStorage.setItem('frozenRowData', JSON.stringify(updatedFrozenRow));
-            setPowerModeDialogVisible(false);
-            return;
+            }));
         }
         
         const updatedData = dialogData.map(data => 

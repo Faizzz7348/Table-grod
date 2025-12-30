@@ -18,6 +18,11 @@ Data berikut dikongsi oleh semua pengguna dan disimpan dalam database:
   - Power Mode
   - Images, Maps, QR Codes
   - All location details
+  
+- **Frozen Row** (QL Kitchen)
+  - Frozen row adalah location khusus dalam database
+  - Semua perubahan pada frozen row disimpan ke database
+  - Semua user akan nampak perubahan yang sama
 
 ### Maksudnya:
 ✅ Bila satu user tambah/edit/delete route atau location, **semua orang akan nampak perubahan yang sama**
