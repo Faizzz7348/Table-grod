@@ -11,12 +11,13 @@ datasource db {
 }
 
 model Route {
-  id        Int      @id @default(autoincrement())
-  route     String
-  shift     String
-  warehouse String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  route       String
+  shift       String
+  warehouse   String
+  description String?  // Description field for route info
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   locations Location[]
 }
@@ -32,6 +33,7 @@ model Location {
   latitude              Float?   // Latitude for map
   longitude             Float?   // Longitude for map
   address               String?  // Address caption for map
+  description           String?  // Description field for location info
   websiteLink           String?  // Website link for shortcut
   qrCodeImageUrl        String?  // QR code image URL
   qrCodeDestinationUrl  String?  // QR code destination URL

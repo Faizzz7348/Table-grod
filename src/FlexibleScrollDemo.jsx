@@ -425,6 +425,8 @@ export default function FlexibleScrollDemo() {
         longitude: null,
         address: ''
     });
+    const [infoModalHasChanges, setInfoModalHasChanges] = useState(false);
+    const [tempInfoData, setTempInfoData] = useState(null);
     
     // Password Protection State
     const [passwordDialogVisible, setPasswordDialogVisible] = useState(false);
@@ -1188,8 +1190,92 @@ export default function FlexibleScrollDemo() {
             longitude: latestRowData.longitude || null,
             address: latestRowData.address || ''
         });
+        setTempInfoData({
+            description: latestRowData.description || ''
+        });
         setInfoEditMode(false);
+        setInfoModalHasChanges(false);
         setInfoDialogVisible(true);
+    };
+    
+    const handleSaveInfoModal = async () => {
+        if (!selectedRowInfo) return;
+        
+        setSavingInfo(true);
+        try {
+            console.log('💾 Saving info modal changes:', {
+                id: selectedRowInfo.id,
+                description: tempInfoData.description
+            });
+            
+            // Simulate a brief delay for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Update the appropriate data
+            if (isRouteInfo) {
+                // Update route description
+                const updatedRoutes = routes.map(route => 
+                    route.id === selectedRowInfo.id ? { ...route, description: tempInfoData.description } : route
+                );
+                setRoutes(updatedRoutes);
+                setSelectedRowInfo({ ...selectedRowInfo, description: tempInfoData.description });
+            } else {
+                // Update location description
+                const updatedDialogData = dialogData.map(location => 
+                    location.id === selectedRowInfo.id ? { ...location, description: tempInfoData.description } : location
+                );
+                setDialogData(updatedDialogData);
+                setSelectedRowInfo({ ...selectedRowInfo, description: tempInfoData.description });
+            }
+            
+            setHasUnsavedChanges(true);
+            setInfoModalHasChanges(false);
+            setSavingInfo(false);
+            
+            // Show success toast
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            const toastEl = document.createElement('div');
+            toastEl.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                font-size: 14px;
+                font-weight: 600;
+                animation: slideIn 0.3s ease-out;
+            `;
+            toastEl.innerHTML = `<i class="pi pi-check-circle" style="margin-right: 8px;"></i>Info saved! Click "Save Changes" in toolbar to persist.`;
+            document.body.appendChild(toastEl);
+            setTimeout(() => {
+                toastEl.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    document.body.removeChild(toastEl);
+                    document.head.removeChild(style);
+                }, 300);
+            }, 2000);
+            
+        } catch (error) {
+            console.error('❌ Error saving info modal:', error);
+            setSavingInfo(false);
+            alert('❌ Error saving info. Please try again.');
+        }
     };
     
     const handleSaveInfoEdit = async () => {
@@ -2476,7 +2562,9 @@ export default function FlexibleScrollDemo() {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: isDark 
+                    ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
+                    : 'linear-gradient(135deg, #f5f5f5 0%, #e5e7eb 100%)',
                 animation: 'fadeIn 0.5s ease-in'
             }}>
                 <style>
@@ -2501,23 +2589,23 @@ export default function FlexibleScrollDemo() {
                 }}>
                     <i className="pi pi-spin pi-spinner" style={{ 
                         fontSize: '4rem', 
-                        color: '#ffffff'
+                        color: isDark ? '#60a5fa' : '#3b82f6'
                     }}></i>
                 </div>
                 <h2 style={{
-                    color: '#ffffff',
+                    color: isDark ? '#e5e7eb' : '#1f2937',
                     fontSize: '2rem',
                     fontWeight: '700',
                     margin: '0 0 0.5rem 0',
                     animation: 'slideUp 0.6s ease-out',
-                    textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                    textShadow: isDark ? '0 2px 10px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.1)'
                 }}>Route Management</h2>
                 <p style={{
-                    color: 'rgba(255,255,255,0.9)',
+                    color: isDark ? '#9ca3af' : '#6b7280',
                     fontSize: '1.1rem',
                     margin: 0,
                     animation: 'slideUp 0.8s ease-out',
-                    textShadow: '0 1px 5px rgba(0,0,0,0.2)'
+                    textShadow: isDark ? '0 1px 5px rgba(0,0,0,0.3)' : '0 1px 5px rgba(0,0,0,0.05)'
                 }}>Loading your data...</p>
             </div>
         );
@@ -4060,27 +4148,35 @@ export default function FlexibleScrollDemo() {
                     closable={false}
                     transitionOptions={{ timeout: 300 }}
                     onHide={() => {
+                        if (infoModalHasChanges) {
+                            const confirmed = window.confirm('⚠️ You have unsaved changes in this modal. Close anyway?');
+                            if (!confirmed) return;
+                        }
                         setInfoDialogVisible(false);
                         setInfoEditMode(false);
+                        setInfoModalHasChanges(false);
+                        setTempInfoData(null);
                     }}
                     footer={
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                {!infoEditMode && editMode ? (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {!isRouteInfo && !infoEditMode && editMode && (
                                     <Button 
-                                        label="Edit Location Info" 
-                                        icon="pi pi-pencil" 
+                                        label="Edit Location" 
+                                        icon="pi pi-map-marker" 
                                         onClick={() => setInfoEditMode(true)}
-                                        className="p-button-sm"
+                                        size="small"
+                                        severity="info"
                                     />
-                                ) : infoEditMode ? (
+                                )}
+                                {!isRouteInfo && infoEditMode && (
                                     <>
                                         <Button 
-                                            label={savingInfo ? "Saving..." : "Save"} 
+                                            label={savingInfo ? "Saving..." : "Save Location"} 
                                             icon={savingInfo ? "pi pi-spin pi-spinner" : "pi pi-check"} 
                                             onClick={handleSaveInfoEdit}
-                                            className="p-button-sm p-button-success"
-                                            style={{ marginRight: '8px' }}
+                                            size="small"
+                                            severity="success"
                                             disabled={savingInfo}
                                         />
                                         <Button 
@@ -4094,19 +4190,28 @@ export default function FlexibleScrollDemo() {
                                                     address: selectedRowInfo.address || ''
                                                 });
                                             }}
-                                            className="p-button-sm p-button-secondary"
+                                            size="small"
+                                            severity="secondary"
                                         />
                                     </>
-                                ) : null}
+                                )}
                             </div>
                             <Button 
                                 label="Close" 
                                 icon="pi pi-times" 
                                 onClick={() => {
+                                    if (infoModalHasChanges) {
+                                        const confirmed = window.confirm('⚠️ You have unsaved changes. Close anyway?');
+                                        if (!confirmed) return;
+                                    }
                                     setInfoDialogVisible(false);
                                     setInfoEditMode(false);
+                                    setInfoModalHasChanges(false);
+                                    setTempInfoData(null);
                                 }}
-                                className="p-button-sm p-button-text"
+                                size="small"
+                                severity="secondary"
+                                outlined
                             />
                         </div>
                     }
@@ -4265,18 +4370,28 @@ export default function FlexibleScrollDemo() {
                                             borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
                                         }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                <strong style={{ fontSize: '11px', color: '#6c757d' }}>Description:</strong>
+                                                <strong style={{ fontSize: '12px', color: '#6c757d' }}>Description:</strong>
+                                                {editMode && infoModalHasChanges && (
+                                                    <Button
+                                                        label="Save Info"
+                                                        icon={savingInfo ? "pi pi-spin pi-spinner" : "pi pi-check"}
+                                                        size="small"
+                                                        severity="success"
+                                                        onClick={handleSaveInfoModal}
+                                                        disabled={savingInfo}
+                                                        style={{ 
+                                                            padding: '4px 12px',
+                                                            fontSize: '11px',
+                                                            height: '28px'
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                             <EditableDescriptionList
-                                                value={selectedRowInfo.description || ''}
+                                                value={tempInfoData?.description || selectedRowInfo.description || ''}
                                                 onSave={(value) => {
-                                                    const updatedInfo = { ...selectedRowInfo, description: value };
-                                                    setSelectedRowInfo(updatedInfo);
-                                                    const updatedRoutes = routes.map(route => 
-                                                        route.id === selectedRowInfo.id ? { ...route, description: value } : route
-                                                    );
-                                                    setRoutes(updatedRoutes);
-                                                    setHasUnsavedChanges(true);
+                                                    setTempInfoData({ ...tempInfoData, description: value });
+                                                    setInfoModalHasChanges(true);
                                                 }}
                                                 isEditable={editMode}
                                             />
@@ -4296,23 +4411,37 @@ export default function FlexibleScrollDemo() {
                                     <div style={{
                                         padding: '10px 15px',
                                         borderBottom: isDark ? '1px solid #374151' : '1px solid #e9ecef',
-                                        backgroundColor: isDark ? 'transparent' : '#f8f9fa'
+                                        backgroundColor: isDark ? 'transparent' : '#f8f9fa',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
                                     }}>
-                                        <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', display: 'block', textAlign: 'center' }}>
+                                        <strong style={{ fontSize: '12px', color: isDark ? '#e5e5e5' : '#495057', flex: 1, textAlign: 'center' }}>
                                             Description
                                         </strong>
+                                        {editMode && infoModalHasChanges && (
+                                            <Button
+                                                label="Save Info"
+                                                icon={savingInfo ? "pi pi-spin pi-spinner" : "pi pi-check"}
+                                                size="small"
+                                                severity="success"
+                                                onClick={handleSaveInfoModal}
+                                                disabled={savingInfo}
+                                                style={{ 
+                                                    padding: '4px 12px',
+                                                    fontSize: '11px',
+                                                    height: '28px',
+                                                    marginLeft: '8px'
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                     <div style={{ padding: '15px' }}>
                                         <EditableDescriptionList
-                                            value={selectedRowInfo.description || ''}
+                                            value={tempInfoData?.description || selectedRowInfo.description || ''}
                                             onSave={(value) => {
-                                                const updatedInfo = { ...selectedRowInfo, description: value };
-                                                setSelectedRowInfo(updatedInfo);
-                                                const updatedLocations = locations.map(location => 
-                                                    location.id === selectedRowInfo.id ? { ...location, description: value } : location
-                                                );
-                                                setLocations(updatedLocations);
-                                                setHasUnsavedChanges(true);
+                                                setTempInfoData({ ...tempInfoData, description: value });
+                                                setInfoModalHasChanges(true);
                                             }}
                                             isEditable={editMode}
                                         />

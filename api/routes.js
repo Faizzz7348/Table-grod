@@ -64,7 +64,8 @@ export default async function handler(req, res) {
             data: {
               route: route.route,
               shift: route.shift,
-              warehouse: route.warehouse
+              warehouse: route.warehouse,
+              description: route.description || null
             }
           })
         );
@@ -91,7 +92,8 @@ export default async function handler(req, res) {
               data: {
                 route: route.route,
                 shift: route.shift,
-                warehouse: route.warehouse
+                warehouse: route.warehouse,
+                description: route.description || null
               }
             });
           } catch (err) {
@@ -115,13 +117,14 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       // Create new route
-      const { route, shift, warehouse } = req.body;
+      const { route, shift, warehouse, description } = req.body;
 
       const newRoute = await prisma.route.create({
         data: {
           route: route || '',
           shift: shift || '',
-          warehouse: warehouse || ''
+          warehouse: warehouse || '',
+          description: description || null
         }
       });
 

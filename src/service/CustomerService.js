@@ -229,7 +229,8 @@ export const CustomerService = {
                     body: JSON.stringify({ 
                         route: route.route, 
                         shift: route.shift, 
-                        warehouse: route.warehouse 
+                        warehouse: route.warehouse,
+                        description: route.description || null
                     }),
                 })
             );

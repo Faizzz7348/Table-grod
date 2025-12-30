@@ -74,6 +74,7 @@ export default async function handler(req, res) {
               latitude: location.latitude !== undefined ? location.latitude : null,
               longitude: location.longitude !== undefined ? location.longitude : null,
               address: location.address !== undefined ? location.address : null,
+              description: location.description || null,
               websiteLink: location.websiteLink || null,
               qrCodeImageUrl: location.qrCodeImageUrl || null,
               qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
               latitude: location.latitude !== undefined ? location.latitude : null,
               longitude: location.longitude !== undefined ? location.longitude : null,
               address: location.address !== undefined ? location.address : null,
+              description: location.description || null,
               websiteLink: location.websiteLink || null,
               qrCodeImageUrl: location.qrCodeImageUrl || null,
               qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
@@ -120,7 +122,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       // Create new location
-      const { no, code, location, delivery, powerMode, images, routeId, latitude, longitude, address } = req.body;
+      const { no, code, location, delivery, powerMode, images, routeId, latitude, longitude, address, description } = req.body;
 
       const newLocation = await prisma.location.create({
         data: {
@@ -133,7 +135,8 @@ export default async function handler(req, res) {
           routeId: routeId || null,
           latitude: latitude !== undefined ? latitude : null,
           longitude: longitude !== undefined ? longitude : null,
-          address: address !== undefined ? address : null
+          address: address !== undefined ? address : null,
+          description: description || null
         }
       });
 
