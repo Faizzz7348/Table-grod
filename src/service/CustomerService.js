@@ -1,6 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-// Only use localStorage in development mode
-const USE_LOCALSTORAGE = import.meta.env.DEV === true;
+// DISABLED: localStorage for data - All data is now public/shared via API
+// Only user preferences (pin, order, columns) remain in localStorage
+const USE_LOCALSTORAGE = false;
 
 // Enhanced in-memory cache with expiration and versioning
 const cache = {

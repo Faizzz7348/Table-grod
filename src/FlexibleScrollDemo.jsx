@@ -357,7 +357,7 @@ export default function FlexibleScrollDemo() {
     // Frozen row data for dialog table
     const frozenRow = [frozenRowData];
     
-    // Dark Mode State - Simple implementation
+    // Dark Mode State - Simple implementation (INDIVIDUAL - localStorage)
     const [isDark, setIsDark] = useState(() => {
         const saved = localStorage.getItem('isDark');
         return saved === 'true';
@@ -369,6 +369,9 @@ export default function FlexibleScrollDemo() {
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
     const [isRouteInfo, setIsRouteInfo] = useState(false);
     const [globalFilterValue, setGlobalFilterValue] = useState('');
+    
+    // Column Visibility State (INDIVIDUAL - localStorage)
+    // Each user can customize their own column view
     const [visibleColumns, setVisibleColumns] = useState(() => {
         const saved = localStorage.getItem('columnVisibility');
         if (saved) {
@@ -394,7 +397,8 @@ export default function FlexibleScrollDemo() {
     const [originalData, setOriginalData] = useState([]);
     const [originalDialogData, setOriginalDialogData] = useState([]);
     
-    // Custom Sort State
+    // Custom Sort State (INDIVIDUAL - localStorage)
+    // Each user can set their own custom order
     const [customSortMode, setCustomSortMode] = useState(false);
     const [sortOrders, setSortOrders] = useState({});
     const [isCustomSorted, setIsCustomSorted] = useState(() => {
@@ -402,7 +406,8 @@ export default function FlexibleScrollDemo() {
         return saved === 'true';
     }); // Track if data is custom sorted
     
-    // Pin Row State
+    // Pin Row State (INDIVIDUAL - localStorage)
+    // Each user can pin/unpin their own rows
     const [pinnedRows, setPinnedRows] = useState(() => {
         const saved = localStorage.getItem('pinnedRows');
         if (saved) {
@@ -426,7 +431,8 @@ export default function FlexibleScrollDemo() {
         return new Set();
     }); // Pin state for dialog table rows
     
-    // Save Order Preset State
+    // Save Order Preset State (INDIVIDUAL - localStorage)
+    // Each user can save their own order presets
     const [savePresetDialogVisible, setSavePresetDialogVisible] = useState(false);
     const [presetName, setPresetName] = useState('');
     const [savedPresets, setSavedPresets] = useState([]);
@@ -797,15 +803,8 @@ export default function FlexibleScrollDemo() {
         
         const loadData = async () => {
             try {
-                // Check if we should clear data (for fresh start)
-                const shouldClear = localStorage.getItem('clearDataOnLoad');
-                if (shouldClear === 'true') {
-                    localStorage.removeItem('routes');
-                    localStorage.removeItem('locations');
-                    localStorage.removeItem('clearDataOnLoad');
-                    CustomerService.clearAllCache();
-                }
-                
+                // Data is now fetched from API only (public/shared)
+                // Only user preferences (pin/order/columns) remain in localStorage
                 const data = await CustomerService.getRoutes();
                 
                 // Fetch all locations to count them for each route
