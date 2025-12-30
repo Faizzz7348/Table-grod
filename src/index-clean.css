@@ -44,19 +44,21 @@ body.dark {
 }
 
 /* Loading Spinner Animation */
-@keyframes spinnerPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
+@keyframes spinnerRotate {
+  from {
+    transform: rotate(0deg);
   }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
+  to {
+    transform: rotate(360deg);
   }
 }
 
+.pi-spin {
+  animation: spinnerRotate 1s linear infinite !important;
+}
+
 .pi-spinner {
-  animation: spinnerPulse 1.5s ease-in-out infinite;
+  animation: spinnerRotate 1s linear infinite !important;
 }
 
 /* Image Loading Overlay */
@@ -73,24 +75,24 @@ body.dark {
 .p-datatable {
   background-color: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
   border: 1px solid rgba(0, 0, 0, 0.05);
   overflow: hidden;
   transition: box-shadow 0.3s ease;
 }
 
 .p-datatable:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
 body.dark .p-datatable {
   background-color: #0f0f0f;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 body.dark .p-datatable:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .p-datatable .p-datatable-wrapper {
@@ -113,9 +115,12 @@ body.dark .p-datatable:hover {
   font-size: 13px;
   padding: 1rem;
   border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
   letter-spacing: 0.5px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .p-datatable .p-datatable-thead > tr > th:first-child {
@@ -129,7 +134,6 @@ body.dark .p-datatable:hover {
 body.dark .p-datatable .p-datatable-thead > tr > th {
   background: linear-gradient(180deg, #2f2f2f 0%, #2a2a2a 100%);
   color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Table Body */
@@ -177,7 +181,7 @@ body.dark .p-datatable .p-datatable-tbody > tr:last-child > td {
 .p-datatable .p-datatable-tbody > tr:hover {
   background-color: #f8fafc;
   transform: scale(1.01);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr:hover {
@@ -555,18 +559,19 @@ body.dark .p-dialog .p-inputtext {
 
 .p-inputtext:hover {
   border-color: #9ca3af;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .p-inputtext:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 3px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
   outline: none;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 body.dark .p-inputtext:focus {
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 3px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.4);
   background-color: #3b4557;
 }
 

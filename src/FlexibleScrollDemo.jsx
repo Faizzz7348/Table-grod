@@ -26,7 +26,7 @@ const tableStyles = `
         background-color: #e5e7eb !important;
         color: #111827 !important;
         font-weight: 600 !important;
-        border-bottom: 1px solid #9ca3af !important;
+        border: none !important;
         padding: 1.25rem 1rem !important;
         font-size: 13px !important;
         letter-spacing: 0.5px !important;
@@ -37,7 +37,7 @@ const tableStyles = `
     body.dark .p-datatable .p-datatable-thead > tr > th {
         background-color: #0f172a !important;
         color: #f1f5f9 !important;
-        border-bottom: 1px solid #334155 !important;
+        border: none !important;
     }
     
     /* Table body row text size */
@@ -2631,7 +2631,7 @@ export default function FlexibleScrollDemo() {
                 alignItems: 'center',
                 borderBottom: isDark ? '1px solid #334155' : '1px solid #9ca3af',
                 marginBottom: '2rem',
-                boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                boxShadow: isDark ? '0 1px 4px rgba(0, 0, 0, 0.2)' : '0 1px 4px rgba(0, 0, 0, 0.06)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative'
             }}>
@@ -3253,23 +3253,331 @@ export default function FlexibleScrollDemo() {
                                 <div style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
+                                    justifyContent: 'space-between',
                                     gap: '0.75rem',
-                                    flexWrap: 'wrap'
+                                    width: '100%',
+                                    flexWrap: deviceInfo.isMobile ? 'wrap' : 'nowrap'
                                 }}>
-                                    {flagSrc && (
-                                        <img 
-                                            src={flagSrc} 
-                                            alt="flag" 
-                                            style={{ 
-                                                width: deviceInfo.isMobile ? '36px' : '48px', 
-                                                height: deviceInfo.isMobile ? '24px' : '32px', 
-                                                objectFit: 'cover',
-                                                borderRadius: '3px',
-                                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
-                                            }} 
-                                        />
-                                    )}
-                                    <span style={{ fontSize: deviceInfo.isMobile ? '0.9rem' : '1rem' }}>Route {currentRouteName}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        {flagSrc && (
+                                            <img 
+                                                src={flagSrc} 
+                                                alt="flag" 
+                                                style={{ 
+                                                    width: deviceInfo.isMobile ? '36px' : '48px', 
+                                                    height: deviceInfo.isMobile ? '24px' : '32px', 
+                                                    objectFit: 'cover',
+                                                    borderRadius: '3px',
+                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+                                                }} 
+                                            />
+                                        )}
+                                        <span style={{ fontSize: deviceInfo.isMobile ? '0.9rem' : '1rem' }}>Route {currentRouteName}</span>
+                                    </div>
+                                    
+                                    {/* Search and Function Button */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {/* Search Field */}
+                                        <span style={{ 
+                                            position: 'relative',
+                                            display: 'inline-block',
+                                            width: deviceInfo.isMobile ? '150px' : '200px'
+                                        }}>
+                                            <InputText
+                                                value={globalFilterValue}
+                                                onChange={(e) => setGlobalFilterValue(e.target.value)}
+                                                placeholder="Search routes..."
+                                                style={{ 
+                                                    width: '100%',
+                                                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                                                    color: isDark ? '#f1f5f9' : '#0f172a',
+                                                    border: `2px solid ${globalFilterValue ? (isDark ? '#3b82f6' : '#2563eb') : (isDark ? '#334155' : '#cbd5e1')}`,
+                                                    paddingLeft: '0.75rem',
+                                                    paddingRight: globalFilterValue ? '2.5rem' : '0.75rem',
+                                                    paddingTop: '0.5rem',
+                                                    paddingBottom: '0.5rem',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '500',
+                                                    borderRadius: '10px',
+                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    boxShadow: globalFilterValue 
+                                                        ? (isDark ? '0 0 0 3px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3)' : '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08)')
+                                                        : (isDark ? '0 2px 4px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.04)'),
+                                                    transform: globalFilterValue ? 'translateY(-1px)' : 'translateY(0)'
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.target.style.borderColor = isDark ? '#3b82f6' : '#2563eb';
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (!globalFilterValue) {
+                                                        e.target.style.borderColor = isDark ? '#334155' : '#cbd5e1';
+                                                    }
+                                                }}
+                                            />
+                                            {globalFilterValue && (
+                                                <i 
+                                                    className="pi pi-times" 
+                                                    onClick={() => setGlobalFilterValue('')}
+                                                    style={{ 
+                                                        position: 'absolute',
+                                                        right: '0.75rem',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        fontSize: '0.75rem',
+                                                        color: isDark ? '#94a3b8' : '#64748b',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        padding: '0.25rem',
+                                                        borderRadius: '50%',
+                                                        zIndex: 2,
+                                                        opacity: 0.6,
+                                                        animation: 'fadeIn 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.opacity = '1';
+                                                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(100, 116, 139, 0.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.opacity = '0.6';
+                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                    }}
+                                                />
+                                            )}
+                                        </span>
+                                        
+                                        {/* Function Button with Dropdown */}
+                                        <div className="function-dropdown-container" style={{ position: 'relative' }}>
+                                            <Button 
+                                                label={deviceInfo.isMobile ? '' : (
+                                                    activeFunction === 'setOrder' ? 'Set Order' :
+                                                    activeFunction === 'addRow' ? 'Add New Row' :
+                                                    'Function'
+                                                )}
+                                                icon="pi pi-bars"
+                                                severity={activeFunction ? 'success' : 'info'}
+                                                size="small"
+                                                onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
+                                                style={{ 
+                                                    minWidth: deviceInfo.isMobile ? '35px' : 'auto',
+                                                    padding: deviceInfo.isMobile ? '0.4rem' : undefined
+                                                }}
+                                            />
+                                            
+                                            {/* Function Dropdown Menu */}
+                                            {functionDropdownVisible && (
+                                                <>
+                                                    <div 
+                                                        style={{
+                                                            position: 'fixed',
+                                                            top: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            bottom: 0,
+                                                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                                            backdropFilter: 'blur(4px)',
+                                                            zIndex: 999
+                                                        }}
+                                                        onClick={() => setFunctionDropdownVisible(false)}
+                                                    />
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        right: 0,
+                                                        marginTop: '0.5rem',
+                                                        backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                                                        border: `1px solid ${isDark ? '#404040' : '#d1d5db'}`,
+                                                        borderRadius: '8px',
+                                                        padding: '0.5rem',
+                                                        minWidth: '200px',
+                                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                        zIndex: 1000
+                                                    }}>
+                                                        {/* Main Menu - Show when no active function */}
+                                                        {activeFunction !== 'setOrder' && activeFunction !== 'addRow' && (
+                                                            <>
+                                                                <Button 
+                                                                    label="Set Order" 
+                                                                    icon="pi pi-sort-numeric-up"
+                                                                    severity="info"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        setActiveFunction('setOrder');
+                                                                        setCustomSortMode(true);
+                                                                        const initialOrders = {};
+                                                                        dialogData.forEach((row) => {
+                                                                            initialOrders[row.id] = '';
+                                                                        });
+                                                                        setSortOrders(initialOrders);
+                                                                    }}
+                                                                />
+                                                                {editMode && (
+                                                                    <Button 
+                                                                        label="Add New Row" 
+                                                                        icon="pi pi-plus"
+                                                                        severity="success"
+                                                                        size="small"
+                                                                        text
+                                                                        style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                                        onClick={() => {
+                                                                            setActiveFunction('addRow');
+                                                                            setAddRowMode(true);
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                                <Button 
+                                                                    label="View Saved Presets" 
+                                                                    icon="pi pi-bookmark"
+                                                                    severity="help"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        setPresetsListVisible(true);
+                                                                        setFunctionDropdownVisible(false);
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    label="Columns" 
+                                                                    icon="pi pi-th-large"
+                                                                    severity="secondary"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        setTempVisibleColumns({...visibleColumns});
+                                                                        setColumnModalVisible(true);
+                                                                        setFunctionDropdownVisible(false);
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    label={dialogMaximized ? 'Exit Full View' : 'Full View'}
+                                                                    icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
+                                                                    severity={dialogMaximized ? 'warning' : 'secondary'}
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        setDialogMaximized(!dialogMaximized);
+                                                                        setFunctionDropdownVisible(false);
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        )}
+                                                        
+                                                        {/* Set Order Actions */}
+                                                        {activeFunction === 'setOrder' && (
+                                                            <>
+                                                                <div style={{ 
+                                                                    fontWeight: 'bold', 
+                                                                    fontSize: '0.875rem', 
+                                                                    marginBottom: '0.5rem',
+                                                                    color: isDark ? '#e5e5e5' : '#000000'
+                                                                }}>
+                                                                    Set Order Mode
+                                                                </div>
+                                                                <Button 
+                                                                    label="Apply" 
+                                                                    icon="pi pi-check"
+                                                                    severity="success"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        marginBottom: '0.25rem',
+                                                                        backgroundColor: 'transparent',
+                                                                        border: 'none',
+                                                                        color: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#6b7280'
+                                                                    }}
+                                                                    onClick={applyCustomSort}
+                                                                    disabled={!Object.values(sortOrders).some(o => o !== '')}
+                                                                />
+                                                                <Button 
+                                                                    label="Cancel" 
+                                                                    icon="pi pi-times"
+                                                                    severity="danger"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        setActiveFunction(null);
+                                                                        setCustomSortMode(false);
+                                                                        setSortOrders({});
+                                                                        setFunctionDropdownVisible(false);
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        )}
+                                                        
+                                                        {/* Add Row Actions - Only in Edit Mode */}
+                                                        {activeFunction === 'addRow' && editMode && (
+                                                            <>
+                                                                <div style={{ 
+                                                                    fontWeight: 'bold', 
+                                                                    fontSize: '0.875rem', 
+                                                                    marginBottom: '0.5rem',
+                                                                    color: isDark ? '#e5e5e5' : '#000000'
+                                                                }}>
+                                                                    Add New Row Mode
+                                                                </div>
+                                                                <Button 
+                                                                    label="Add Row" 
+                                                                    icon="pi pi-plus"
+                                                                    severity="success"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={handleAddDialogRow}
+                                                                />
+                                                                <Button 
+                                                                    label="Save Changes" 
+                                                                    icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"}
+                                                                    severity={hasUnsavedChanges ? "success" : "secondary"}
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        marginBottom: '0.25rem',
+                                                                        backgroundColor: 'transparent',
+                                                                        border: 'none',
+                                                                        color: hasUnsavedChanges ? '#10b981' : '#6b7280'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        handleSaveChanges();
+                                                                        setActiveFunction(null);
+                                                                        setAddRowMode(false);
+                                                                        setNewRows([]);
+                                                                        setFunctionDropdownVisible(false);
+                                                                    }}
+                                                                    disabled={!hasUnsavedChanges || saving}
+                                                                />
+                                                                <Button 
+                                                                    label="Cancel" 
+                                                                    icon="pi pi-times"
+                                                                    severity="danger"
+                                                                    size="small"
+                                                                    text
+                                                                    style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
+                                                                    onClick={() => {
+                                                                        const filteredData = dialogData.filter(row => !newRows.includes(row.id));
+                                                                        setDialogData(filteredData);
+                                                                        setActiveFunction(null);
+                                                                        setAddRowMode(false);
+                                                                        setNewRows([]);
+                                                                        setFunctionDropdownVisible(false);
+                                                                        if (newRows.length > 0) {
+                                                                            setHasUnsavedChanges(false);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })()
@@ -3287,278 +3595,6 @@ export default function FlexibleScrollDemo() {
                     headerClassName={isDark ? '' : 'light-mode-dialog-header'}
                     transitionOptions={{ timeout: 300 }}
                 >
-                    {/* Search and Function Button - Side by Side */}
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '1rem', 
-                        marginBottom: '1rem',
-                        flexWrap: 'wrap'
-                    }}>
-                        <div style={{ flex: '1', minWidth: '200px' }}>
-                            <span className="p-input-icon-left" style={{ 
-                                width: '100%',
-                                position: 'relative',
-                                display: 'inline-block'
-                            }}>
-                                <i className="pi pi-search" style={{ 
-                                    opacity: globalFilterValue ? 0 : 1, 
-                                    transition: 'opacity 0.2s ease',
-                                    color: isDark ? '#9ca3af' : '#6b7280',
-                                    position: 'absolute',
-                                    left: '0.75rem',
-                                    top: '50%',
-                                    transform: 'translateY(-1%)',
-                                    pointerEvents: 'none',
-                                    fontSize: '0.875rem'
-                                }} />
-                                <InputText
-                                    value={globalFilterValue}
-                                    onChange={(e) => setGlobalFilterValue(e.target.value)}
-                                    placeholder="Search..."
-                                    style={{ 
-                                        width: '100%',
-                                        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
-                                        color: isDark ? '#ffffff' : '#000000',
-                                        border: isDark ? '1px solid #374151' : '1px solid #d1d5db',
-                                        paddingLeft: '2.5rem',
-                                        paddingTop: '0.625rem',
-                                        paddingBottom: '0.625rem',
-                                        transition: 'all 0.2s ease'
-                                    }}
-                                />
-                            </span>
-                        </div>
-                        
-                        {/* Function Dropdown */}
-                        <div className="function-dropdown-container" style={{ position: 'relative' }}>
-                            <Button 
-                                label={
-                                    activeFunction === 'setOrder' ? 'Set Order' :
-                                    activeFunction === 'addRow' ? 'Add New Row' :
-                                    'Function'
-                                }
-                                icon="pi pi-bars"
-                                severity={activeFunction ? 'success' : 'info'}
-                                size="small"
-                                onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
-                                raised
-                            />
-                            {functionDropdownVisible && (
-                                <div 
-                                    style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                                        backdropFilter: 'blur(4px)',
-                                        zIndex: 999
-                                    }}
-                                    onClick={() => setFunctionDropdownVisible(false)}
-                                />
-                            )}
-                            {functionDropdownVisible && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    marginTop: '0.5rem',
-                                    backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                                    border: `1px solid ${isDark ? '#404040' : '#d1d5db'}`,
-                                    borderRadius: '8px',
-                                    padding: '0.5rem',
-                                    minWidth: '200px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                    zIndex: 1000
-                                }}>
-                                    {/* Main Menu - Show when no active function */}
-                                    {activeFunction !== 'setOrder' && activeFunction !== 'addRow' && (
-                                        <>
-                                            <Button 
-                                                label="Set Order" 
-                                                icon="pi pi-sort-numeric-up"
-                                                severity="info"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    setActiveFunction('setOrder');
-                                                    setCustomSortMode(true);
-                                                    const initialOrders = {};
-                                                    dialogData.forEach((row) => {
-                                                        initialOrders[row.id] = '';
-                                                    });
-                                                    setSortOrders(initialOrders);
-                                                }}
-                                            />
-                                            {editMode && (
-                                                <Button 
-                                                    label="Add New Row" 
-                                                    icon="pi pi-plus"
-                                                    severity="success"
-                                                    size="small"
-                                                    text
-                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                    onClick={() => {
-                                                        setActiveFunction('addRow');
-                                                        setAddRowMode(true);
-                                                    }}
-                                                />
-                                            )}
-                                            <Button 
-                                                label="View Saved Presets" 
-                                                icon="pi pi-bookmark"
-                                                severity="help"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    setPresetsListVisible(true);
-                                                    setFunctionDropdownVisible(false);
-                                                }}
-                                            />
-                                            <Button 
-                                                label="Columns" 
-                                                icon="pi pi-th-large"
-                                                severity="secondary"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    setTempVisibleColumns({...visibleColumns});
-                                                    setColumnModalVisible(true);
-                                                    setFunctionDropdownVisible(false);
-                                                }}
-                                            />
-                                            <Button 
-                                                label={dialogMaximized ? 'Exit Full View' : 'Full View'}
-                                                icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
-                                                severity={dialogMaximized ? 'warning' : 'secondary'}
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    setDialogMaximized(!dialogMaximized);
-                                                    setFunctionDropdownVisible(false);
-                                                }}
-                                            />
-                                        </>
-                                    )}
-                                    
-                                    {/* Set Order Actions */}
-                                    {activeFunction === 'setOrder' && (
-                                        <>
-                                            <div style={{ 
-                                                fontWeight: 'bold', 
-                                                fontSize: '0.875rem', 
-                                                marginBottom: '0.5rem',
-                                                color: isDark ? '#e5e5e5' : '#000000'
-                                            }}>
-                                                Set Order Mode
-                                            </div>
-                                            <Button 
-                                                label="Apply" 
-                                                icon="pi pi-check"
-                                                severity="success"
-                                                size="small"
-                                                text
-                                                style={{ 
-                                                    width: '100%', 
-                                                    marginBottom: '0.25rem',
-                                                    backgroundColor: 'transparent',
-                                                    border: 'none',
-                                                    color: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#6b7280'
-                                                }}
-                                                onClick={applyCustomSort}
-                                                disabled={!Object.values(sortOrders).some(o => o !== '')}
-                                            />
-                                            <Button 
-                                                label="Cancel" 
-                                                icon="pi pi-times"
-                                                severity="danger"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    setActiveFunction(null);
-                                                    setCustomSortMode(false);
-                                                    setSortOrders({});
-                                                    setFunctionDropdownVisible(false);
-                                                }}
-                                            />
-                                        </>
-                                    )}
-                                    
-                                    {/* Add Row Actions - Only in Edit Mode */}
-                                    {activeFunction === 'addRow' && editMode && (
-                                        <>
-                                            <div style={{ 
-                                                fontWeight: 'bold', 
-                                                fontSize: '0.875rem', 
-                                                marginBottom: '0.5rem',
-                                                color: isDark ? '#e5e5e5' : '#000000'
-                                            }}>
-                                                Add New Row Mode
-                                            </div>
-                                            <Button 
-                                                label="Add Row" 
-                                                icon="pi pi-plus"
-                                                severity="success"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={handleAddDialogRow}
-                                            />
-                                            <Button 
-                                                label="Save Changes" 
-                                                icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"}
-                                                severity={hasUnsavedChanges ? "success" : "secondary"}
-                                                size="small"
-                                                text
-                                                style={{ 
-                                                    width: '100%', 
-                                                    marginBottom: '0.25rem',
-                                                    backgroundColor: 'transparent',
-                                                    border: 'none',
-                                                    color: hasUnsavedChanges ? '#10b981' : '#6b7280'
-                                                }}
-                                                onClick={() => {
-                                                    handleSaveChanges();
-                                                    setActiveFunction(null);
-                                                    setAddRowMode(false);
-                                                    setNewRows([]);
-                                                    setFunctionDropdownVisible(false);
-                                                }}
-                                                disabled={!hasUnsavedChanges || saving}
-                                            />
-                                            <Button 
-                                                label="Cancel" 
-                                                icon="pi pi-times"
-                                                severity="danger"
-                                                size="small"
-                                                text
-                                                style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
-                                                onClick={() => {
-                                                    const filteredData = dialogData.filter(row => !newRows.includes(row.id));
-                                                    setDialogData(filteredData);
-                                                    setActiveFunction(null);
-                                                    setAddRowMode(false);
-                                                    setNewRows([]);
-                                                    setFunctionDropdownVisible(false);
-                                                    if (newRows.length > 0) {
-                                                        setHasUnsavedChanges(false);
-                                                    }
-                                                }}
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
                     
                     {/* Unsaved Changes Indicator - Above table */}
                     {hasUnsavedChanges && editMode && (
