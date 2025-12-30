@@ -369,13 +369,23 @@ export default function FlexibleScrollDemo() {
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
     const [isRouteInfo, setIsRouteInfo] = useState(false);
     const [globalFilterValue, setGlobalFilterValue] = useState('');
-    const [visibleColumns, setVisibleColumns] = useState({
-        no: true,
-        code: true,
-        location: true,
-        delivery: true,
-        kilometer: true,
-        image: true
+    const [visibleColumns, setVisibleColumns] = useState(() => {
+        const saved = localStorage.getItem('columnVisibility');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error parsing column visibility:', e);
+            }
+        }
+        return {
+            no: true,
+            code: true,
+            location: true,
+            delivery: true,
+            kilometer: true,
+            image: true
+        };
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -387,11 +397,34 @@ export default function FlexibleScrollDemo() {
     // Custom Sort State
     const [customSortMode, setCustomSortMode] = useState(false);
     const [sortOrders, setSortOrders] = useState({});
-    const [isCustomSorted, setIsCustomSorted] = useState(false); // Track if data is custom sorted
+    const [isCustomSorted, setIsCustomSorted] = useState(() => {
+        const saved = localStorage.getItem('isCustomSorted');
+        return saved === 'true';
+    }); // Track if data is custom sorted
     
     // Pin Row State
-    const [pinnedRows, setPinnedRows] = useState(new Set());
-    const [pinnedDialogRows, setPinnedDialogRows] = useState(new Set()); // Pin state for dialog table rows
+    const [pinnedRows, setPinnedRows] = useState(() => {
+        const saved = localStorage.getItem('pinnedRows');
+        if (saved) {
+            try {
+                return new Set(JSON.parse(saved));
+            } catch (e) {
+                console.error('Error parsing pinned rows:', e);
+            }
+        }
+        return new Set();
+    });
+    const [pinnedDialogRows, setPinnedDialogRows] = useState(() => {
+        const saved = localStorage.getItem('pinnedDialogRows');
+        if (saved) {
+            try {
+                return new Set(JSON.parse(saved));
+            } catch (e) {
+                console.error('Error parsing pinned dialog rows:', e);
+            }
+        }
+        return new Set();
+    }); // Pin state for dialog table rows
     
     // Save Order Preset State
     const [savePresetDialogVisible, setSavePresetDialogVisible] = useState(false);
@@ -913,6 +946,24 @@ export default function FlexibleScrollDemo() {
                             size="small"
                             severity="success"
                             disabled={!Object.values(sortOrders).some(order => order !== '' && order !== undefined)}
+                        />
+                    )}
+                    {isCustomSorted && !customSortMode && (
+                        <Button 
+                            label="Reset Order" 
+                            icon="pi pi-refresh" 
+                            onClick={() => {
+                                // Clear custom sort from localStorage
+                                localStorage.removeItem('isCustomSorted');
+                                localStorage.removeItem('customSortedOrder');
+                                // Reset to default sort
+                                const sortedData = sortDialogData(dialogData);
+                                setDialogData(sortedData);
+                                setIsCustomSorted(false);
+                            }} 
+                            size="small"
+                            severity="warning"
+                            outlined
                         />
                     )}
                     <Button 
@@ -1708,10 +1759,26 @@ export default function FlexibleScrollDemo() {
             // Show loading spinner
             setModeTransitioning(true);
             
-            // Simulate transition time
+            // Simulate transition time and reset all edit-related states
             setTimeout(() => {
                 setEditMode(false);
                 setModeTransitioning(false);
+                
+                // Reset all edit mode related states
+                setActiveFunction(null);
+                setAddRowMode(false);
+                setNewRows([]);
+                setFunctionDropdownVisible(false);
+                setCustomSortMode(false);
+                setSortOrders({});
+                setInfoEditMode(false);
+                setModifiedRows(new Set());
+                
+                // Cancel any new unsaved rows
+                const filteredData = dialogData.filter(row => !newRows.includes(row.id));
+                if (filteredData.length !== dialogData.length) {
+                    setDialogData(filteredData);
+                }
             }, 600);
         } else {
             // Entering edit mode - show password dialog
@@ -1735,11 +1802,20 @@ export default function FlexibleScrollDemo() {
                 setPasswordInput('');
                 setShowPassword(false);
                 
-                // Enter edit mode
+                // Enter edit mode and reset all edit-related states
                 setOriginalData([...routes]);
                 setOriginalDialogData([...dialogData]);
                 setHasUnsavedChanges(false);
                 setEditMode(true);
+                
+                // Ensure clean state when entering edit mode
+                setActiveFunction(null);
+                setAddRowMode(false);
+                setNewRows([]);
+                setFunctionDropdownVisible(false);
+                setCustomSortMode(false);
+                setSortOrders({});
+                setModifiedRows(new Set());
             }, 800);
         } else {
             setPasswordError('Incorrect password. Please try again.');
@@ -1868,6 +1944,9 @@ export default function FlexibleScrollDemo() {
         setCustomSortMode(false);
         setSortOrders({});
         setIsCustomSorted(true);
+        // Save custom sort state to localStorage
+        localStorage.setItem('isCustomSorted', 'true');
+        localStorage.setItem('customSortedOrder', JSON.stringify(sortedData.map(row => row.id)));
         setActiveFunction(null);
         setFunctionDropdownVisible(false);
         
@@ -2346,6 +2425,8 @@ export default function FlexibleScrollDemo() {
             } else {
                 newPinned.add(rowId);
             }
+            // Save to localStorage
+            localStorage.setItem('pinnedRows', JSON.stringify(Array.from(newPinned)));
             return newPinned;
         });
     };
@@ -2358,6 +2439,8 @@ export default function FlexibleScrollDemo() {
             } else {
                 newPinned.add(rowId);
             }
+            // Save to localStorage
+            localStorage.setItem('pinnedDialogRows', JSON.stringify(Array.from(newPinned)));
             return newPinned;
         });
     };
@@ -2517,11 +2600,46 @@ export default function FlexibleScrollDemo() {
                                 setCurrentRouteId(rowData.id);
                                 setCurrentRouteName(rowData.route);
                                 CustomerService.getDetailData(rowData.id).then((data) => {
-                                    const sortedData = sortDialogData(data);
+                                    let sortedData = sortDialogData(data);
+                                    
+                                    // Check if there's a saved custom sort order
+                                    const isCustomSortedSaved = localStorage.getItem('isCustomSorted') === 'true';
+                                    const savedSortOrder = localStorage.getItem('customSortedOrder');
+                                    
+                                    if (isCustomSortedSaved && savedSortOrder) {
+                                        try {
+                                            const orderArray = JSON.parse(savedSortOrder);
+                                            // Create a map for quick lookup
+                                            const orderMap = {};
+                                            orderArray.forEach((id, index) => {
+                                                orderMap[id] = index;
+                                            });
+                                            
+                                            // Sort data based on saved order
+                                            sortedData = [...data].sort((a, b) => {
+                                                const orderA = orderMap[a.id];
+                                                const orderB = orderMap[b.id];
+                                                
+                                                // If both have order, sort by order
+                                                if (orderA !== undefined && orderB !== undefined) {
+                                                    return orderA - orderB;
+                                                }
+                                                // If only A has order, A comes first
+                                                if (orderA !== undefined) return -1;
+                                                // If only B has order, B comes first
+                                                if (orderB !== undefined) return 1;
+                                                // If neither has order, sort by code
+                                                return (parseInt(a.code) || 0) - (parseInt(b.code) || 0);
+                                            });
+                                        } catch (e) {
+                                            console.error('Error applying saved sort order:', e);
+                                        }
+                                    }
+                                    
                                     setDialogData(sortedData);
                                     setOriginalDialogData(sortedData);
                                     setDialogVisible(true);
-                                    setIsCustomSorted(false);
+                                    setIsCustomSorted(isCustomSortedSaved);
                                     // Calculate column widths for new data
                                     calculateColumnWidths(sortedData);
                                 });
@@ -6263,6 +6381,7 @@ export default function FlexibleScrollDemo() {
                                 style={{ backgroundColor: 'transparent', border: 'none' }}
                                 onClick={() => {
                                     setVisibleColumns(tempVisibleColumns);
+                                    localStorage.setItem('columnVisibility', JSON.stringify(tempVisibleColumns));
                                     setColumnModalVisible(false);
                                 }}
                             />
