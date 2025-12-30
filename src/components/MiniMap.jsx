@@ -229,22 +229,7 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     </div>
                 )}
                 
-                {isMultipleMarkers && (
-                    <div className="map-info-box map-info-multiple" style={{
-                        marginTop: '10px',
-                        padding: '10px',
-                        backgroundColor: '#e3f2fd',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        color: '#1565c0',
-                        textAlign: 'center',
-                        fontWeight: '600',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}>
-                        <i className="pi pi-map-marker" style={{ marginRight: '5px', fontSize: '14px' }}></i>
-                        {locations.filter(loc => loc.latitude && loc.longitude).length} locations shown on map
-                    </div>
-                )}
+
                 
                 {!hasValidCoordinates && (
                     <div className="map-info-box map-info-warning" style={{

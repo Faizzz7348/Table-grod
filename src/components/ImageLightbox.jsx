@@ -35,6 +35,9 @@ export function ImageLightbox({ images, rowId }) {
 
   const handleImageClick = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
+    console.log('Image clicked, opening gallery...');
     
     // Close any currently open gallery
     if (currentOpenGallery && currentOpenGallery !== galleryRef.current) {
@@ -97,8 +100,8 @@ export function ImageLightbox({ images, rowId }) {
           }
         });
 
-        // Open gallery
-        gallery.openGallery(0);
+        // Open gallery immediately
+        setTimeout(() => gallery.openGallery(0), 100);
       } catch (error) {
         console.error("Failed to load LightGallery:", error);
       }
@@ -134,12 +137,19 @@ export function ImageLightbox({ images, rowId }) {
       {/* Clickable image preview */}
       <div
         onClick={handleImageClick}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleImageClick(e);
+        }}
         style={{ 
           position: 'relative', 
           width: '50px', 
           height: '40px',
           cursor: 'pointer',
-          backgroundColor: imageError ? '#fee2e2' : 'transparent'
+          backgroundColor: imageError ? '#fee2e2' : 'transparent',
+          userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent'
         }}
       >
         {!imageLoaded && !imageError && (
@@ -196,7 +206,8 @@ export function ImageLightbox({ images, rowId }) {
             border: '1px solid #e5e7eb',
             display: imageError ? 'none' : 'block',
             opacity: imageLoaded ? 1 : 0,
-            transition: 'opacity 0.3s'
+            transition: 'opacity 0.3s',
+            pointerEvents: 'none' // Prevent image from blocking clicks
           }}
           loading="lazy"
           onLoad={() => {

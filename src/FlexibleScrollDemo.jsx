@@ -348,10 +348,15 @@ export default function FlexibleScrollDemo() {
         code: 'QLK',
         location: 'QL Kitchen',
         delivery: 'Available',
-        images: [],
+        images: [
+            '/photo/IMG_8310.jpeg',
+            '/photo/IMG_8311.jpeg',
+            '/photo/IMG_8312.jpeg'
+        ],
         powerMode: 'Daily',
-        latitude: 3.0738,
-        longitude: 101.5183
+        latitude: 3.06955,
+        longitude: 101.5469179,
+        address: 'QL Kitchen Plant 2 (Gate A), Jalan Kawat 15/18, Seksyen 15, 40200 Shah Alam, Selangor'
     });
     
     // Frozen row data for dialog table
@@ -971,6 +976,10 @@ export default function FlexibleScrollDemo() {
                         onClick={() => setDialogVisible(false)} 
                         size="small"
                         outlined
+                        style={{ 
+                            padding: '0.4rem 0.6rem',
+                            fontSize: '0.8rem'
+                        }}
                     />
                 </div>
             </div>
@@ -3475,8 +3484,9 @@ export default function FlexibleScrollDemo() {
                                                 size="small"
                                                 onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
                                                 style={{ 
-                                                    minWidth: deviceInfo.isMobile ? '35px' : 'auto',
-                                                    padding: deviceInfo.isMobile ? '0.4rem' : undefined
+                                                    minWidth: deviceInfo.isMobile ? '28px' : 'auto',
+                                                    padding: deviceInfo.isMobile ? '0.3rem 0.4rem' : '0.4rem 0.6rem',
+                                                    fontSize: '0.8rem'
                                                 }}
                                             />
                                             
@@ -4515,45 +4525,11 @@ export default function FlexibleScrollDemo() {
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        {/* Description Section */}
-                                        <div style={{ 
-                                            marginTop: '15px', 
-                                            paddingTop: '15px', 
-                                            borderTop: isDark ? '1px solid #374151' : '1px solid #e9ecef'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                <strong style={{ fontSize: '12px', color: '#6c757d' }}>Description:</strong>
-                                                {editMode && infoModalHasChanges && (
-                                                    <Button
-                                                        label="Save Info"
-                                                        icon={savingInfo ? "pi pi-spin pi-spinner" : "pi pi-check"}
-                                                        size="small"
-                                                        severity="success"
-                                                        onClick={handleSaveInfoModal}
-                                                        disabled={savingInfo}
-                                                        style={{ 
-                                                            padding: '4px 12px',
-                                                            fontSize: '11px',
-                                                            height: '28px'
-                                                        }}
-                                                    />
-                                                )}
-                                            </div>
-                                            <EditableDescriptionList
-                                                value={tempInfoData?.description || selectedRowInfo.description || ''}
-                                                onSave={(value) => {
-                                                    setTempInfoData({ ...tempInfoData, description: value });
-                                                    setInfoModalHasChanges(true);
-                                                }}
-                                                isEditable={editMode}
-                                            />
-                                        </div>
                                     </div>
                                 </div>
                             )}
                             
-                            {/* Location Description Section */}
+                            {/* Description Section - Only for location info */}
                             {!isRouteInfo && (
                                 <div style={{ 
                                     backgroundColor: isDark ? 'transparent' : '#ffffff',
