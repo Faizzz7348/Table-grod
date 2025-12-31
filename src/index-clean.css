@@ -208,7 +208,7 @@ body.dark .p-datatable .p-datatable-tbody > tr.row-disabled {
   color: #4a4a4a;
 }
 
-/* Pinned Row Styling - Only affects position, no background color */
+/* Pinned Row Styling - Color text and icon */
 .p-datatable .p-datatable-tbody > tr.pinned-row {
   position: sticky;
   top: 0;
@@ -217,6 +217,11 @@ body.dark .p-datatable .p-datatable-tbody > tr.row-disabled {
 
 .p-datatable .p-datatable-tbody > tr.pinned-row > td {
   font-weight: 600 !important;
+  color: #d97706 !important; /* Orange color for pinned row text */
+}
+
+body.dark .p-datatable .p-datatable-tbody > tr.pinned-row > td {
+  color: #fbbf24 !important; /* Lighter orange for dark mode */
 }
 
 /* New/Modified Row Highlight */

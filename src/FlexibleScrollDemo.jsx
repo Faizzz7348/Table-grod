@@ -29,7 +29,7 @@ const tableStyles = `
         font-weight: 600 !important;
         border: none !important;
         padding: 1.25rem 1rem !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         letter-spacing: 0.5px !important;
         height: 56px !important;
         line-height: 1.5 !important;
@@ -43,7 +43,7 @@ const tableStyles = `
     
     /* Table body row text size */
     .p-datatable .p-datatable-tbody > tr > td {
-        font-size: 11px !important;
+        font-size: 12px !important;
         font-weight: 600 !important;
     }
     
@@ -390,7 +390,10 @@ export default function FlexibleScrollDemo() {
             location: true,
             delivery: true,
             kilometer: true,
-            image: true
+            image: true,
+            latitude: false,
+            longitude: false,
+            address: false
         };
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
@@ -4036,7 +4039,7 @@ export default function FlexibleScrollDemo() {
                                 style={{ width: '100px', minWidth: '100px' }}
                             />
                         )}
-                        {editMode && (
+                        {editMode && visibleColumns.latitude && (
                             <Column 
                                 field="latitude" 
                                 header="Latitude" 
@@ -4063,7 +4066,7 @@ export default function FlexibleScrollDemo() {
                                 style={{ width: '110px', minWidth: '110px' }}
                             />
                         )}
-                        {editMode && (
+                        {editMode && visibleColumns.longitude && (
                             <Column 
                                 field="longitude" 
                                 header="Longitude" 
@@ -4090,7 +4093,7 @@ export default function FlexibleScrollDemo() {
                                 style={{ width: '120px', minWidth: '120px' }}
                             />
                         )}
-                        {editMode && (
+                        {editMode && visibleColumns.address && (
                             <Column 
                                 field="address" 
                                 header="Address" 
@@ -4482,19 +4485,19 @@ export default function FlexibleScrollDemo() {
                                             fontSize: '11px'
                                         }}>
                                             <div>
-                                                <strong style={{ color: '#6c757d' }}>Route:</strong>
+                                                <strong style={{ color: '#fbbf24' }}>Route:</strong>
                                                 <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#6c757d' }}>Shift:</strong>
+                                                <strong style={{ color: '#fbbf24' }}>Shift:</strong>
                                                 <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#6c757d' }}>Warehouse:</strong>
+                                                <strong style={{ color: '#fbbf24' }}>Warehouse:</strong>
                                                 <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#6c757d' }}>Total Locations:</strong>
+                                                <strong style={{ color: '#fbbf24' }}>Total Locations:</strong>
                                                 <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
                                                     {selectedRowInfo.locationCount || 0}
                                                 </div>
@@ -6257,7 +6260,12 @@ export default function FlexibleScrollDemo() {
                                 { key: 'location', label: 'Location' },
                                 { key: 'delivery', label: 'Delivery' },
                                 { key: 'kilometer', label: 'Kilometer' },
-                                { key: 'image', label: 'Image' }
+                                { key: 'image', label: 'Image' },
+                                ...(editMode ? [
+                                    { key: 'latitude', label: 'Latitude' },
+                                    { key: 'longitude', label: 'Longitude' },
+                                    { key: 'address', label: 'Address' }
+                                ] : [])
                             ].map(col => (
                                 <div key={col.key} style={{
                                     display: 'flex',
