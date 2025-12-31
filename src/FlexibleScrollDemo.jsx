@@ -138,6 +138,16 @@ const tableStyles = `
         }
     }
     
+    /* Spin animation for update icon */
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    
     /* QR Code Scanning Animation */
     @keyframes scanLine {
         0% {
@@ -622,7 +632,8 @@ export default function FlexibleScrollDemo() {
     
     // Update Notification State
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-    const APP_VERSION = '1.0.1'; // Increment this when pushing updates
+    const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+    const APP_VERSION = '1.0.2'; // Increment this when pushing updates
 
     // Calculate dynamic table width based on visible columns
     const calculateTableWidth = () => {
@@ -924,25 +935,31 @@ export default function FlexibleScrollDemo() {
         }
     }, [isDark]);
     
-    // Check for app updates
+    // Check for app updates - after loading completes
     useEffect(() => {
-        const checkForUpdates = () => {
-            const storedVersion = localStorage.getItem('appVersion');
+        if (!loading) {
+            const checkForUpdates = () => {
+                const storedVersion = localStorage.getItem('appVersion');
+                
+                if (storedVersion && storedVersion !== APP_VERSION) {
+                    setShowUpdateDialog(true);
+                } else if (!storedVersion) {
+                    localStorage.setItem('appVersion', APP_VERSION);
+                }
+            };
             
-            if (storedVersion && storedVersion !== APP_VERSION) {
-                setShowUpdateBanner(true);
-            } else if (!storedVersion) {
-                localStorage.setItem('appVersion', APP_VERSION);
-            }
-        };
-        
-        checkForUpdates();
-        
-        // Check for updates every 5 minutes
-        const intervalId = setInterval(checkForUpdates, 5 * 60 * 1000);
-        
-        return () => clearInterval(intervalId);
-    }, []);
+            // Check after a short delay to ensure UI is ready
+            const timeoutId = setTimeout(checkForUpdates, 500);
+            
+            // Also check periodically every 5 minutes
+            const intervalId = setInterval(checkForUpdates, 5 * 60 * 1000);
+            
+            return () => {
+                clearTimeout(timeoutId);
+                clearInterval(intervalId);
+            };
+        }
+    }, [loading]);
     
 // Removed function dropdown close event listener - replaced with SpeedDial
 
@@ -2731,11 +2748,13 @@ export default function FlexibleScrollDemo() {
 
     const handleUpdateApp = () => {
         localStorage.setItem('appVersion', APP_VERSION);
+        setShowUpdateDialog(false);
         window.location.reload();
     };
     
     const handleDismissUpdate = () => {
         setShowUpdateBanner(false);
+        setShowUpdateDialog(false);
     };
     
     const handleClearAllData = () => {
@@ -3341,6 +3360,61 @@ export default function FlexibleScrollDemo() {
                     </div>
                 </div>
             )}
+
+            {/* Update Dialog */}
+            <Dialog
+                header={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <i className="pi pi-refresh" style={{ 
+                            fontSize: '1.5rem', 
+                            color: '#3b82f6',
+                            animation: 'spin 2s linear infinite'
+                        }}></i>
+                        <span>New Version Available</span>
+                    </div>
+                }
+                visible={showUpdateDialog}
+                style={{ width: '450px' }}
+                modal
+                closable={false}
+                footer={
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <Button
+                            label="Later"
+                            icon="pi pi-times"
+                            onClick={handleDismissUpdate}
+                            severity="secondary"
+                            size="small"
+                            outlined
+                        />
+                        <Button
+                            label="Update Now"
+                            icon="pi pi-check"
+                            onClick={handleUpdateApp}
+                            severity="success"
+                            size="small"
+                            raised
+                        />
+                    </div>
+                }
+            >
+                <div style={{ padding: '1rem 0' }}>
+                    <p style={{ 
+                        margin: '0 0 1rem 0',
+                        fontSize: '1rem',
+                        color: isDark ? '#e5e5e5' : '#000000'
+                    }}>
+                        A new version of the application is available.
+                    </p>
+                    <p style={{ 
+                        margin: '0',
+                        fontSize: '0.9rem',
+                        color: isDark ? '#9ca3af' : '#6b7280'
+                    }}>
+                        Please refresh the page to get the latest updates and improvements.
+                    </p>
+                </div>
+            </Dialog>
 
             <div className="card">
                 {editMode && (
