@@ -360,6 +360,14 @@ export default function FlexibleScrollDemo() {
     // Frozen row data for dialog table
     const frozenRow = [frozenRowData];
     
+    // Delivery options for dropdown
+    const deliveryOptions = [
+        { label: 'Daily', value: 'Daily' },
+        { label: 'Alt 1', value: 'Alt 1' },
+        { label: 'Alt 2', value: 'Alt 2' },
+        { label: 'Weekday', value: 'Weekday' }
+    ];
+    
     // Dark Mode State - Simple implementation (INDIVIDUAL - localStorage)
     const [isDark, setIsDark] = useState(() => {
         const saved = localStorage.getItem('isDark');
@@ -3984,7 +3992,16 @@ export default function FlexibleScrollDemo() {
                                 align="center" 
                                 alignHeader="center"
                                 editor={(options) => {
-                                    return editMode ? textEditor(options) : null;
+                                    if (!editMode) return null;
+                                    return (
+                                        <Dropdown
+                                            value={options.value}
+                                            options={deliveryOptions}
+                                            onChange={(e) => options.editorCallback(e.value)}
+                                            placeholder="Select Delivery"
+                                            style={{ width: '100%' }}
+                                        />
+                                    );
                                 }}
                                 onCellEditComplete={editMode ? onDialogCellEditComplete : null}
                                 style={{ width: `${columnWidths.delivery}px`, minWidth: '90px' }}
@@ -4276,7 +4293,7 @@ export default function FlexibleScrollDemo() {
                         }}>
                             {selectedRowInfo && (
                                 isRouteInfo 
-                                    ? `Route ${selectedRowInfo.route} - ${selectedRowInfo.locations?.length || 0} Locations`
+                                    ? `Route ${selectedRowInfo.route}`
                                     : `${selectedRowInfo.code} - ${selectedRowInfo.location}`
                             )}
                         </div>
@@ -4367,6 +4384,7 @@ export default function FlexibleScrollDemo() {
                                     address={!isRouteInfo ? selectedRowInfo.address : null}
                                     locations={isRouteInfo ? selectedRowInfo.locations : []}
                                     style={{ marginBottom: '20px' }}
+                                    isDark={isDark}
                                 />
                             ) : (
                                 <div style={{ 

@@ -53,7 +53,7 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, onMarkerColorChange }) {
+export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, onMarkerColorChange, isDark = false }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
     const [addressExpanded, setAddressExpanded] = useState(false);
     
@@ -235,12 +235,12 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     <div className="map-info-box map-info-warning" style={{
                         marginTop: '10px',
                         padding: '10px',
-                        backgroundColor: '#fff3cd',
+                        backgroundColor: 'transparent',
                         borderRadius: '8px',
                         fontSize: '12px',
-                        color: '#856404',
+                        color: isDark ? '#fbbf24' : '#856404',
                         textAlign: 'center',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        border: 'transparent'
                     }}>
                         <i className="pi pi-info-circle" style={{ marginRight: '5px', fontSize: '14px' }}></i>
                         {isMultipleMarkers ? 'No locations with coordinates found.' : 'No coordinates set. Showing default location (KL).'}
