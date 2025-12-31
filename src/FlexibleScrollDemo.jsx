@@ -6,6 +6,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
+import { Toast } from 'primereact/toast';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
@@ -28,7 +29,7 @@ const tableStyles = `
         font-weight: 600 !important;
         border: none !important;
         padding: 1.25rem 1rem !important;
-        font-size: 13px !important;
+        font-size: 12px !important;
         letter-spacing: 0.5px !important;
         height: 56px !important;
         line-height: 1.5 !important;
@@ -42,7 +43,7 @@ const tableStyles = `
     
     /* Table body row text size */
     .p-datatable .p-datatable-tbody > tr > td {
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 600 !important;
     }
     
@@ -491,9 +492,10 @@ export default function FlexibleScrollDemo() {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
-    // Function Dropdown State
-    const [functionDropdownVisible, setFunctionDropdownVisible] = useState(false);
+    // SpeedDial Toast
+    const toast = useRef(null);
     const [activeFunction, setActiveFunction] = useState(null); // 'setOrder' or 'addRow'
+    const [functionMenuVisible, setFunctionMenuVisible] = useState(false);
     
     // Column Visibility Modal State
     const [columnModalVisible, setColumnModalVisible] = useState(false);
@@ -931,19 +933,7 @@ export default function FlexibleScrollDemo() {
         return () => clearInterval(intervalId);
     }, []);
     
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (functionDropdownVisible && !event.target.closest('.function-dropdown-container')) {
-                setFunctionDropdownVisible(false);
-            }
-        };
-        
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [functionDropdownVisible]);
+// Removed function dropdown close event listener - replaced with SpeedDial
 
     const dialogFooterTemplate = () => {
         return (
@@ -969,7 +959,8 @@ export default function FlexibleScrollDemo() {
                             icon="pi pi-save" 
                             onClick={() => setSavePresetDialogVisible(true)} 
                             size="small"
-                            severity="success"
+                            severity="info"
+                            outlined
                             disabled={!Object.values(sortOrders).some(order => order !== '' && order !== undefined)}
                         />
                     )}
@@ -992,11 +983,20 @@ export default function FlexibleScrollDemo() {
                         />
                     )}
                     <Button 
-                        label="Close" 
+                        label={customSortMode ? "Cancel" : "Close"} 
                         icon="pi pi-times" 
-                        onClick={() => setDialogVisible(false)} 
+                        onClick={() => {
+                            if (customSortMode) {
+                                setActiveFunction(null);
+                                setCustomSortMode(false);
+                                setSortOrders({});
+                            } else {
+                                setDialogVisible(false);
+                            }
+                        }} 
                         size="small"
                         outlined
+                        severity={customSortMode ? "danger" : undefined}
                         style={{ 
                             padding: '0.4rem 0.6rem',
                             fontSize: '0.8rem'
@@ -1825,7 +1825,6 @@ export default function FlexibleScrollDemo() {
                 setActiveFunction(null);
                 setAddRowMode(false);
                 setNewRows([]);
-                setFunctionDropdownVisible(false);
                 setCustomSortMode(false);
                 setSortOrders({});
                 setInfoEditMode(false);
@@ -1871,7 +1870,6 @@ export default function FlexibleScrollDemo() {
                 setActiveFunction(null);
                 setAddRowMode(false);
                 setNewRows([]);
-                setFunctionDropdownVisible(false);
                 setCustomSortMode(false);
                 setSortOrders({});
                 setModifiedRows(new Set());
@@ -2007,7 +2005,6 @@ export default function FlexibleScrollDemo() {
         localStorage.setItem('isCustomSorted', 'true');
         localStorage.setItem('customSortedOrder', JSON.stringify(sortedData.map(row => row.id)));
         setActiveFunction(null);
-        setFunctionDropdownVisible(false);
         
         const message = filledOrders.length === dialogData.length
             ? '✅ All rows have been sorted according to your order!'
@@ -3535,235 +3532,149 @@ export default function FlexibleScrollDemo() {
                                             )}
                                         </span>
                                         
-                                        {/* Function Button with Dropdown */}
-                                        <div className="function-dropdown-container" style={{ position: 'relative' }}>
+                                        {/* Function Button with Menu */}
+                                        <div style={{ position: 'relative' }}>
+                                            <Toast ref={toast} />
                                             <Button 
-                                                label={deviceInfo.isMobile ? '' : (
-                                                    activeFunction === 'setOrder' ? 'Set Order' :
-                                                    activeFunction === 'addRow' ? 'Add New Row' :
-                                                    'Function'
-                                                )}
                                                 icon="pi pi-bars"
-                                                severity={activeFunction ? 'success' : 'info'}
-                                                size="small"
-                                                onClick={() => setFunctionDropdownVisible(!functionDropdownVisible)}
-                                                style={{ 
-                                                    minWidth: deviceInfo.isMobile ? '28px' : 'auto',
-                                                    padding: deviceInfo.isMobile ? '0.3rem 0.4rem' : '0.4rem 0.6rem',
-                                                    fontSize: '0.8rem'
+                                                onClick={() => setFunctionMenuVisible(!functionMenuVisible)}
+                                                style={{
+                                                    width: '38px',
+                                                    height: '38px',
+                                                    backgroundColor: isDark ? '#3b82f6' : '#2563eb',
+                                                    border: 'none',
+                                                    borderRadius: '10px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
                                                 }}
                                             />
                                             
-                                            {/* Function Dropdown Menu */}
-                                            {functionDropdownVisible && (
+                                            {/* Menu Popup with Blur Background */}
+                                            {functionMenuVisible && (
                                                 <>
+                                                    {/* Backdrop with blur */}
                                                     <div 
+                                                        onClick={() => setFunctionMenuVisible(false)}
                                                         style={{
                                                             position: 'fixed',
                                                             top: 0,
                                                             left: 0,
                                                             right: 0,
                                                             bottom: 0,
-                                                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                                            backgroundColor: 'rgba(0, 0, 0, 0.4)',
                                                             backdropFilter: 'blur(4px)',
                                                             zIndex: 999
                                                         }}
-                                                        onClick={() => setFunctionDropdownVisible(false)}
                                                     />
+                                                    {/* Menu Content */}
                                                     <div style={{
                                                         position: 'absolute',
-                                                        top: '100%',
+                                                        top: 'calc(100% + 0.5rem)',
                                                         right: 0,
-                                                        marginTop: '0.5rem',
-                                                        backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                                                        border: `1px solid ${isDark ? '#404040' : '#d1d5db'}`,
-                                                        borderRadius: '8px',
-                                                        padding: '0.5rem',
-                                                        minWidth: '200px',
-                                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                                        zIndex: 1000
+                                                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                                                        border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                                                        borderRadius: '12px',
+                                                        padding: '0.75rem',
+                                                        minWidth: '220px',
+                                                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                                                        zIndex: 1000,
+                                                        animation: 'slideDown 0.2s ease'
                                                     }}>
-                                                        {/* Main Menu - Show when no active function */}
-                                                        {activeFunction !== 'setOrder' && activeFunction !== 'addRow' && (
-                                                            <>
-                                                                <Button 
-                                                                    label="Set Order" 
-                                                                    icon="pi pi-sort-numeric-up"
-                                                                    severity="info"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        setActiveFunction('setOrder');
-                                                                        setCustomSortMode(true);
-                                                                        const initialOrders = {};
-                                                                        dialogData.forEach((row) => {
-                                                                            initialOrders[row.id] = '';
-                                                                        });
-                                                                        setSortOrders(initialOrders);
-                                                                    }}
-                                                                />
-                                                                {editMode && (
-                                                                    <Button 
-                                                                        label="Add New Row" 
-                                                                        icon="pi pi-plus"
-                                                                        severity="success"
-                                                                        size="small"
-                                                                        text
-                                                                        style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                                        onClick={() => {
-                                                                            setActiveFunction('addRow');
-                                                                            setAddRowMode(true);
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                                <Button 
-                                                                    label="View Saved Presets" 
-                                                                    icon="pi pi-bookmark"
-                                                                    severity="help"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        setPresetsListVisible(true);
-                                                                        setFunctionDropdownVisible(false);
-                                                                    }}
-                                                                />
-                                                                <Button 
-                                                                    label="Columns" 
-                                                                    icon="pi pi-th-large"
-                                                                    severity="secondary"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        setTempVisibleColumns({...visibleColumns});
-                                                                        setColumnModalVisible(true);
-                                                                        setFunctionDropdownVisible(false);
-                                                                    }}
-                                                                />
-                                                                <Button 
-                                                                    label={dialogMaximized ? 'Exit Full View' : 'Full View'}
-                                                                    icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
-                                                                    severity={dialogMaximized ? 'warning' : 'secondary'}
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', justifyContent: 'flex-start', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        setDialogMaximized(!dialogMaximized);
-                                                                        setFunctionDropdownVisible(false);
-                                                                    }}
-                                                                />
-                                                            </>
-                                                        )}
-                                                        
-                                                        {/* Set Order Actions */}
-                                                        {activeFunction === 'setOrder' && (
-                                                            <>
-                                                                <div style={{ 
-                                                                    fontWeight: 'bold', 
-                                                                    fontSize: '0.875rem', 
+                                                        <Button 
+                                                            label="Set Order" 
+                                                            icon="pi pi-sort-numeric-up"
+                                                            text
+                                                            style={{ 
+                                                                width: '100%', 
+                                                                justifyContent: 'flex-start', 
+                                                                marginBottom: '0.5rem',
+                                                                color: isDark ? '#f1f5f9' : '#0f172a'
+                                                            }}
+                                                            onClick={() => {
+                                                                setActiveFunction('setOrder');
+                                                                setCustomSortMode(true);
+                                                                const initialOrders = {};
+                                                                dialogData.forEach((row) => {
+                                                                    initialOrders[row.id] = '';
+                                                                });
+                                                                setSortOrders(initialOrders);
+                                                                setFunctionMenuVisible(false);
+                                                                toast.current?.show({ severity: 'info', summary: 'Set Order', detail: 'Order mode activated' });
+                                                            }}
+                                                        />
+                                                        {editMode && (
+                                                            <Button 
+                                                                label="Add New Row" 
+                                                                icon="pi pi-plus"
+                                                                text
+                                                                style={{ 
+                                                                    width: '100%', 
+                                                                    justifyContent: 'flex-start', 
                                                                     marginBottom: '0.5rem',
-                                                                    color: isDark ? '#e5e5e5' : '#000000'
-                                                                }}>
-                                                                    Set Order Mode
-                                                                </div>
-                                                                <Button 
-                                                                    label="Apply" 
-                                                                    icon="pi pi-check"
-                                                                    severity="success"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ 
-                                                                        width: '100%', 
-                                                                        marginBottom: '0.25rem',
-                                                                        backgroundColor: 'transparent',
-                                                                        border: 'none',
-                                                                        color: Object.values(sortOrders).some(o => o !== '') ? '#10b981' : '#6b7280'
-                                                                    }}
-                                                                    onClick={applyCustomSort}
-                                                                    disabled={!Object.values(sortOrders).some(o => o !== '')}
-                                                                />
-                                                                <Button 
-                                                                    label="Cancel" 
-                                                                    icon="pi pi-times"
-                                                                    severity="danger"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        setActiveFunction(null);
-                                                                        setCustomSortMode(false);
-                                                                        setSortOrders({});
-                                                                        setFunctionDropdownVisible(false);
-                                                                    }}
-                                                                />
-                                                            </>
+                                                                    color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                }}
+                                                                onClick={() => {
+                                                                    setActiveFunction('addRow');
+                                                                    setAddRowMode(true);
+                                                                    setFunctionMenuVisible(false);
+                                                                    toast.current?.show({ severity: 'success', summary: 'Add Row', detail: 'Add row mode activated' });
+                                                                }}
+                                                            />
                                                         )}
-                                                        
-                                                        {/* Add Row Actions - Only in Edit Mode */}
-                                                        {activeFunction === 'addRow' && editMode && (
-                                                            <>
-                                                                <div style={{ 
-                                                                    fontWeight: 'bold', 
-                                                                    fontSize: '0.875rem', 
-                                                                    marginBottom: '0.5rem',
-                                                                    color: isDark ? '#e5e5e5' : '#000000'
-                                                                }}>
-                                                                    Add New Row Mode
-                                                                </div>
-                                                                <Button 
-                                                                    label="Add Row" 
-                                                                    icon="pi pi-plus"
-                                                                    severity="success"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', marginBottom: '0.25rem', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={handleAddDialogRow}
-                                                                />
-                                                                <Button 
-                                                                    label="Save Changes" 
-                                                                    icon={saving ? "pi pi-spin pi-spinner" : "pi pi-save"}
-                                                                    severity={hasUnsavedChanges ? "success" : "secondary"}
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ 
-                                                                        width: '100%', 
-                                                                        marginBottom: '0.25rem',
-                                                                        backgroundColor: 'transparent',
-                                                                        border: 'none',
-                                                                        color: hasUnsavedChanges ? '#10b981' : '#6b7280'
-                                                                    }}
-                                                                    onClick={() => {
-                                                                        handleSaveChanges();
-                                                                        setActiveFunction(null);
-                                                                        setAddRowMode(false);
-                                                                        setNewRows([]);
-                                                                        setFunctionDropdownVisible(false);
-                                                                    }}
-                                                                    disabled={!hasUnsavedChanges || saving}
-                                                                />
-                                                                <Button 
-                                                                    label="Cancel" 
-                                                                    icon="pi pi-times"
-                                                                    severity="danger"
-                                                                    size="small"
-                                                                    text
-                                                                    style={{ width: '100%', backgroundColor: 'transparent', border: 'none' }}
-                                                                    onClick={() => {
-                                                                        const filteredData = dialogData.filter(row => !newRows.includes(row.id));
-                                                                        setDialogData(filteredData);
-                                                                        setActiveFunction(null);
-                                                                        setAddRowMode(false);
-                                                                        setNewRows([]);
-                                                                        setFunctionDropdownVisible(false);
-                                                                        if (newRows.length > 0) {
-                                                                            setHasUnsavedChanges(false);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </>
-                                                        )}
+                                                        <Button 
+                                                            label="View Presets" 
+                                                            icon="pi pi-bookmark"
+                                                            text
+                                                            style={{ 
+                                                                width: '100%', 
+                                                                justifyContent: 'flex-start', 
+                                                                marginBottom: '0.5rem',
+                                                                color: isDark ? '#f1f5f9' : '#0f172a'
+                                                            }}
+                                                            onClick={() => {
+                                                                setPresetsListVisible(true);
+                                                                setFunctionMenuVisible(false);
+                                                                toast.current?.show({ severity: 'info', summary: 'Presets', detail: 'Opening saved presets' });
+                                                            }}
+                                                        />
+                                                        <Button 
+                                                            label="Columns" 
+                                                            icon="pi pi-th-large"
+                                                            text
+                                                            style={{ 
+                                                                width: '100%', 
+                                                                justifyContent: 'flex-start', 
+                                                                marginBottom: '0.5rem',
+                                                                color: isDark ? '#f1f5f9' : '#0f172a'
+                                                            }}
+                                                            onClick={() => {
+                                                                setTempVisibleColumns({...visibleColumns});
+                                                                setColumnModalVisible(true);
+                                                                setFunctionMenuVisible(false);
+                                                                toast.current?.show({ severity: 'info', summary: 'Columns', detail: 'Opening column settings' });
+                                                            }}
+                                                        />
+                                                        <Button 
+                                                            label={dialogMaximized ? 'Exit Full View' : 'Full View'}
+                                                            icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
+                                                            text
+                                                            style={{ 
+                                                                width: '100%', 
+                                                                justifyContent: 'flex-start',
+                                                                color: isDark ? '#f1f5f9' : '#0f172a'
+                                                            }}
+                                                            onClick={() => {
+                                                                setDialogMaximized(!dialogMaximized);
+                                                                setFunctionMenuVisible(false);
+                                                                toast.current?.show({ 
+                                                                    severity: 'info', 
+                                                                    summary: dialogMaximized ? 'Normal View' : 'Full View', 
+                                                                    detail: dialogMaximized ? 'Exited full screen' : 'Entered full screen'
+                                                                });
+                                                            }}
+                                                        />
                                                     </div>
                                                 </>
                                             )}
