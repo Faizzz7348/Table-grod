@@ -346,6 +346,39 @@ export const CustomerService = {
         }
     },
 
+    // Delete route
+    async deleteRoute(id) {
+        if (USE_LOCALSTORAGE) {
+            const routes = JSON.parse(localStorage.getItem('routes') || '[]');
+            const filtered = routes.filter(route => route.id !== id);
+            localStorage.setItem('routes', JSON.stringify(filtered));
+            console.log('🗑️ Route deleted from localStorage:', id);
+            clearCache('routes'); // Clear cache after delete
+            return { success: true, message: 'Route deleted from localStorage' };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/routes`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete route');
+            }
+            
+            clearCache('routes'); // Clear cache after successful delete
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting route:', error);
+            throw error;
+        }
+    },
+
     // Dummy data fallbacks
     getDummyRoutes() {
         return [

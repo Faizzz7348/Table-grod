@@ -510,6 +510,10 @@ export default function FlexibleScrollDemo() {
     // Track modified rows
     const [modifiedRows, setModifiedRows] = useState(new Set());
     
+    // Track deleted rows (to be deleted from database on save)
+    const [deletedLocationIds, setDeletedLocationIds] = useState([]);
+    const [deletedRouteIds, setDeletedRouteIds] = useState([]);
+    
     // View Mode Dialog State
     const [viewDialogVisible, setViewDialogVisible] = useState(false);
     const [selectedViewRoute, setSelectedViewRoute] = useState(null);
@@ -1710,6 +1714,31 @@ export default function FlexibleScrollDemo() {
         try {
             // Starting save operation
             
+            // First, delete any rows marked for deletion
+            const deletePromises = [];
+            
+            // Delete locations from database
+            for (const locationId of deletedLocationIds) {
+                console.log('🗑️ Deleting location from database:', locationId);
+                deletePromises.push(CustomerService.deleteLocation(locationId));
+            }
+            
+            // Delete routes from database
+            for (const routeId of deletedRouteIds) {
+                console.log('🗑️ Deleting route from database:', routeId);
+                deletePromises.push(CustomerService.deleteRoute(routeId));
+            }
+            
+            // Wait for all deletions to complete
+            if (deletePromises.length > 0) {
+                await Promise.all(deletePromises);
+                console.log('✅ All deletions completed');
+            }
+            
+            // Clear deleted IDs after successful deletion
+            setDeletedLocationIds([]);
+            setDeletedRouteIds([]);
+            
             // Save both routes and locations
             const results = await Promise.all([
                 CustomerService.saveRoutes(routes),
@@ -1769,6 +1798,9 @@ export default function FlexibleScrollDemo() {
         setRoutes([...originalData]);
         setDialogData([...originalDialogData]);
         setHasUnsavedChanges(false);
+        // Reset deleted IDs
+        setDeletedLocationIds([]);
+        setDeletedRouteIds([]);
     };
 
     const handleToggleEditMode = () => {
@@ -1798,6 +1830,8 @@ export default function FlexibleScrollDemo() {
                 setSortOrders({});
                 setInfoEditMode(false);
                 setModifiedRows(new Set());
+                setDeletedLocationIds([]);
+                setDeletedRouteIds([]);
                 
                 // Cancel any new unsaved rows
                 const filteredData = dialogData.filter(row => !newRows.includes(row.id));
@@ -2095,6 +2129,12 @@ export default function FlexibleScrollDemo() {
             setDialogData(sortDialogData(updatedData));
             setHasUnsavedChanges(true);
             
+            // Track deleted location ID (only if it's an existing location, not a new one)
+            if (deleteTarget.id <= 1000000000000) {
+                setDeletedLocationIds(prev => [...prev, deleteTarget.id]);
+                console.log('🗑️ Marked location for deletion:', deleteTarget.id);
+            }
+            
             // Add to changelog
             addChangelogEntry('delete', 'location', {
                 route: currentRouteName,
@@ -2112,6 +2152,12 @@ export default function FlexibleScrollDemo() {
             // Sort routes after delete to maintain A-Z, 1-10 order
             setRoutes(sortRoutes(updatedRoutes));
             setHasUnsavedChanges(true);
+            
+            // Track deleted route ID (only if it's an existing route, not a new one)
+            if (deleteTarget.id <= 1000000000000) {
+                setDeletedRouteIds(prev => [...prev, deleteTarget.id]);
+                console.log('🗑️ Marked route for deletion:', deleteTarget.id);
+            }
             
             // Add to changelog
             addChangelogEntry('delete', 'route', {
@@ -2775,7 +2821,9 @@ export default function FlexibleScrollDemo() {
                 marginBottom: '2rem',
                 boxShadow: isDark ? '0 1px 4px rgba(0, 0, 0, 0.2)' : '0 1px 4px rgba(0, 0, 0, 0.06)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative'
+                position: 'sticky',
+                top: 0,
+                zIndex: 100
             }}>
                 <h2 style={{ 
                     margin: 0, 
