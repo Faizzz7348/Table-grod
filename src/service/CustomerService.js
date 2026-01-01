@@ -3,6 +3,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Only user preferences (pin, order, columns) remain in localStorage
 const USE_LOCALSTORAGE = false;
 
+// Enable secondary localStorage cache for faster cold starts (in addition to memory cache)
+const USE_PERSISTENT_CACHE = true;
+const PERSISTENT_CACHE_KEY_PREFIX = 'cache_v1_';
+
 // Enhanced in-memory cache with expiration and versioning
 const cache = {
     routes: { data: null, timestamp: null, etag: null },
@@ -17,8 +21,101 @@ const CACHE_DURATION = {
     routeLocations: 8 * 60 * 1000 // 8 minutes - per-route data
 };
 
+// Persistent cache duration (localStorage) - longer duration for offline support
+const PERSISTENT_CACHE_DURATION = {
+    routes: 60 * 60 * 1000,      // 1 hour
+    locations: 30 * 60 * 1000,    // 30 minutes
+    routeLocations: 45 * 60 * 1000 // 45 minutes
+};
+
 // Request deduplication - prevent multiple simultaneous requests
 const pendingRequests = new Map();
+
+// Persistent cache helper functions
+const getPersistentCache = (key, type = 'locations') => {
+    if (!USE_PERSISTENT_CACHE) return null;
+    
+    try {
+        const cacheKey = `${PERSISTENT_CACHE_KEY_PREFIX}${key}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (!cached) return null;
+        
+        const { data, timestamp } = JSON.parse(cached);
+        const duration = PERSISTENT_CACHE_DURATION[type] || PERSISTENT_CACHE_DURATION.locations;
+        
+        if (Date.now() - timestamp < duration) {
+            console.log(`💾 Using persistent cache for ${key} (age: ${Math.round((Date.now() - timestamp) / 1000)}s)`);
+            return data;
+        }
+        
+        // Cache expired, remove it
+        localStorage.removeItem(cacheKey);
+        return null;
+    } catch (error) {
+        console.error('Error reading persistent cache:', error);
+        return null;
+    }
+};
+
+const setPersistentCache = (key, data) => {
+    if (!USE_PERSISTENT_CACHE) return;
+    
+    try {
+        const cacheKey = `${PERSISTENT_CACHE_KEY_PREFIX}${key}`;
+        localStorage.setItem(cacheKey, JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        // Quota exceeded or other localStorage error
+        console.warn('Failed to set persistent cache:', error);
+        // Try to clear old caches
+        clearOldPersistentCaches();
+    }
+};
+
+const clearPersistentCache = (key = null) => {
+    if (!USE_PERSISTENT_CACHE) return;
+    
+    try {
+        if (key) {
+            const cacheKey = `${PERSISTENT_CACHE_KEY_PREFIX}${key}`;
+            localStorage.removeItem(cacheKey);
+        } else {
+            // Clear all persistent caches
+            const keys = Object.keys(localStorage);
+            keys.forEach(k => {
+                if (k.startsWith(PERSISTENT_CACHE_KEY_PREFIX)) {
+                    localStorage.removeItem(k);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error clearing persistent cache:', error);
+    }
+};
+
+const clearOldPersistentCaches = () => {
+    try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith(PERSISTENT_CACHE_KEY_PREFIX)) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(key));
+                    // Remove caches older than 24 hours
+                    if (Date.now() - cached.timestamp > 24 * 60 * 60 * 1000) {
+                        localStorage.removeItem(key);
+                    }
+                } catch (e) {
+                    // Invalid cache entry, remove it
+                    localStorage.removeItem(key);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error clearing old persistent caches:', error);
+    }
+};
 
 // Cache helper functions
 const isCacheValid = (cacheEntry, type = 'locations') => {
@@ -34,14 +131,36 @@ const setCache = (key, data, etag = null) => {
     } else {
         cache[key] = { data, timestamp: Date.now(), etag };
     }
+    // Also persist to localStorage for faster cold starts
+    setPersistentCache(key, data);
 };
 
 const getCache = (key, type = 'locations') => {
+    // Try memory cache first (fastest)
     if (key.startsWith('route-')) {
         const entry = cache.routeLocations[key];
-        return isCacheValid(entry, 'routeLocations') ? entry.data : null;
+        if (isCacheValid(entry, 'routeLocations')) return entry.data;
+        
+        // Try persistent cache (slower but still fast)
+        const persistentData = getPersistentCache(key, 'routeLocations');
+        if (persistentData) {
+            // Restore to memory cache
+            cache.routeLocations[key] = { data: persistentData, timestamp: Date.now(), etag: null };
+            return persistentData;
+        }
+        return null;
     }
-    return isCacheValid(cache[key], type) ? cache[key].data : null;
+    
+    if (isCacheValid(cache[key], type)) return cache[key].data;
+    
+    // Try persistent cache
+    const persistentData = getPersistentCache(key, type);
+    if (persistentData) {
+        // Restore to memory cache
+        cache[key] = { data: persistentData, timestamp: Date.now(), etag: null };
+        return persistentData;
+    }
+    return null;
 };
 
 const clearCache = (key = null) => {
@@ -51,11 +170,13 @@ const clearCache = (key = null) => {
         } else {
             cache[key] = { data: null, timestamp: null, etag: null };
         }
+        clearPersistentCache(key);
     } else {
         // Clear all caches
         cache.routes = { data: null, timestamp: null, etag: null };
         cache.locations = { data: null, timestamp: null, etag: null };
         cache.routeLocations = {};
+        clearPersistentCache();
     }
 };
 

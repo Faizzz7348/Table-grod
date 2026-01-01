@@ -22,7 +22,7 @@ const tableStyles = `
         border: none !important;
     }
     
-    /* Table header background matching dialog header */
+    /* Table header background matching dialog header - NO BORDER TRANSITIONS */
     .p-datatable .p-datatable-thead > tr > th {
         background-color: #e5e7eb !important;
         color: #111827 !important;
@@ -33,6 +33,7 @@ const tableStyles = `
         letter-spacing: 0.5px !important;
         height: 56px !important;
         line-height: 1.5 !important;
+        transition: background-color 0.3s ease, color 0.3s ease !important;
     }
     
     body.dark .p-datatable .p-datatable-thead > tr > th {
@@ -41,24 +42,26 @@ const tableStyles = `
         border: none !important;
     }
     
-    /* Table body row text size */
+    /* Table body row text size - NO BORDER */
     .p-datatable .p-datatable-tbody > tr > td {
         font-size: 12px !important;
         font-weight: 600 !important;
+        border: none !important;
     }
     
-    /* Edit Mode Row Highlighting */
+    /* Edit Mode Row Highlighting - specify transition properties */
     .p-datatable .p-datatable-tbody > tr.p-row-editing {
         background-color: #dbeafe !important;
         border-left: 3px solid #3b82f6 !important;
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
-        transition: all 0.3s ease !important;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease !important;
     }
     
     body.dark .p-datatable .p-datatable-tbody > tr.p-row-editing {
         background-color: #1e3a5f !important;
         border-left: 3px solid #60a5fa !important;
         box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2) !important;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease !important;
     }
     
     /* Editable Cell Hover Effect */
@@ -79,7 +82,7 @@ const tableStyles = `
         padding: 0.5rem !important;
         font-size: 12px !important;
         font-weight: 600 !important;
-        transition: all 0.2s ease !important;
+        transition: box-shadow 0.2s ease !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
     }
     
@@ -101,14 +104,16 @@ const tableStyles = `
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
     }
     
-    /* Cell editing indicator */
+    /* Cell editing indicator - no border transition */
     .p-datatable .p-datatable-tbody > tr > td.p-cell-editing {
         background-color: #eff6ff !important;
         position: relative !important;
+        border: none !important;
     }
     
     body.dark .p-datatable .p-datatable-tbody > tr > td.p-cell-editing {
         background-color: #1e3a5f !important;
+        border: none !important;
     }
     
     /* Add subtle animation for edit mode activation */

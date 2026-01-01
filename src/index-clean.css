@@ -18,11 +18,10 @@ body.dark {
   --text-color: #e5e5e5;
 }
 
-/* Smooth transitions */
+/* Smooth transitions - excluding borders to prevent flickering */
 * {
   transition: background-color 0.3s ease, 
-              color 0.3s ease,
-              border-color 0.3s ease;
+              color 0.3s ease;
 }
 
 .card {
@@ -115,12 +114,7 @@ body.dark .p-datatable:hover {
   font-size: 13px;
   padding: 1rem;
   border: none !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  border-left: none !important;
-  border-right: none !important;
   letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .p-datatable .p-datatable-thead > tr > th:first-child {
@@ -138,8 +132,8 @@ body.dark .p-datatable .p-datatable-thead > tr > th {
 
 /* Table Body */
 .p-datatable .p-datatable-tbody > tr {
-  border: 0 !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none !important;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
@@ -159,23 +153,14 @@ body.dark .p-datatable .p-datatable-tbody > tr:hover {
   font-size: 12px;
   font-weight: 600;
   padding: 0.75rem;
-  border: 0 !important;
-  border-bottom: 1px solid transparent !important;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.p-datatable .p-datatable-tbody > tr:last-child > td {
-  border-bottom: none !important;
+  border: none !important;
+  transition: background-color 0.3s ease;
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr > td {
   background-color: #0f0f0f;
   color: #e5e5e5;
-  border-bottom: 1px solid transparent !important;
-}
-
-body.dark .p-datatable .p-datatable-tbody > tr:last-child > td {
-  border-bottom: none !important;
+  border: none !important;
 }
 
 .p-datatable .p-datatable-tbody > tr:hover {
