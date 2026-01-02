@@ -5746,8 +5746,7 @@ export default function FlexibleScrollDemo() {
                                 }}
                                 disabled={passwordLoading}
                                 autoFocus
-                                    disabled={passwordLoading}
-                                />
+                            />
                             
                             {/* Progress Indicator */}
                             <div style={{
