@@ -7,6 +7,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Toast } from 'primereact/toast';
+import { SpeedDial } from 'primereact/speeddial';
 import { CustomerService } from './service/CustomerService';
 import { ImageLightbox } from './components/ImageLightbox';
 import MiniMap from './components/MiniMap';
@@ -275,6 +276,173 @@ const tableStyles = `
             font-size: 12px !important;
         }
     }
+    
+    /* SpeedDial Background Blur Effect */
+    .p-speeddial-mask {
+        background-color: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    body.dark .p-speeddial-mask {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+    
+    /* SpeedDial Action List Positioning - Move Up */
+    .p-speeddial-list {
+        margin-top: -60px !important;
+    }
+    
+    /* SpeedDial Main Button Styling */
+    .p-speeddial-button {
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .p-speeddial-button:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    }
+    
+    .p-speeddial-opened .p-speeddial-button {
+        transform: rotate(135deg) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    body.dark .p-speeddial-button {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    body.dark .p-speeddial-button:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+    }
+    
+    body.dark .p-speeddial-opened .p-speeddial-button {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7) !important;
+    }
+    
+    /* Hide SpeedDial items initially */
+    .p-speeddial:not(.p-speeddial-opened) .p-speeddial-item {
+        display: none !important;
+    }
+    
+    /* SpeedDial Action Items Animation */
+    .p-speeddial-opened .p-speeddial-item {
+        display: block !important;
+        animation: speedDialItemFadeIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards !important;
+        opacity: 0;
+    }
+    
+    .p-speeddial-opened .p-speeddial-item:nth-child(1) {
+        animation-delay: 0.05s !important;
+    }
+    
+    .p-speeddial-opened .p-speeddial-item:nth-child(2) {
+        animation-delay: 0.1s !important;
+    }
+    
+    .p-speeddial-opened .p-speeddial-item:nth-child(3) {
+        animation-delay: 0.15s !important;
+    }
+    
+    @keyframes speedDialItemFadeIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.3) translateX(15px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateX(0);
+        }
+    }
+    
+    /* SpeedDial Action Button Base Styling */
+    .p-speeddial-action {
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+        position: relative !important;
+    }
+    
+    .p-speeddial-action:hover {
+        transform: scale(1.15) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        z-index: 10 !important;
+    }
+    
+    .p-speeddial-action:active {
+        transform: scale(1.05) !important;
+    }
+    
+    body.dark .p-speeddial-action {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    body.dark .p-speeddial-action:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7) !important;
+    }
+    
+    /* SpeedDial Action Button - Set (Green) */
+    .p-speeddial-action.action-set {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border-color: #10b981 !important;
+    }
+    
+    .p-speeddial-action.action-set:hover {
+        background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5) !important;
+    }
+    
+    body.dark .p-speeddial-action.action-set:hover {
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6) !important;
+    }
+    
+    /* SpeedDial Action Button - Edit (Orange) */
+    .p-speeddial-action.action-edit {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        border-color: #f59e0b !important;
+    }
+    
+    .p-speeddial-action.action-edit:hover {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5) !important;
+    }
+    
+    body.dark .p-speeddial-action.action-edit:hover {
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6) !important;
+    }
+    
+    /* SpeedDial Action Button - Delete (Red) */
+    .p-speeddial-action.action-delete {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        border-color: #ef4444 !important;
+    }
+    
+    .p-speeddial-action.action-delete:hover {
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5) !important;
+    }
+    
+    body.dark .p-speeddial-action.action-delete:hover {
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6) !important;
+    }
+    
+    /* SpeedDial Tooltip Enhancement */
+    .p-tooltip .p-tooltip-text {
+        background-color: rgba(0, 0, 0, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
+        padding: 0.4rem 0.6rem !important;
+        border-radius: 6px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    body.dark .p-tooltip .p-tooltip-text {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        color: #1f2937 !important;
+    }
 `;
 
 // Custom editor component with duplicate detection
@@ -466,6 +634,7 @@ export default function FlexibleScrollDemo() {
     const [presetName, setPresetName] = useState('');
     const [savedPresets, setSavedPresets] = useState([]);
     const [presetsListVisible, setPresetsListVisible] = useState(false);
+    const [editingPreset, setEditingPreset] = useState(null);
     
     // Delete Confirmation State
     const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -2059,28 +2228,42 @@ export default function FlexibleScrollDemo() {
             return;
         }
         
-        // Create preset object
+        // Create or update preset object
         const preset = {
-            id: Date.now(),
+            id: editingPreset ? editingPreset.id : Date.now(),
             name: presetName.trim(),
             routeId: currentRouteId,
             routeName: currentRouteName,
             sortOrders: { ...sortOrders },
-            createdAt: new Date().toISOString()
+            createdAt: editingPreset ? editingPreset.createdAt : new Date().toISOString(),
+            updatedAt: editingPreset ? new Date().toISOString() : undefined
         };
         
-        // Add to saved presets
-        const updatedPresets = [...savedPresets, preset];
-        setSavedPresets(updatedPresets);
-        
         // Save to localStorage
+        let updatedPresets;
+        if (editingPreset) {
+            // Update existing preset
+            updatedPresets = savedPresets.map(p => p.id === editingPreset.id ? preset : p);
+        } else {
+            // Add new preset
+            updatedPresets = [...savedPresets, preset];
+        }
+        setSavedPresets(updatedPresets);
         localStorage.setItem('sortPresets', JSON.stringify(updatedPresets));
         
-        // Close dialog and reset
-        setSavePresetDialogVisible(false);
+        // Reset form
         setPresetName('');
+        setEditingPreset(null);
+        setSavePresetDialogVisible(false);
         
-        alert(`✅ Preset "${preset.name}" saved successfully!`);
+        toast.current.show({
+            severity: 'success',
+            summary: editingPreset ? 'Updated' : 'Saved',
+            detail: `Preset "${preset.name}" ${editingPreset ? 'updated' : 'saved'} successfully!`,
+            life: 3000
+        });
+        
+        alert(`✅ Preset "${preset.name}" ${editingPreset ? 'updated' : 'saved'} successfully!`);
     };
     
     const handleApplyPreset = (preset) => {
@@ -2099,6 +2282,23 @@ export default function FlexibleScrollDemo() {
         alert(`✅ Preset "${preset.name}" loaded! Click Apply to sort the table.`);
     };
     
+    const handleEditPreset = (preset) => {
+        setEditingPreset(preset);
+        setPresetName(preset.name);
+        setSortOrders(preset.sortOrders);
+        setCustomSortMode(true);
+        setActiveFunction('setOrder');
+        setPresetsListVisible(false);
+        setSavePresetDialogVisible(true);
+        
+        toast.current.show({
+            severity: 'info',
+            summary: 'Edit Mode',
+            detail: `Editing preset "${preset.name}". Modify and save.`,
+            life: 3000
+        });
+    };
+    
     const handleDeletePreset = (presetId) => {
         if (!confirm('Are you sure you want to delete this preset?')) {
             return;
@@ -2107,6 +2307,13 @@ export default function FlexibleScrollDemo() {
         const updatedPresets = savedPresets.filter(p => p.id !== presetId);
         setSavedPresets(updatedPresets);
         localStorage.setItem('sortPresets', JSON.stringify(updatedPresets));
+        
+        toast.current.show({
+            severity: 'success',
+            summary: 'Deleted',
+            detail: 'Preset deleted successfully',
+            life: 3000
+        });
         
         alert('✅ Preset deleted successfully!');
     };
@@ -3510,7 +3717,7 @@ export default function FlexibleScrollDemo() {
                         align="center" 
                         alignHeader="center" 
                         body={actionBodyTemplate}
-                        headerStyle={{ color: '#ef4444', textAlign: 'center' }}
+                        headerStyle={{ color: '#DC0000', textAlign: 'center', fontWeight: 'bold' }}
                         style={{ width: editMode ? '260px' : '140px', minWidth: editMode ? '260px' : '140px' }}
                     />
                 </DataTable>
@@ -4273,7 +4480,7 @@ export default function FlexibleScrollDemo() {
                             header="Action" 
                             align="center" 
                             alignHeader="center"
-                            headerStyle={{ color: '#ef4444' }}
+                            headerStyle={{ color: '#DC0000', fontWeight: 'bold' }}
                             body={(rowData) => {
                                 const isPinnedDialog = pinnedDialogRows.has(rowData.id);
                                 return (
@@ -7449,8 +7656,8 @@ export default function FlexibleScrollDemo() {
                 <Dialog
                     header={
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <i className="pi pi-save" style={{ color: '#10b981', fontSize: '1.25rem' }}></i>
-                            <span>Save Sort Preset</span>
+                            <i className={editingPreset ? "pi pi-pencil" : "pi pi-save"} style={{ color: editingPreset ? '#f59e0b' : '#10b981', fontSize: '1.25rem' }}></i>
+                            <span>{editingPreset ? 'Edit Sort Preset' : 'Save Sort Preset'}</span>
                         </div>
                     }
                     visible={savePresetDialogVisible}
@@ -7461,6 +7668,7 @@ export default function FlexibleScrollDemo() {
                     onHide={() => {
                         setSavePresetDialogVisible(false);
                         setPresetName('');
+                        setEditingPreset(null);
                     }}
                 >
                     <div style={{ padding: '1rem' }}>
@@ -7469,7 +7677,7 @@ export default function FlexibleScrollDemo() {
                             color: isDark ? '#e5e7eb' : '#1f2937',
                             fontSize: '14px'
                         }}>
-                            Give your sort preset a name to save it for later use:
+                            {editingPreset ? 'Update the preset name:' : 'Give your sort preset a name to save it for later use:'}
                         </p>
                         <InputText
                             value={presetName}
@@ -7514,10 +7722,10 @@ export default function FlexibleScrollDemo() {
                             outlined
                         />
                         <Button
-                            label="Save"
-                            icon="pi pi-check"
+                            label={editingPreset ? "Update" : "Save"}
+                            icon={editingPreset ? "pi pi-check" : "pi pi-save"}
                             onClick={handleSavePreset}
-                            severity="success"
+                            severity={editingPreset ? "warning" : "success"}
                             size="small"
                             disabled={!presetName.trim()}
                         />
@@ -7597,24 +7805,106 @@ export default function FlexibleScrollDemo() {
                                                 {Object.values(preset.sortOrders).filter(o => o !== '' && o !== undefined).length} items sorted
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <Button
-                                                icon="pi pi-check"
-                                                tooltip="Apply Preset"
-                                                tooltipOptions={{ position: 'top' }}
-                                                onClick={() => handleApplyPreset(preset)}
-                                                severity="success"
-                                                size="small"
-                                                text
-                                            />
-                                            <Button
-                                                icon="pi pi-trash"
-                                                tooltip="Delete Preset"
-                                                tooltipOptions={{ position: 'top' }}
-                                                onClick={() => handleDeletePreset(preset.id)}
-                                                severity="danger"
-                                                size="small"
-                                                text
+                                        <div style={{ 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            marginLeft: '1rem'
+                                        }}>
+                                            <SpeedDial
+                                                model={[
+                                                    {
+                                                        label: 'Apply Preset',
+                                                        icon: 'pi pi-check',
+                                                        className: 'action-set',
+                                                        command: () => handleApplyPreset(preset),
+                                                        template: (item) => (
+                                                            <button
+                                                                className="p-speeddial-action action-set"
+                                                                onClick={item.command}
+                                                                style={{ 
+                                                                    width: '2rem', 
+                                                                    height: '2rem',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '50%',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    color: 'white'
+                                                                }}
+                                                                title="Apply this preset to current table"
+                                                            >
+                                                                <i className={item.icon} style={{ fontSize: '0.9rem' }}></i>
+                                                            </button>
+                                                        )
+                                                    },
+                                                    {
+                                                        label: 'Edit Preset',
+                                                        icon: 'pi pi-pencil',
+                                                        className: 'action-edit',
+                                                        command: () => handleEditPreset(preset),
+                                                        template: (item) => (
+                                                            <button
+                                                                className="p-speeddial-action action-edit"
+                                                                onClick={item.command}
+                                                                style={{ 
+                                                                    width: '2rem', 
+                                                                    height: '2rem',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '50%',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    color: 'white'
+                                                                }}
+                                                                title="Edit preset name and settings"
+                                                            >
+                                                                <i className={item.icon} style={{ fontSize: '0.9rem' }}></i>
+                                                            </button>
+                                                        )
+                                                    },
+                                                    {
+                                                        label: 'Delete Preset',
+                                                        icon: 'pi pi-trash',
+                                                        className: 'action-delete',
+                                                        command: () => handleDeletePreset(preset.id),
+                                                        template: (item) => (
+                                                            <button
+                                                                className="p-speeddial-action action-delete"
+                                                                onClick={item.command}
+                                                                style={{ 
+                                                                    width: '2rem', 
+                                                                    height: '2rem',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '50%',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    color: 'white'
+                                                                }}
+                                                                title="Delete this preset permanently"
+                                                            >
+                                                                <i className={item.icon} style={{ fontSize: '0.9rem' }}></i>
+                                                            </button>
+                                                        )
+                                                    }
+                                                ]}
+                                                radius={45}
+                                                type="semi-circle"
+                                                direction="left"
+                                                buttonStyle={{
+                                                    width: '2.2rem',
+                                                    height: '2.2rem',
+                                                    background: isDark 
+                                                        ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                                                        : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                                                    borderColor: isDark ? '#3b82f6' : '#06b6d4'
+                                                }}
+                                                showIcon="pi pi-ellipsis-v"
+                                                hideIcon="pi pi-times"
+                                                transitionDelay={50}
                                             />
                                         </div>
                                     </div>
