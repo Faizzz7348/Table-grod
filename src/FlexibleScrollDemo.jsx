@@ -1966,6 +1966,24 @@ export default function FlexibleScrollDemo() {
         }
     };
 
+    // Get icon for link type
+    const getLinkIcon = (type) => {
+        switch (type) {
+            case 'Google Maps':
+                return 'pi pi-map-marker';
+            case 'Waze':
+                return 'pi pi-directions';
+            case 'Website':
+                return 'pi pi-globe';
+            case 'Web Portal':
+                return 'pi pi-building';
+            case 'QR Code':
+                return 'pi pi-qrcode';
+            default:
+                return 'pi pi-external-link';
+        }
+    };
+
     // Handle link opening with confirmation
     const handleOpenLink = (url, type) => {
         setPendingLinkData({ url, type });
@@ -5559,19 +5577,29 @@ export default function FlexibleScrollDemo() {
                     )}
                 </Dialog>
 
-                {/* Password Dialog */}
+                {/* Password Dialog - iOS Glassmorphism */}
                 <Dialog
-                    header={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <i className="pi pi-lock" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
-                            <span>Enter Password</span>
-                        </div>
-                    }
+                    header={null}
                     visible={passwordDialogVisible}
-                    style={{ width: deviceInfo.isMobile ? '95vw' : '400px' }}
+                    style={{ 
+                        width: deviceInfo.isMobile ? '95vw' : '400px',
+                        background: isDark 
+                            ? 'rgba(30, 41, 59, 0.85)' 
+                            : 'rgba(255, 255, 255, 0.85)',
+                        backdropFilter: 'blur(40px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                        border: isDark 
+                            ? '1px solid rgba(255, 255, 255, 0.1)' 
+                            : '1px solid rgba(0, 0, 0, 0.1)',
+                        borderRadius: '24px',
+                        boxShadow: isDark
+                            ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                            : '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                        overflow: 'hidden'
+                    }}
                     modal
                     closable={!passwordLoading}
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         if (!passwordLoading) {
                             setPasswordDialogVisible(false);
@@ -5581,38 +5609,73 @@ export default function FlexibleScrollDemo() {
                         }
                     }}
                 >
-                    <div style={{ padding: '1.5rem' }}>
-                        <div style={{ 
-                            padding: '1rem',
-                            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
-                            borderRadius: '8px',
-                            marginBottom: '1.5rem',
-                            border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe'
+                    <div style={{ 
+                        padding: '2rem',
+                        background: 'transparent'
+                    }}>
+                        {/* Icon Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            marginBottom: '1.5rem'
                         }}>
-                            <p style={{ 
-                                margin: 0,
-                                color: isDark ? '#93c5fd' : '#1e40af',
-                                fontSize: '0.875rem',
+                            <div style={{
+                                width: '80px',
+                                height: '80px',
+                                borderRadius: '20px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.5rem'
+                                justifyContent: 'center',
+                                boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)',
+                                position: 'relative',
+                                overflow: 'hidden'
                             }}>
-                                <i className="pi pi-info-circle"></i>
-                                Please enter your 4-digit password to access Edit Mode
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-50%',
+                                    left: '-50%',
+                                    width: '200%',
+                                    height: '200%',
+                                    background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
+                                    animation: 'pulse 3s ease-in-out infinite'
+                                }}></div>
+                                <i className="pi pi-lock" style={{ 
+                                    fontSize: '2.5rem', 
+                                    color: 'white',
+                                    position: 'relative',
+                                    zIndex: 1
+                                }}></i>
+                            </div>
+                        </div>
+
+                        {/* Title & Description */}
+                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            <h3 style={{
+                                margin: '0 0 0.5rem 0',
+                                fontSize: '1.5rem',
+                                fontWeight: '700',
+                                background: isDark 
+                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                    : 'linear-gradient(135deg, #5b5fc7 0%, #6a3093 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                letterSpacing: '-0.02em'
+                            }}>
+                                Enter Password
+                            </h3>
+                            <p style={{
+                                margin: 0,
+                                fontSize: '0.875rem',
+                                color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)',
+                                fontWeight: '500'
+                            }}>
+                                Enter your 4-digit password to access Edit Mode
                             </p>
                         </div>
                         
+                        {/* Password Input */}
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ 
-                                display: 'block', 
-                                marginBottom: '0.75rem',
-                                fontWeight: '600',
-                                fontSize: '0.875rem',
-                                color: isDark ? '#e5e5e5' : '#1f2937',
-                                letterSpacing: '0.025em'
-                            }}>
-                                Password
-                            </label>
                             <div style={{ position: 'relative' }}>
                                 <InputText
                                     type={showPassword ? "text" : "password"}
@@ -5629,14 +5692,27 @@ export default function FlexibleScrollDemo() {
                                             handlePasswordSubmit();
                                         }
                                     }}
-                                    placeholder="Enter 4-digit password"
+                                    placeholder="••••"
                                     maxLength={4}
                                     style={{ 
                                         width: '100%',
-                                        paddingRight: '3rem',
-                                        fontSize: '1.125rem',
-                                        letterSpacing: showPassword ? 'normal' : '0.25rem',
-                                        fontWeight: '500'
+                                        height: '60px',
+                                        paddingRight: '3.5rem',
+                                        fontSize: '2rem',
+                                        letterSpacing: showPassword ? 'normal' : '1rem',
+                                        fontWeight: '600',
+                                        textAlign: 'center',
+                                        background: isDark 
+                                            ? 'rgba(255, 255, 255, 0.05)' 
+                                            : 'rgba(0, 0, 0, 0.03)',
+                                        border: isDark 
+                                            ? '2px solid rgba(255, 255, 255, 0.1)' 
+                                            : '2px solid rgba(0, 0, 0, 0.08)',
+                                        borderRadius: '16px',
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        transition: 'all 0.3s ease',
+                                        color: isDark ? '#ffffff' : '#000000'
                                     }}
                                     disabled={passwordLoading}
                                     autoFocus
@@ -5647,88 +5723,150 @@ export default function FlexibleScrollDemo() {
                                     disabled={passwordLoading}
                                     style={{
                                         position: 'absolute',
-                                        right: '0.75rem',
+                                        right: '1rem',
                                         top: '50%',
                                         transform: 'translateY(-50%)',
-                                        background: 'none',
+                                        background: isDark 
+                                            ? 'rgba(255, 255, 255, 0.1)' 
+                                            : 'rgba(0, 0, 0, 0.05)',
                                         border: 'none',
                                         cursor: passwordLoading ? 'not-allowed' : 'pointer',
-                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
                                         padding: '0.5rem',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        borderRadius: '4px',
-                                        transition: 'all 0.2s ease',
-                                        opacity: passwordLoading ? 0.5 : 1
+                                        borderRadius: '12px',
+                                        transition: 'all 0.3s ease',
+                                        opacity: passwordLoading ? 0.5 : 1,
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        width: '40px',
+                                        height: '40px'
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!passwordLoading) {
-                                            e.currentTarget.style.color = '#3b82f6';
-                                            e.currentTarget.style.backgroundColor = isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff';
+                                            e.currentTarget.style.background = isDark 
+                                                ? 'rgba(255, 255, 255, 0.15)' 
+                                                : 'rgba(0, 0, 0, 0.08)';
+                                            e.currentTarget.style.color = isDark ? '#ffffff' : '#000000';
                                         }
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
-                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                        e.currentTarget.style.background = isDark 
+                                            ? 'rgba(255, 255, 255, 0.1)' 
+                                            : 'rgba(0, 0, 0, 0.05)';
+                                        e.currentTarget.style.color = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)';
                                     }}
                                 >
                                     <i className={showPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
                                 </button>
                             </div>
-                            <div style={{ 
-                                marginTop: '0.5rem',
-                                fontSize: '0.75rem',
-                                color: isDark ? '#9ca3af' : '#6b7280',
+                            
+                            {/* Progress Indicator */}
+                            <div style={{
                                 display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
+                                gap: '8px',
+                                justifyContent: 'center',
+                                marginTop: '1rem'
                             }}>
-                                <i className="pi pi-shield" style={{ fontSize: '0.7rem' }}></i>
-                                {passwordInput.length}/4 digits entered
+                                {[0, 1, 2, 3].map(i => (
+                                    <div key={i} style={{
+                                        width: '40px',
+                                        height: '6px',
+                                        borderRadius: '3px',
+                                        background: passwordInput.length > i 
+                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                            : isDark 
+                                                ? 'rgba(255, 255, 255, 0.1)' 
+                                                : 'rgba(0, 0, 0, 0.1)',
+                                        transition: 'all 0.3s ease',
+                                        transform: passwordInput.length > i ? 'scaleX(1)' : 'scaleX(0.9)',
+                                        boxShadow: passwordInput.length > i 
+                                            ? '0 4px 12px rgba(102, 126, 234, 0.4)' 
+                                            : 'none'
+                                    }}></div>
+                                ))}
                             </div>
                         </div>
                         
+                        {/* Error Message */}
                         {passwordError && (
                             <div style={{
                                 padding: '1rem',
-                                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fee2e2',
-                                color: isDark ? '#fca5a5' : '#991b1b',
-                                borderRadius: '8px',
+                                background: isDark 
+                                    ? 'rgba(239, 68, 68, 0.15)' 
+                                    : 'rgba(239, 68, 68, 0.1)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                color: isDark ? '#fca5a5' : '#dc2626',
+                                borderRadius: '14px',
                                 marginBottom: '1.5rem',
                                 fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.5rem',
-                                border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca',
+                                gap: '0.75rem',
+                                border: isDark 
+                                    ? '1px solid rgba(239, 68, 68, 0.3)' 
+                                    : '1px solid rgba(239, 68, 68, 0.2)',
                                 animation: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)'
                             }}>
-                                <i className="pi pi-times-circle" style={{ fontSize: '1rem' }}></i>
-                                <span style={{ fontWeight: '500' }}>{passwordError}</span>
+                                <i className="pi pi-exclamation-circle" style={{ fontSize: '1.2rem' }}></i>
+                                <span style={{ fontWeight: '600' }}>{passwordError}</span>
                             </div>
                         )}
                         
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <Button
                                 label="Cancel"
-                                icon="pi pi-times"
                                 onClick={() => {
                                     setPasswordDialogVisible(false);
                                     setPasswordInput('');
                                     setPasswordError('');
                                     setShowPassword(false);
                                 }}
-                                className="p-button-text"
-                                size="small"
+                                style={{
+                                    flex: 1,
+                                    height: '50px',
+                                    background: isDark 
+                                        ? 'rgba(255, 255, 255, 0.08)' 
+                                        : 'rgba(0, 0, 0, 0.05)',
+                                    border: 'none',
+                                    borderRadius: '14px',
+                                    color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                                    fontWeight: '600',
+                                    fontSize: '1rem',
+                                    backdropFilter: 'blur(10px)',
+                                    WebkitBackdropFilter: 'blur(10px)',
+                                    transition: 'all 0.3s ease'
+                                }}
                                 disabled={passwordLoading}
                             />
                             <Button
                                 label={passwordLoading ? "Verifying..." : "Submit"}
-                                icon={passwordLoading ? "pi pi-spin pi-spinner" : "pi pi-check"}
+                                icon={passwordLoading ? "pi pi-spin pi-spinner" : "pi pi-arrow-right"}
                                 onClick={handlePasswordSubmit}
                                 disabled={passwordInput.length !== 4 || passwordLoading}
-                                severity="success"
-                                size="small"
+                                style={{
+                                    flex: 1,
+                                    height: '50px',
+                                    background: (passwordInput.length === 4 && !passwordLoading)
+                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                        : isDark 
+                                            ? 'rgba(255, 255, 255, 0.05)' 
+                                            : 'rgba(0, 0, 0, 0.05)',
+                                    border: 'none',
+                                    borderRadius: '14px',
+                                    color: (passwordInput.length === 4 && !passwordLoading) ? '#ffffff' : isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+                                    fontWeight: '700',
+                                    fontSize: '1rem',
+                                    boxShadow: (passwordInput.length === 4 && !passwordLoading)
+                                        ? '0 10px 30px rgba(102, 126, 234, 0.4)'
+                                        : 'none',
+                                    transition: 'all 0.3s ease',
+                                    transform: (passwordInput.length === 4 && !passwordLoading) ? 'scale(1)' : 'scale(0.98)'
+                                }}
                             />
                         </div>
                     </div>
@@ -7616,14 +7754,15 @@ export default function FlexibleScrollDemo() {
                 <Dialog
                     header={
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <i className="pi pi-external-link" style={{ color: '#3b82f6', fontSize: '1.5rem' }}></i>
-                            <span>Open External Link</span>
+                            <i className={getLinkIcon(pendingLinkData.type)} style={{ color: '#3b82f6', fontSize: '1.5rem' }}></i>
+                            <span style={{ fontSize: '14px' }}>Open External Link</span>
                         </div>
                     }
                     visible={linkConfirmVisible}
                     style={{ width: '450px' }}
                     modal
                     dismissableMask
+                    closable={false}
                     transitionOptions={{ timeout: 300 }}
                     onHide={cancelOpenLink}
                     footer={
