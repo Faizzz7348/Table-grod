@@ -252,16 +252,16 @@ const tableStyles = `
         overflow-x: auto;
     }
     
-    /* Mobile responsive styles */
+    /* Mobile responsive styles - Enhanced readability */
     @media (max-width: 768px) {
         .p-datatable .p-datatable-thead > tr > th {
-            padding: 0.5rem !important;
-            font-size: 11px !important;
+            padding: 0.6rem !important;
+            font-size: 13px !important;
         }
         
         .p-datatable .p-datatable-tbody > tr > td {
-            padding: 0.5rem !important;
-            font-size: 10px !important;
+            padding: 0.65rem !important;
+            font-size: 13px !important;
         }
         
         /* Make table fit mobile screen */
@@ -812,21 +812,21 @@ export default function FlexibleScrollDemo() {
     // Update Notification State
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
     const [showUpdateDialog, setShowUpdateDialog] = useState(false);
-    const APP_VERSION = '1.0.2'; // Increment this when pushing updates
+    const APP_VERSION = '1.1.0'; // Increment this when pushing updates
 
     // Calculate dynamic table width based on visible columns
     const calculateTableWidth = () => {
         let totalWidth = 0;
         
-        // Adjust column widths based on device
+        // Adjust column widths based on device - Optimized for mobile
         const isMobileDevice = deviceInfo.isMobile;
         const columnWidthMap = {
-            no: isMobileDevice ? 60 : 80,
-            code: isMobileDevice ? (columnWidths.code ? columnWidths.code * 0.8 : 100) : (columnWidths.code || 120),
-            location: isMobileDevice ? (columnWidths.location ? columnWidths.location * 0.7 : 160) : (columnWidths.location || 220),
-            delivery: isMobileDevice ? (columnWidths.delivery ? columnWidths.delivery * 0.8 : 90) : (columnWidths.delivery || 110),
-            kilometer: isMobileDevice ? 90 : 100,
-            image: isMobileDevice ? 80 : 120
+            no: isMobileDevice ? 70 : 80,
+            code: isMobileDevice ? (columnWidths.code ? columnWidths.code * 0.9 : 120) : (columnWidths.code || 120),
+            location: isMobileDevice ? (columnWidths.location ? columnWidths.location * 0.85 : 180) : (columnWidths.location || 220),
+            delivery: isMobileDevice ? (columnWidths.delivery ? columnWidths.delivery * 0.9 : 100) : (columnWidths.delivery || 110),
+            kilometer: isMobileDevice ? 100 : 100,
+            image: isMobileDevice ? 90 : 120
         };
         
         // Count visible columns
@@ -1132,6 +1132,31 @@ export default function FlexibleScrollDemo() {
             
             // Also check periodically every 5 minutes
             const intervalId = setInterval(checkForUpdates, 5 * 60 * 1000);
+            
+            // Service Worker update detection
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    // Check for updates every 30 seconds
+                    const swUpdateInterval = setInterval(() => {
+                        registration.update();
+                    }, 30 * 1000);
+                    
+                    // Listen for new service worker
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New service worker available
+                                    setShowUpdateDialog(true);
+                                }
+                            });
+                        }
+                    });
+                    
+                    return () => clearInterval(swUpdateInterval);
+                });
+            }
             
             return () => {
                 clearTimeout(timeoutId);
@@ -3097,7 +3122,29 @@ export default function FlexibleScrollDemo() {
     const handleUpdateApp = () => {
         localStorage.setItem('appVersion', APP_VERSION);
         setShowUpdateDialog(false);
-        window.location.reload();
+        
+        // Unregister service worker and clear cache for fresh update
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            }).then(() => {
+                // Clear all caches
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                        });
+                    });
+                }
+            }).finally(() => {
+                // Force reload from server
+                window.location.reload(true);
+            });
+        } else {
+            window.location.reload(true);
+        }
     };
     
     const handleDismissUpdate = () => {
@@ -3798,14 +3845,33 @@ export default function FlexibleScrollDemo() {
                         fontSize: '1rem',
                         color: isDark ? '#e5e5e5' : '#000000'
                     }}>
-                        A new version of the application is available.
+                        A new version <strong>v{APP_VERSION}</strong> of the application is available.
                     </p>
                     <p style={{ 
-                        margin: '0',
+                        margin: '0 0 0.5rem 0',
                         fontSize: '0.9rem',
                         color: isDark ? '#9ca3af' : '#6b7280'
                     }}>
-                        Please refresh the page to get the latest updates and improvements.
+                        Updates include:
+                    </p>
+                    <ul style={{ 
+                        margin: '0 0 1rem 0',
+                        paddingLeft: '1.5rem',
+                        fontSize: '0.85rem',
+                        color: isDark ? '#9ca3af' : '#6b7280'
+                    }}>
+                        <li>Improved mobile view with better font sizes</li>
+                        <li>Enhanced password dialog with PrimeReact Password component</li>
+                        <li>Fixed frozen row editing and persistence issues</li>
+                        <li>Better PWA update notifications</li>
+                    </ul>
+                    <p style={{ 
+                        margin: '0',
+                        fontSize: '0.85rem',
+                        color: isDark ? '#f59e0b' : '#d97706',
+                        fontStyle: 'italic'
+                    }}>
+                        💡 The app will reload automatically to apply updates
                     </p>
                 </div>
             </Dialog>
