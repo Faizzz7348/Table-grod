@@ -1581,6 +1581,14 @@ export default function FlexibleScrollDemo() {
                 );
                 setDialogData(updatedDialogData);
                 setSelectedRowInfo({ ...selectedRowInfo, description: tempInfoData.description });
+                
+                // If this is the frozen row, also update frozenRowData
+                if (selectedRowInfo.id === frozenRowData.id) {
+                    setFrozenRowData(prev => ({
+                        ...prev,
+                        description: tempInfoData.description
+                    }));
+                }
             }
             
             setHasUnsavedChanges(true);
@@ -1721,6 +1729,16 @@ export default function FlexibleScrollDemo() {
                 longitude: infoEditData.longitude,
                 address: infoEditData.address
             });
+            
+            // If this is the frozen row, also update frozenRowData
+            if (selectedRowInfo.id === frozenRowData.id) {
+                setFrozenRowData(prev => ({
+                    ...prev,
+                    latitude: infoEditData.latitude,
+                    longitude: infoEditData.longitude,
+                    address: infoEditData.address
+                }));
+            }
             
             setInfoEditMode(false);
             
@@ -2032,10 +2050,20 @@ export default function FlexibleScrollDemo() {
             setDeletedLocationIds([]);
             setDeletedRouteIds([]);
             
+            // Combine dialogData with frozenRowData for saving
+            // frozenRowData is a global location that needs to be saved separately
+            const allLocationsToSave = [...dialogData];
+            
+            // Only include frozenRowData if it's not already in dialogData
+            const frozenRowInDialogData = dialogData.some(loc => loc.id === frozenRowData.id);
+            if (!frozenRowInDialogData && frozenRowData.id && frozenRowData.id !== 'frozen-row') {
+                allLocationsToSave.push(frozenRowData);
+            }
+            
             // Save both routes and locations
             const results = await Promise.all([
                 CustomerService.saveRoutes(routes),
-                CustomerService.saveLocations(dialogData)
+                CustomerService.saveLocations(allLocationsToSave)
             ]);
             
             // Save completed successfully
@@ -2661,7 +2689,7 @@ export default function FlexibleScrollDemo() {
                 setCurrentRowImages(newImages);
                 
                 // Auto-save images to dialogData immediately
-                if (selectedRowId === 'frozen-row') {
+                if (selectedRowId === frozenRowData.id) {
                     setFrozenRowData(prev => ({
                         ...prev,
                         images: newImages
@@ -2923,14 +2951,15 @@ export default function FlexibleScrollDemo() {
         }
         
         if (newValue !== rowData[field]) {
-            // If editing frozen row (QL Kitchen), update global state
-            if (rowData.id === 'frozen-row') {
+            handleUpdateDialogData(rowData.id, field, newValue);
+            
+            // If editing frozen row, also update frozenRowData
+            if (rowData.id === frozenRowData.id) {
                 setFrozenRowData(prev => ({
                     ...prev,
                     [field]: newValue
                 }));
             }
-            handleUpdateDialogData(rowData.id, field, newValue);
         }
     };
 
@@ -4259,7 +4288,7 @@ export default function FlexibleScrollDemo() {
                             let classes = '';
                             
                             // Frozen row styling
-                            if (rowData.id === 'frozen-row') {
+                            if (rowData.id === frozenRowData.id) {
                                 return 'frozen-row-highlight';
                             }
                             
@@ -4354,7 +4383,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 body={(data, options) => {
                                     // Show infinity symbol for frozen row
-                                    if (data.id === 'frozen-row') {
+                                    if (data.id === frozenRowData.id) {
                                         return <span style={{ fontSize: '1.1rem', fontWeight: '700', color: isDark ? '#60a5fa' : '#3b82f6' }}>∞</span>;
                                     }
                                     return options.rowIndex + 1;
@@ -4369,7 +4398,7 @@ export default function FlexibleScrollDemo() {
                                 align="center" 
                                 alignHeader="center"
                                 body={(rowData) => {
-                                    if (rowData.id === 'frozen-row') return rowData.code;
+                                    if (rowData.id === frozenRowData.id) return rowData.code;
                                     const isDuplicate = dialogData.some(item => 
                                         item.code === rowData.code && item.id !== rowData.id && rowData.code
                                     );
@@ -4439,7 +4468,7 @@ export default function FlexibleScrollDemo() {
                                 alignHeader="center"
                                 body={(rowData) => {
                                     // For frozen row (QL Kitchen), show 0.0 Km with tooltip
-                                    if (rowData.id === 'frozen-row') {
+                                    if (rowData.id === frozenRowData.id) {
                                         return (
                                             <div 
                                                 style={{ fontSize: '11px', fontWeight: '600', cursor: 'help' }}
