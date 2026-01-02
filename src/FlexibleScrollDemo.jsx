@@ -5039,7 +5039,7 @@ export default function FlexibleScrollDemo() {
                                                             handleOpenLink(webPortalUrl, 'Web Portal');
                                                         }}
                                                     >
-                                                    <i className="pi pi-globe" style={{ fontSize: '20px' }}></i>
+                                                    <img src="/icon/FamilyMart.png" alt="FamilyMart" style={{ width: '34px', height: '34px' }} />
                                                 </Button>
                                             );
                                         })()}
@@ -5189,7 +5189,7 @@ export default function FlexibleScrollDemo() {
                                                         handleOpenLink(wazeUrl, 'Waze');
                                                     }}
                                                 >
-                                                    <img src="/waze.svg" alt="Waze" style={{ width: '24px', height: '24px' }} />
+                                                    <img src="/waze.svg" alt="Waze" style={{ width: '26px', height: '26px' }} />
                                                 </Button>
                                         )}
                                         
