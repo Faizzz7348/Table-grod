@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' vite",
     "dev:vercel": "NODE_OPTIONS='--no-deprecation' vercel dev",
-    "build": "vite build",
-    "preview": "vite preview",
+    "build": "NODE_OPTIONS='--no-deprecation' vite build",
+    "preview": "NODE_OPTIONS='--no-deprecation' vite preview",
     "clean": "rm -rf dist node_modules/.vite",
     "clean:all": "rm -rf dist node_modules/.vite node_modules && npm install",
     "rebuild": "npm run clean && npm run build",

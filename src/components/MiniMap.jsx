@@ -13,31 +13,57 @@ L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    iconSize: [15, 25],        // Smaller size (reduced from 20x33)
-    iconAnchor: [7, 25],       // Point of the icon which will correspond to marker's location
-    popupAnchor: [0, -25],     // Point from which the popup should open relative to the iconAnchor
-    shadowSize: [25, 25]       // Smaller shadow size
+    iconSize: [20, 32],
+    iconAnchor: [10, 32],
+    popupAnchor: [0, -32],
+    shadowSize: [32, 32]
 });
 
-// Function to create custom colored marker icon
+// Function to create premium custom colored marker icon
 const createColoredMarkerIcon = (color = '#dc3545') => {
     return L.divIcon({
-        className: 'custom-marker-icon',
+        className: 'custom-premium-marker-icon',
         html: `
-            <div style="position: relative;">
-                <svg width="24" height="32" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15 0C8.925 0 4 4.925 4 11c0 8.25 11 29 11 29s11-20.75 11-29c0-6.075-4.925-11-11-11z" 
-                          fill="${color}" 
-                          stroke="white" 
-                          stroke-width="2"/>
-                    <circle cx="15" cy="11" r="4" fill="white"/>
+            <div style="position: relative; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Outer glow/shadow -->
+                    <defs>
+                        <linearGradient id="markerGradient-${color.replace('#', '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:${adjustBrightness(color, -20)};stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Main marker shape with gradient -->
+                    <path d="M14 0C8.5 0 4 4.5 4 10c0 7.5 10 26 10 26s10-18.5 10-26c0-5.5-4.5-10-10-10z" 
+                          fill="url(#markerGradient-${color.replace('#', '')})" 
+                          stroke="rgba(0,0,0,0.3)" 
+                          stroke-width="0.8"/>
+                    <!-- Inner white circle -->
+                    <circle cx="14" cy="10" r="4.5" fill="white" opacity="0.95"/>
+                    <!-- Inner colored dot -->
+                    <circle cx="14" cy="10" r="2.5" fill="${color}" opacity="0.8"/>
                 </svg>
             </div>
         `,
-        iconSize: [24, 32],
-        iconAnchor: [12, 32],
-        popupAnchor: [0, -32]
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36]
     });
+};
+
+// Helper function to adjust color brightness
+const adjustBrightness = (color, percent) => {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return '#' + (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255)
+    ).toString(16).slice(1);
 };
 
 // Component to update map view when coordinates change
@@ -53,7 +79,7 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, onMarkerColorChange, isDark = false }) {
+export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, isDark = false }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
     const [addressExpanded, setAddressExpanded] = useState(false);
     
@@ -114,27 +140,38 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     center={center}
                     zoom={zoom}
                     style={{ 
-                        height: '250px', 
+                        height: '300px', 
                         width: '100%', 
                         borderRadius: '12px',
                         border: '2px solid rgba(0,0,0,0.1)',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}
                     className="mini-map-container"
-                    scrollWheelZoom={false}
-                    dragging={false}
-                    doubleClickZoom={false}
+                    scrollWheelZoom={true}
+                    dragging={true}
+                    doubleClickZoom={true}
                     zoomControl={false}
-                    touchZoom={false}
+                    touchZoom={true}
                     maxBounds={malaysiaBounds}
                     maxBoundsViscosity={1.0}
                     minZoom={6}
                     maxZoom={18}
                 >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                    <LayersControl position="topleft">
+                        <BaseLayer checked name="Street Map">
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                        </BaseLayer>
+                        <BaseLayer name="Satellite">
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.esri.com">Esri</a>'
+                                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                            />
+                        </BaseLayer>
+                    </LayersControl>
+                    <ZoomControl position="bottomright" />
                     {isMultipleMarkers ? (
                         // Multiple markers
                         locations
@@ -179,6 +216,9 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                         zIndex: 1000,
                         width: '40px',
                         height: '40px',
+                        backgroundColor: '#000000',
+                        borderColor: '#000000',
+                        color: isDark ? '#c0c0c0' : '#ffffff',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                     }}
                     onClick={() => setFullscreenVisible(true)}

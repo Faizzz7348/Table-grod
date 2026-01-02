@@ -4928,20 +4928,20 @@ export default function FlexibleScrollDemo() {
                                             fontSize: '11px'
                                         }}>
                                             <div>
-                                                <strong style={{ color: '#fbbf24' }}>Route:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.route}</div>
+                                                <strong style={{ color: isDark ? '#ffffff' : '#000000' }}>Route:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', color: isDark ? '#e5e5e5' : '#495057' }}>{selectedRowInfo.route}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#fbbf24' }}>Shift:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.shift}</div>
+                                                <strong style={{ color: isDark ? '#ffffff' : '#000000' }}>Shift:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', color: isDark ? '#e5e5e5' : '#495057' }}>{selectedRowInfo.shift}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#fbbf24' }}>Warehouse:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px' }}>{selectedRowInfo.warehouse}</div>
+                                                <strong style={{ color: isDark ? '#ffffff' : '#000000' }}>Warehouse:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', color: isDark ? '#e5e5e5' : '#495057' }}>{selectedRowInfo.warehouse}</div>
                                             </div>
                                             <div>
-                                                <strong style={{ color: '#fbbf24' }}>Total Locations:</strong>
-                                                <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                                <strong style={{ color: isDark ? '#ffffff' : '#000000' }}>Total Locations:</strong>
+                                                <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: isDark ? '#ffffff' : '#000000' }}>
                                                     {selectedRowInfo.locationCount || 0}
                                                 </div>
                                             </div>
@@ -5641,7 +5641,7 @@ export default function FlexibleScrollDemo() {
                                     animation: 'pulse 3s ease-in-out infinite'
                                 }}></div>
                                 <i className="pi pi-lock" style={{ 
-                                    fontSize: '2.5rem', 
+                                    fontSize: '2.4rem', 
                                     color: 'white',
                                     position: 'relative',
                                     zIndex: 1
@@ -5653,7 +5653,7 @@ export default function FlexibleScrollDemo() {
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                             <h3 style={{
                                 margin: '0 0 0.5rem 0',
-                                fontSize: '1.5rem',
+                                fontSize: '1.4rem',
                                 fontWeight: '700',
                                 background: isDark 
                                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
@@ -5666,7 +5666,7 @@ export default function FlexibleScrollDemo() {
                             </h3>
                             <p style={{
                                 margin: 0,
-                                fontSize: '0.875rem',
+                                fontSize: '13px',
                                 color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)',
                                 fontWeight: '500'
                             }}>
@@ -5698,7 +5698,7 @@ export default function FlexibleScrollDemo() {
                                         width: '100%',
                                         height: '60px',
                                         paddingRight: '3.5rem',
-                                        fontSize: '2rem',
+                                        fontSize: '31px',
                                         letterSpacing: showPassword ? 'normal' : '1rem',
                                         fontWeight: '600',
                                         textAlign: 'center',
@@ -5759,7 +5759,7 @@ export default function FlexibleScrollDemo() {
                                         e.currentTarget.style.color = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)';
                                     }}
                                 >
-                                    <i className={showPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.1rem' }}></i>
+                                    <i className={showPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.05rem' }}></i>
                                 </button>
                             </div>
                             
@@ -5802,7 +5802,7 @@ export default function FlexibleScrollDemo() {
                                 color: isDark ? '#fca5a5' : '#dc2626',
                                 borderRadius: '14px',
                                 marginBottom: '1.5rem',
-                                fontSize: '0.875rem',
+                                fontSize: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.75rem',
@@ -5811,7 +5811,7 @@ export default function FlexibleScrollDemo() {
                                     : '1px solid rgba(239, 68, 68, 0.2)',
                                 animation: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)'
                             }}>
-                                <i className="pi pi-exclamation-circle" style={{ fontSize: '1.2rem' }}></i>
+                                <i className="pi pi-exclamation-circle" style={{ fontSize: '1.15rem' }}></i>
                                 <span style={{ fontWeight: '600' }}>{passwordError}</span>
                             </div>
                         )}
@@ -5836,7 +5836,7 @@ export default function FlexibleScrollDemo() {
                                     borderRadius: '14px',
                                     color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
                                     fontWeight: '600',
-                                    fontSize: '1rem',
+                                    fontSize: '15px',
                                     backdropFilter: 'blur(10px)',
                                     WebkitBackdropFilter: 'blur(10px)',
                                     transition: 'all 0.3s ease'
@@ -5860,7 +5860,7 @@ export default function FlexibleScrollDemo() {
                                     borderRadius: '14px',
                                     color: (passwordInput.length === 4 && !passwordLoading) ? '#ffffff' : isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
                                     fontWeight: '700',
-                                    fontSize: '1rem',
+                                    fontSize: '15px',
                                     boxShadow: (passwordInput.length === 4 && !passwordLoading)
                                         ? '0 10px 30px rgba(102, 126, 234, 0.4)'
                                         : 'none',
