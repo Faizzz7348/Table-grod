@@ -291,7 +291,7 @@ const tableStyles = `
     
     /* SpeedDial Action List Positioning - Move Up */
     .p-speeddial-list {
-        margin-top: -60px !important;
+        transform: translateY(-20px) !important;
     }
     
     /* SpeedDial Main Button Styling */
@@ -635,6 +635,10 @@ export default function FlexibleScrollDemo() {
     const [savedPresets, setSavedPresets] = useState([]);
     const [presetsListVisible, setPresetsListVisible] = useState(false);
     const [editingPreset, setEditingPreset] = useState(null);
+    const [applyingPreset, setApplyingPreset] = useState(null); // Track preset being applied
+    const [activePresetName, setActivePresetName] = useState(() => {
+        return localStorage.getItem('activePresetName') || null;
+    }); // Track active preset name for display
     
     // Delete Confirmation State
     const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -1147,15 +1151,15 @@ export default function FlexibleScrollDemo() {
                         gap: '0.5rem',
                         padding: '0.5rem 0',
                         fontWeight: 'bold',
-                        fontSize: '0.875rem'
+                        fontSize: '11px'
                     }}>
-                        <span style={{ color: isCustomSorted ? '#1e40af' : '#065f46' }}>
-                            {isCustomSorted ? '📊 Custom Sorted' : '🗄️ Original Database Order'}
+                        <span style={{ color: isCustomSorted ? (isDark ? '#93c5fd' : '#1e40af') : (isDark ? '#86efac' : '#065f46') }}>
+                            {isCustomSorted ? (activePresetName ? `📊 ${activePresetName}` : '📊 Custom Sorted') : '🗄️ Original Database Order'}
                         </span>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {customSortMode && (
+                    {customSortMode && !applyingPreset && (
                         <Button 
                             label="Save Preset" 
                             icon="pi pi-save" 
@@ -1163,6 +1167,72 @@ export default function FlexibleScrollDemo() {
                             size="small"
                             severity="info"
                             outlined
+                            disabled={!Object.values(sortOrders).some(order => order !== '' && order !== undefined)}
+                        />
+                    )}
+                    {customSortMode && applyingPreset && (
+                        <Button 
+                            label="Apply" 
+                            icon="pi pi-check" 
+                            loading={saving}
+                            onClick={async () => {
+                                setSaving(true);
+                                try {
+                                    // Apply the sort
+                                    const sortedData = applyCustomSort();
+                                    
+                                    if (!sortedData) {
+                                        setSaving(false);
+                                        return;
+                                    }
+                                    
+                                    // Update the preset with current sort orders
+                                    const updatedPreset = {
+                                        ...applyingPreset,
+                                        sortOrders: { ...sortOrders },
+                                        updatedAt: new Date().toISOString()
+                                    };
+                                    
+                                    const updatedPresets = savedPresets.map(p => 
+                                        p.id === applyingPreset.id ? updatedPreset : p
+                                    );
+                                    setSavedPresets(updatedPresets);
+                                    localStorage.setItem('sortPresets', JSON.stringify(updatedPresets));
+                                    
+                                    // Update dialog data
+                                    setDialogData(sortedData);
+                                    setIsCustomSorted(true);
+                                    setActivePresetName(updatedPreset.name); // Set active preset name
+                                    localStorage.setItem('isCustomSorted', 'true');
+                                    localStorage.setItem('customSortedOrder', JSON.stringify(sortedData.map(row => row.id)));
+                                    localStorage.setItem('activePresetName', updatedPreset.name); // Save to localStorage
+                                    
+                                    // Exit custom sort mode
+                                    setCustomSortMode(false);
+                                    setApplyingPreset(null);
+                                    setSortOrders({});
+                                    setActiveFunction(null);
+                                    
+                                    toast.current?.show({
+                                        severity: 'success',
+                                        summary: 'Applied',
+                                        detail: `Preset "${updatedPreset.name}" applied successfully!`,
+                                        life: 3000
+                                    });
+                                } catch (error) {
+                                    console.error('Error applying preset:', error);
+                                    toast.current?.show({
+                                        severity: 'error',
+                                        summary: 'Error',
+                                        detail: 'Failed to apply preset. Please try again.',
+                                        life: 3000
+                                    });
+                                } finally {
+                                    setSaving(false);
+                                }
+                            }} 
+                            size="small"
+                            severity="success"
                             disabled={!Object.values(sortOrders).some(order => order !== '' && order !== undefined)}
                         />
                     )}
@@ -1174,10 +1244,12 @@ export default function FlexibleScrollDemo() {
                                 // Clear custom sort from localStorage
                                 localStorage.removeItem('isCustomSorted');
                                 localStorage.removeItem('customSortedOrder');
+                                localStorage.removeItem('activePresetName');
                                 // Reset to default sort
                                 const sortedData = sortDialogData(dialogData);
                                 setDialogData(sortedData);
                                 setIsCustomSorted(false);
+                                setActivePresetName(null);
                             }} 
                             size="small"
                             severity="warning"
@@ -1192,6 +1264,7 @@ export default function FlexibleScrollDemo() {
                                 setActiveFunction(null);
                                 setCustomSortMode(false);
                                 setSortOrders({});
+                                setApplyingPreset(null); // Clear applying preset mode
                             } else {
                                 setDialogVisible(false);
                             }
@@ -2159,8 +2232,7 @@ export default function FlexibleScrollDemo() {
         const filledOrders = Object.entries(sortOrders).filter(([_, order]) => order !== '');
         
         if (filledOrders.length === 0) {
-            alert('⚠️ Please enter at least one row order number!');
-            return;
+            return null;
         }
         
         // Check for duplicates
@@ -2168,8 +2240,13 @@ export default function FlexibleScrollDemo() {
         const uniqueOrders = new Set(orders);
         
         if (uniqueOrders.size !== orders.length) {
-            alert('⚠️ Nombor tidak boleh duplikat! Sila gunakan nombor yang berbeza untuk setiap row.');
-            return;
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Duplicate Order',
+                detail: 'Please use different numbers for each row.',
+                life: 3000
+            });
+            return null;
         }
         
         // Separate rows: those with order and those without
@@ -2198,21 +2275,7 @@ export default function FlexibleScrollDemo() {
         // Combine: custom ordered rows first, then default sorted rows
         const sortedData = [...rowsWithOrder, ...rowsWithoutOrder];
         
-        setDialogData(sortedData);
-        setHasUnsavedChanges(true);
-        setCustomSortMode(false);
-        setSortOrders({});
-        setIsCustomSorted(true);
-        // Save custom sort state to localStorage
-        localStorage.setItem('isCustomSorted', 'true');
-        localStorage.setItem('customSortedOrder', JSON.stringify(sortedData.map(row => row.id)));
-        setActiveFunction(null);
-        
-        const message = filledOrders.length === dialogData.length
-            ? '✅ All rows have been sorted according to your order!'
-            : `✅ ${filledOrders.length} row(s) sorted by your order, remaining ${rowsWithoutOrder.length} row(s) sorted by code!`;
-        
-        alert(message);
+        return sortedData;
     };
 
     const handleSavePreset = () => {
@@ -2273,13 +2336,21 @@ export default function FlexibleScrollDemo() {
             return;
         }
         
+        // Set applying preset mode
+        setApplyingPreset(preset);
+        
         // Apply the saved sort orders
         setSortOrders(preset.sortOrders);
         setCustomSortMode(true);
         setActiveFunction('setOrder');
         setPresetsListVisible(false);
         
-        alert(`✅ Preset "${preset.name}" loaded! Click Apply to sort the table.`);
+        toast.current?.show({ 
+            severity: 'info', 
+            summary: 'Preset Loaded', 
+            detail: `Applying "${preset.name}". Modify if needed and click Apply.`,
+            life: 3000
+        });
     };
     
     const handleEditPreset = (preset) => {
@@ -2288,6 +2359,7 @@ export default function FlexibleScrollDemo() {
         setSortOrders(preset.sortOrders);
         setCustomSortMode(true);
         setActiveFunction('setOrder');
+        setApplyingPreset(null); // Clear applying preset mode
         setPresetsListVisible(false);
         setSavePresetDialogVisible(true);
         
@@ -2344,6 +2416,14 @@ export default function FlexibleScrollDemo() {
             code: 'New Location',
             location: '',
             delivery: 'Daily'
+        });
+        
+        // Show success toast
+        toast.current.show({
+            severity: 'success',
+            summary: 'Location Added',
+            detail: 'New location added successfully! Click on cells to edit, then click Save Changes.',
+            life: 4000
         });
         
         // Added new location with temp ID
@@ -2712,6 +2792,14 @@ export default function FlexibleScrollDemo() {
             route: 'New Route',
             shift: '',
             warehouse: ''
+        });
+        
+        // Show success toast
+        toast.current.show({
+            severity: 'success',
+            summary: 'Row Added',
+            detail: 'New row added successfully! Click on cells to edit, then click Save Changes.',
+            life: 4000
         });
         
         // Added new route with temp ID
@@ -3227,6 +3315,52 @@ export default function FlexibleScrollDemo() {
                                     </div>
                                 </div>
                                 
+                                {/* Add New Route - Only in Edit Mode */}
+                                {editMode && (
+                                    <div
+                                        onClick={() => {
+                                            handleAddRow();
+                                            setCustomMenuVisible(false);
+                                        }}
+                                        style={{
+                                            padding: '1rem 1.25rem',
+                                            borderRadius: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '1rem',
+                                            backgroundColor: 'transparent',
+                                            marginBottom: '0.5rem'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f3f4f6'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '10px',
+                                            background: 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <i className='pi pi-plus' style={{
+                                                color: '#10b981',
+                                                fontSize: '1.1rem'
+                                            }}></i>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                                                Add New Route
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                                Create a new route entry
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 {/* Changelog */}
                                 <div
                                     onClick={() => {
@@ -3629,18 +3763,6 @@ export default function FlexibleScrollDemo() {
             </Dialog>
 
             <div className="card">
-                {editMode && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <Button 
-                            label="Add New Row" 
-                            icon="pi pi-plus" 
-                            onClick={handleAddRow}
-                            severity="success"
-                            size="small"
-                            raised
-                        />
-                    </div>
-                )}
                 <DataTable 
                     value={displayedRoutes} 
                     scrollable 
@@ -3892,6 +4014,7 @@ export default function FlexibleScrollDemo() {
                                                             onClick={() => {
                                                                 setActiveFunction('setOrder');
                                                                 setCustomSortMode(true);
+                                                                setApplyingPreset(null); // Clear applying preset mode
                                                                 const initialOrders = {};
                                                                 dialogData.forEach((row) => {
                                                                     initialOrders[row.id] = '';
@@ -3913,10 +4036,8 @@ export default function FlexibleScrollDemo() {
                                                                     color: isDark ? '#f1f5f9' : '#0f172a'
                                                                 }}
                                                                 onClick={() => {
-                                                                    setActiveFunction('addRow');
-                                                                    setAddRowMode(true);
+                                                                    handleAddDialogRow();
                                                                     setFunctionMenuVisible(false);
-                                                                    toast.current?.show({ severity: 'success', summary: 'Add Row', detail: 'Add row mode activated' });
                                                                 }}
                                                             />
                                                         )}
@@ -7743,12 +7864,13 @@ export default function FlexibleScrollDemo() {
                     visible={presetsListVisible}
                     style={{ width: deviceInfo.isMobile ? '95vw' : '600px' }}
                     modal
+                    closable={false}
                     dismissableMask
                     transitionOptions={{ timeout: 300 }}
                     onHide={() => setPresetsListVisible(false)}
                 >
                     <div style={{ padding: '1rem' }}>
-                        {savedPresets.length === 0 ? (
+                        {savedPresets.filter(preset => preset.routeId === currentRouteId).length === 0 ? (
                             <div style={{ 
                                 textAlign: 'center', 
                                 padding: '2rem',
@@ -7762,7 +7884,7 @@ export default function FlexibleScrollDemo() {
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {savedPresets.map((preset) => (
+                                {savedPresets.filter(preset => preset.routeId === currentRouteId).map((preset) => (
                                     <div 
                                         key={preset.id}
                                         style={{
@@ -7891,9 +8013,10 @@ export default function FlexibleScrollDemo() {
                                                         )
                                                     }
                                                 ]}
-                                                radius={45}
+                                                radius={42}
                                                 type="semi-circle"
                                                 direction="left"
+                                                mask
                                                 buttonStyle={{
                                                     width: '2.2rem',
                                                     height: '2.2rem',
