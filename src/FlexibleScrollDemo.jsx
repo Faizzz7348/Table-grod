@@ -4,6 +4,7 @@ import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import { Password } from 'primereact/password';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Toast } from 'primereact/toast';
@@ -5705,92 +5706,48 @@ export default function FlexibleScrollDemo() {
                         
                         {/* Password Input */}
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ position: 'relative' }}>
-                                <InputText
-                                    type={showPassword ? "text" : "password"}
-                                    value={passwordInput}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value.length <= 4 && /^\d*$/.test(value)) {
-                                            setPasswordInput(value);
-                                            setPasswordError('');
-                                        }
-                                    }}
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
-                                            handlePasswordSubmit();
-                                        }
-                                    }}
-                                    placeholder="••••"
-                                    maxLength={4}
-                                    style={{ 
-                                        width: '100%',
-                                        height: '60px',
-                                        paddingRight: '3.5rem',
-                                        fontSize: '31px',
-                                        letterSpacing: showPassword ? 'normal' : '1rem',
-                                        fontWeight: '600',
-                                        textAlign: 'center',
-                                        background: isDark 
-                                            ? 'rgba(255, 255, 255, 0.05)' 
-                                            : 'rgba(0, 0, 0, 0.03)',
-                                        border: isDark 
-                                            ? '2px solid rgba(255, 255, 255, 0.1)' 
-                                            : '2px solid rgba(0, 0, 0, 0.08)',
-                                        borderRadius: '16px',
-                                        backdropFilter: 'blur(10px)',
-                                        WebkitBackdropFilter: 'blur(10px)',
-                                        transition: 'all 0.3s ease',
-                                        color: isDark ? '#ffffff' : '#000000'
-                                    }}
+                            <Password
+                                value={passwordInput}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 4 && /^\d*$/.test(value)) {
+                                        setPasswordInput(value);
+                                        setPasswordError('');
+                                    }
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
+                                        handlePasswordSubmit();
+                                    }
+                                }}
+                                placeholder="••••"
+                                maxLength={4}
+                                toggleMask
+                                feedback={false}
+                                inputStyle={{ 
+                                    width: '100%',
+                                    height: '60px',
+                                    fontSize: '24px',
+                                    letterSpacing: '0.8rem',
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    background: isDark 
+                                        ? 'rgba(255, 255, 255, 0.05)' 
+                                        : 'rgba(0, 0, 0, 0.03)',
+                                    border: 'none',
+                                    borderRadius: '16px',
+                                    backdropFilter: 'blur(10px)',
+                                    WebkitBackdropFilter: 'blur(10px)',
+                                    transition: 'all 0.3s ease',
+                                    color: isDark ? '#ffffff' : '#000000'
+                                }}
+                                style={{
+                                    width: '100%'
+                                }}
+                                disabled={passwordLoading}
+                                autoFocus
                                     disabled={passwordLoading}
-                                    autoFocus
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    disabled={passwordLoading}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '1rem',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: isDark 
-                                            ? 'rgba(255, 255, 255, 0.1)' 
-                                            : 'rgba(0, 0, 0, 0.05)',
-                                        border: 'none',
-                                        cursor: passwordLoading ? 'not-allowed' : 'pointer',
-                                        color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-                                        padding: '0.5rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '12px',
-                                        transition: 'all 0.3s ease',
-                                        opacity: passwordLoading ? 0.5 : 1,
-                                        backdropFilter: 'blur(10px)',
-                                        WebkitBackdropFilter: 'blur(10px)',
-                                        width: '40px',
-                                        height: '40px'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!passwordLoading) {
-                                            e.currentTarget.style.background = isDark 
-                                                ? 'rgba(255, 255, 255, 0.15)' 
-                                                : 'rgba(0, 0, 0, 0.08)';
-                                            e.currentTarget.style.color = isDark ? '#ffffff' : '#000000';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = isDark 
-                                            ? 'rgba(255, 255, 255, 0.1)' 
-                                            : 'rgba(0, 0, 0, 0.05)';
-                                        e.currentTarget.style.color = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)';
-                                    }}
-                                >
-                                    <i className={showPassword ? "pi pi-eye-slash" : "pi pi-eye"} style={{ fontSize: '1.05rem' }}></i>
-                                </button>
-                            </div>
                             
                             {/* Progress Indicator */}
                             <div style={{
