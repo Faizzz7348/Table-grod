@@ -5678,245 +5678,156 @@ export default function FlexibleScrollDemo() {
                     header={null}
                     visible={passwordDialogVisible}
                     style={{ 
-                        width: deviceInfo.isMobile ? '95vw' : '400px',
-                        background: isDark 
-                            ? 'rgba(30, 41, 59, 0.85)' 
-                            : 'rgba(255, 255, 255, 0.85)',
-                        backdropFilter: 'blur(40px) saturate(180%)',
-                        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-                        border: isDark 
-                            ? '1px solid rgba(255, 255, 255, 0.1)' 
-                            : '1px solid rgba(0, 0, 0, 0.1)',
-                        borderRadius: '24px',
-                        boxShadow: isDark
-                            ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                            : '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                        overflow: 'hidden'
+                        width: deviceInfo.isMobile ? '90vw' : '360px',
+                        background: isDark ? '#1e293b' : '#ffffff',
+                        border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
                     }}
                     modal
                     closable={!passwordLoading}
-                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         if (!passwordLoading) {
                             setPasswordDialogVisible(false);
                             setPasswordInput('');
                             setPasswordError('');
-                            setShowPassword(false);
                         }
                     }}
                 >
-                    <div style={{ 
-                        padding: '2rem',
-                        background: 'transparent'
-                    }}>
-                        {/* Icon Header */}
+                    <div style={{ padding: '1.5rem' }}>
+                        {/* Simple Icon */}
                         <div style={{
                             display: 'flex',
                             justifyContent: 'center',
-                            marginBottom: '1.5rem'
+                            marginBottom: '1rem'
                         }}>
                             <div style={{
-                                width: '80px',
-                                height: '80px',
-                                borderRadius: '20px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '12px',
+                                background: isDark ? '#334155' : '#f1f5f9',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)',
-                                position: 'relative',
-                                overflow: 'hidden'
+                                justifyContent: 'center'
                             }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '-50%',
-                                    left: '-50%',
-                                    width: '200%',
-                                    height: '200%',
-                                    background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
-                                    animation: 'pulse 3s ease-in-out infinite'
-                                }}></div>
                                 <i className="pi pi-lock" style={{ 
-                                    fontSize: '2.4rem', 
-                                    color: 'white',
-                                    position: 'relative',
-                                    zIndex: 1
+                                    fontSize: '1.5rem', 
+                                    color: isDark ? '#94a3b8' : '#64748b'
                                 }}></i>
                             </div>
                         </div>
 
-                        {/* Title & Description */}
-                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                            <h3 style={{
-                                margin: '0 0 0.5rem 0',
-                                fontSize: '1.4rem',
-                                fontWeight: '700',
-                                background: isDark 
-                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                    : 'linear-gradient(135deg, #5b5fc7 0%, #6a3093 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                letterSpacing: '-0.02em'
-                            }}>
-                                Enter Password
-                            </h3>
-                            <p style={{
-                                margin: 0,
-                                fontSize: '13px',
-                                color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)',
-                                fontWeight: '500'
-                            }}>
-                                Enter your 4-digit password to access Edit Mode
-                            </p>
-                        </div>
+                        {/* Title */}
+                        <h3 style={{
+                            margin: '0 0 0.5rem 0',
+                            fontSize: '1.25rem',
+                            fontWeight: '600',
+                            textAlign: 'center',
+                            color: isDark ? '#f1f5f9' : '#0f172a'
+                        }}>
+                            Enter Password
+                        </h3>
+                        <p style={{
+                            margin: '0 0 1.5rem 0',
+                            fontSize: '0.875rem',
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            textAlign: 'center'
+                        }}>
+                            Enter 4-digit password
+                        </p>
                         
                         {/* Password Input */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <Password
-                                value={passwordInput}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length <= 4 && /^\d*$/.test(value)) {
-                                        setPasswordInput(value);
-                                        setPasswordError('');
-                                    }
-                                }}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
-                                        handlePasswordSubmit();
-                                    }
-                                }}
-                                placeholder="••••"
-                                maxLength={4}
-                                toggleMask
-                                feedback={false}
-                                inputStyle={{ 
-                                    width: '100%',
-                                    height: '60px',
-                                    fontSize: '24px',
-                                    letterSpacing: '0.8rem',
-                                    fontWeight: '600',
-                                    textAlign: 'center',
-                                    background: isDark 
-                                        ? 'rgba(255, 255, 255, 0.05)' 
-                                        : 'rgba(0, 0, 0, 0.03)',
-                                    border: 'none',
-                                    borderRadius: '16px',
-                                    backdropFilter: 'blur(10px)',
-                                    WebkitBackdropFilter: 'blur(10px)',
-                                    transition: 'all 0.3s ease',
-                                    color: isDark ? '#ffffff' : '#000000'
-                                }}
-                                style={{
-                                    width: '100%'
-                                }}
-                                disabled={passwordLoading}
-                                autoFocus
-                            />
-                            
-                            {/* Progress Indicator */}
-                            <div style={{
-                                display: 'flex',
-                                gap: '8px',
-                                justifyContent: 'center',
-                                marginTop: '1rem'
-                            }}>
-                                {[0, 1, 2, 3].map(i => (
-                                    <div key={i} style={{
-                                        width: '40px',
-                                        height: '6px',
-                                        borderRadius: '3px',
-                                        background: passwordInput.length > i 
-                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                            : isDark 
-                                                ? 'rgba(255, 255, 255, 0.1)' 
-                                                : 'rgba(0, 0, 0, 0.1)',
-                                        transition: 'all 0.3s ease',
-                                        transform: passwordInput.length > i ? 'scaleX(1)' : 'scaleX(0.9)',
-                                        boxShadow: passwordInput.length > i 
-                                            ? '0 4px 12px rgba(102, 126, 234, 0.4)' 
-                                            : 'none'
-                                    }}></div>
-                                ))}
-                            </div>
-                        </div>
+                        <Password
+                            value={passwordInput}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.length <= 4 && /^\d*$/.test(value)) {
+                                    setPasswordInput(value);
+                                    setPasswordError('');
+                                }
+                            }}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && passwordInput.length === 4 && !passwordLoading) {
+                                    handlePasswordSubmit();
+                                }
+                            }}
+                            placeholder="••••"
+                            maxLength={4}
+                            toggleMask
+                            feedback={false}
+                            inputStyle={{ 
+                                width: '100%',
+                                height: '48px',
+                                fontSize: '20px',
+                                letterSpacing: '0.5rem',
+                                fontWeight: '500',
+                                textAlign: 'center',
+                                background: isDark ? '#0f172a' : '#f8fafc',
+                                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                color: isDark ? '#f1f5f9' : '#0f172a'
+                            }}
+                            style={{ width: '100%', marginBottom: '1rem' }}
+                            disabled={passwordLoading}
+                            autoFocus
+                        />
                         
                         {/* Error Message */}
                         {passwordError && (
                             <div style={{
-                                padding: '1rem',
-                                background: isDark 
-                                    ? 'rgba(239, 68, 68, 0.15)' 
-                                    : 'rgba(239, 68, 68, 0.1)',
-                                backdropFilter: 'blur(10px)',
-                                WebkitBackdropFilter: 'blur(10px)',
+                                padding: '0.75rem',
+                                background: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
                                 color: isDark ? '#fca5a5' : '#dc2626',
-                                borderRadius: '14px',
-                                marginBottom: '1.5rem',
-                                fontSize: '13px',
+                                borderRadius: '8px',
+                                marginBottom: '1rem',
+                                fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.75rem',
-                                border: isDark 
-                                    ? '1px solid rgba(239, 68, 68, 0.3)' 
-                                    : '1px solid rgba(239, 68, 68, 0.2)',
-                                animation: 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97)'
+                                gap: '0.5rem',
+                                border: isDark ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid #fecaca'
                             }}>
-                                <i className="pi pi-exclamation-circle" style={{ fontSize: '1.15rem' }}></i>
-                                <span style={{ fontWeight: '600' }}>{passwordError}</span>
+                                <i className="pi pi-exclamation-circle"></i>
+                                <span>{passwordError}</span>
                             </div>
                         )}
                         
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {/* Buttons */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <Button
                                 label="Cancel"
                                 onClick={() => {
                                     setPasswordDialogVisible(false);
                                     setPasswordInput('');
                                     setPasswordError('');
-                                    setShowPassword(false);
                                 }}
                                 style={{
                                     flex: 1,
-                                    height: '50px',
-                                    background: isDark 
-                                        ? 'rgba(255, 255, 255, 0.08)' 
-                                        : 'rgba(0, 0, 0, 0.05)',
+                                    height: '44px',
+                                    background: isDark ? '#334155' : '#f1f5f9',
                                     border: 'none',
-                                    borderRadius: '14px',
-                                    color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                                    fontWeight: '600',
-                                    fontSize: '15px',
-                                    backdropFilter: 'blur(10px)',
-                                    WebkitBackdropFilter: 'blur(10px)',
-                                    transition: 'all 0.3s ease'
+                                    borderRadius: '8px',
+                                    color: isDark ? '#e2e8f0' : '#475569',
+                                    fontWeight: '500'
                                 }}
                                 disabled={passwordLoading}
                             />
                             <Button
                                 label={passwordLoading ? "Verifying..." : "Submit"}
-                                icon={passwordLoading ? "pi pi-spin pi-spinner" : "pi pi-arrow-right"}
+                                icon={passwordLoading ? "pi pi-spin pi-spinner" : "pi pi-check"}
                                 onClick={handlePasswordSubmit}
                                 disabled={passwordInput.length !== 4 || passwordLoading}
                                 style={{
                                     flex: 1,
-                                    height: '50px',
+                                    height: '44px',
                                     background: (passwordInput.length === 4 && !passwordLoading)
-                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                        : isDark 
-                                            ? 'rgba(255, 255, 255, 0.05)' 
-                                            : 'rgba(0, 0, 0, 0.05)',
+                                        ? '#3b82f6'
+                                        : isDark ? '#1e293b' : '#e2e8f0',
                                     border: 'none',
-                                    borderRadius: '14px',
-                                    color: (passwordInput.length === 4 && !passwordLoading) ? '#ffffff' : isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                                    fontWeight: '700',
-                                    fontSize: '15px',
-                                    boxShadow: (passwordInput.length === 4 && !passwordLoading)
-                                        ? '0 10px 30px rgba(102, 126, 234, 0.4)'
-                                        : 'none',
-                                    transition: 'all 0.3s ease',
-                                    transform: (passwordInput.length === 4 && !passwordLoading) ? 'scale(1)' : 'scale(0.98)'
+                                    borderRadius: '8px',
+                                    color: (passwordInput.length === 4 && !passwordLoading) 
+                                        ? '#ffffff' 
+                                        : isDark ? '#64748b' : '#94a3b8',
+                                    fontWeight: '500'
                                 }}
                             />
                         </div>
