@@ -171,8 +171,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formBody.toString(),
-      signal: AbortSignal.timeout(8000) // 8 second timeout for upload (leave 2s buffer for processing)
+      body: formBody.toString()
     });
 
     const imgbbData = await imgbbResponse.json();
