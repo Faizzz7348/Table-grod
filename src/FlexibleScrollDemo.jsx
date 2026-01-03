@@ -1858,6 +1858,17 @@ export default function FlexibleScrollDemo() {
         setUploadingQrCode(true);
         
         try {
+            // Compress image if it's larger than 500KB
+            let fileToProcess = file;
+            if (file.size > 500 * 1024) {
+                try {
+                    console.log('🔄 Compressing QR code image...');
+                    fileToProcess = await compressImage(file, 800, 800, 0.9);
+                } catch (compressError) {
+                    console.warn('QR compression failed, using original:', compressError);
+                }
+            }
+            
             // Processing QR code image
             
             // Convert file to base64 for preview and storage (like repo rujukan)
@@ -1873,7 +1884,7 @@ export default function FlexibleScrollDemo() {
                 setUploadingQrCode(false);
                 event.target.value = '';
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(fileToProcess);
             
         } catch (error) {
             console.error('❌ Error processing QR code:', error);
@@ -2613,6 +2624,63 @@ export default function FlexibleScrollDemo() {
         setCurrentRowImages(newImages);
     };
     
+    // Compress image before upload
+    const compressImage = (file, maxWidth = 1920, maxHeight = 1080, quality = 0.85) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Calculate new dimensions
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to blob
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                // Create a new file from blob with original name
+                                const compressedFile = new File([blob], file.name, {
+                                    type: file.type,
+                                    lastModified: Date.now(),
+                                });
+                                console.log(`✅ Image compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+                                resolve(compressedFile);
+                            } else {
+                                reject(new Error('Failed to compress image'));
+                            }
+                        },
+                        file.type,
+                        quality
+                    );
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+        });
+    };
+    
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) {
@@ -2626,21 +2694,11 @@ export default function FlexibleScrollDemo() {
             return;
         }
         
-        // Check file size (10MB limit)
+        // Check file size (10MB limit before compression)
         const maxSize = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSize) {
             alert('File size exceeds 10MB limit');
             return;
-        }
-        
-        // Warn if file is larger than 4.5MB (Vercel limit)
-        if (file.size > 4.5 * 1024 * 1024) {
-            const proceed = confirm(
-                `Warning: File size is ${(file.size / 1024 / 1024).toFixed(2)}MB.\n` +
-                `Vercel has a 4.5MB request limit.\n` +
-                `Upload may fail. Continue anyway?`
-            );
-            if (!proceed) return;
         }
         
         try {
@@ -2651,9 +2709,21 @@ export default function FlexibleScrollDemo() {
                 fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB'
             });
             
+            // Compress image if it's larger than 1MB
+            let fileToUpload = file;
+            if (file.size > 1024 * 1024) {
+                try {
+                    console.log('🔄 Compressing image...');
+                    fileToUpload = await compressImage(file);
+                } catch (compressError) {
+                    console.warn('Compression failed, uploading original:', compressError);
+                    // Continue with original file if compression fails
+                }
+            }
+            
             // Create FormData
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', fileToUpload);
             
             // Determine API endpoint - always use relative path for Vercel compatibility
             const apiUrl = '/api/upload';

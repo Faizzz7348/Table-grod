@@ -7,6 +7,7 @@ export const config = {
     bodyParser: false,
     externalResolver: true,
   },
+  maxDuration: 10,
 };
 
 // Helper function to parse form data
@@ -170,7 +171,8 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formBody.toString()
+      body: formBody.toString(),
+      signal: AbortSignal.timeout(8000) // 8 second timeout for upload (leave 2s buffer for processing)
     });
 
     const imgbbData = await imgbbResponse.json();
