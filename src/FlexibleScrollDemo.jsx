@@ -730,6 +730,10 @@ export default function FlexibleScrollDemo() {
     // Custom Menu State
     const [customMenuVisible, setCustomMenuVisible] = useState(false);
     
+    // Incomplete Editing Dialog State
+    const [incompleteEditingDialogVisible, setIncompleteEditingDialogVisible] = useState(false);
+    const [savedEditState, setSavedEditState] = useState(null);
+    
     // Auto Column Width State
     const [columnWidths, setColumnWidths] = useState({
         code: 70,
@@ -788,6 +792,33 @@ export default function FlexibleScrollDemo() {
         const cleanupInterval = setInterval(cleanupOldEntries, 60000);
         
         return () => clearInterval(cleanupInterval);
+    }, []);
+    
+    // Check for incomplete editing on mount
+    useEffect(() => {
+        const checkIncompleteEditing = () => {
+            try {
+                const savedState = localStorage.getItem('incompleteEditState');
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    const timeSinceLastEdit = Date.now() - parsed.timestamp;
+                    
+                    // Show dialog if edit was within last 24 hours
+                    if (timeSinceLastEdit < 24 * 60 * 60 * 1000) {
+                        setSavedEditState(parsed);
+                        setIncompleteEditingDialogVisible(true);
+                        console.log('📝 Incomplete editing detected:', parsed);
+                    } else {
+                        // Clear old state
+                        localStorage.removeItem('incompleteEditState');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check incomplete editing:', error);
+            }
+        };
+        
+        checkIncompleteEditing();
     }, []);
     
     // Website Link Modal State
@@ -1114,6 +1145,31 @@ export default function FlexibleScrollDemo() {
         }
     }, [isDark]);
     
+    // Auto-save unsaved changes to localStorage
+    useEffect(() => {
+        if (hasUnsavedChanges && editMode) {
+            try {
+                const editState = {
+                    routes: routes,
+                    dialogData: dialogData,
+                    frozenRowData: frozenRowData,
+                    deletedLocationIds: deletedLocationIds,
+                    deletedRouteIds: deletedRouteIds,
+                    modifiedRows: Array.from(modifiedRows),
+                    newRows: newRows,
+                    timestamp: Date.now(),
+                    isCustomSorted: isCustomSorted,
+                    sortOrders: sortOrders
+                };
+                
+                localStorage.setItem('incompleteEditState', JSON.stringify(editState));
+                console.log('💾 Auto-saved unsaved changes to localStorage');
+            } catch (error) {
+                console.error('Failed to auto-save changes:', error);
+            }
+        }
+    }, [hasUnsavedChanges, editMode, routes, dialogData, frozenRowData, deletedLocationIds, deletedRouteIds, modifiedRows, newRows, isCustomSorted, sortOrders]);
+    
     // Check for app updates - after loading completes
     useEffect(() => {
         if (!loading) {
@@ -1342,6 +1398,15 @@ export default function FlexibleScrollDemo() {
         
         // Mark row as modified
         setModifiedRows(prev => new Set(prev).add(rowId));
+        
+        // If updating frozen row, sync with frozenRowData state
+        if (rowId === frozenRowData.id) {
+            setFrozenRowData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+            console.log(`💾 Frozen row "${field}" updated:`, value);
+        }
         
         // Add to changelog
         if (oldValue !== value) {
@@ -2208,10 +2273,15 @@ export default function FlexibleScrollDemo() {
             // frozenRowData is a global location that needs to be saved separately
             const allLocationsToSave = [...dialogData];
             
-            // Only include frozenRowData if it's not already in dialogData
+            // ALWAYS include frozenRowData in save operation
+            // Check if frozen row is already in dialogData to avoid duplicates
             const frozenRowInDialogData = dialogData.some(loc => loc.id === frozenRowData.id);
-            if (!frozenRowInDialogData && frozenRowData.id && frozenRowData.id !== 'frozen-row') {
+            if (!frozenRowInDialogData) {
+                // Include frozen row in save, even if it has a temporary ID
+                console.log('💾 Including frozen row in save:', frozenRowData);
                 allLocationsToSave.push(frozenRowData);
+            } else {
+                console.log('💾 Frozen row already in dialogData, will be saved automatically');
             }
             
             // Save both routes and locations
@@ -2235,12 +2305,24 @@ export default function FlexibleScrollDemo() {
             setRoutes(sortedRoutes);
             setOriginalData([...sortedRoutes]);
             setOriginalDialogData([...dialogData]);
+            
+            // Update frozen row data after save to sync with latest database state
+            const savedFrozenRow = allLocations.find(loc => loc.id === frozenRowData.id);
+            if (savedFrozenRow) {
+                setFrozenRowData(savedFrozenRow);
+                console.log('💾 Frozen row data updated after save:', savedFrozenRow);
+            }
+            
             setHasUnsavedChanges(false);
             setSaving(false);
             
             // Clear modified rows tracking
             setModifiedRows(new Set());
             setNewRows([]);
+            
+            // Clear incomplete edit state from localStorage after successful save
+            localStorage.removeItem('incompleteEditState');
+            console.log('✅ Cleared incomplete edit state from localStorage');
             
             // Check if using localStorage
             const isLocalStorage = results[0].message?.includes('localStorage');
@@ -2285,6 +2367,10 @@ export default function FlexibleScrollDemo() {
                 const confirmed = window.confirm('⚠️ You have unsaved changes. Do you want to save before exiting edit mode?');
                 if (confirmed) {
                     handleSaveChanges();
+                } else {
+                    // Clear incomplete edit state if user exits without saving
+                    localStorage.removeItem('incompleteEditState');
+                    console.log('🗑️ User exited edit mode without saving, cleared incomplete state');
                 }
             }
             
@@ -2397,10 +2483,64 @@ export default function FlexibleScrollDemo() {
         alert('✅ Password changed successfully!');
     };
     
+    // Handle continuing incomplete editing
+    const handleContinueEditing = () => {
+        if (!savedEditState) return;
+        
+        try {
+            // Restore all state from saved edit state
+            setRoutes(savedEditState.routes);
+            setDialogData(savedEditState.dialogData);
+            setFrozenRowData(savedEditState.frozenRowData);
+            setDeletedLocationIds(savedEditState.deletedLocationIds);
+            setDeletedRouteIds(savedEditState.deletedRouteIds);
+            setModifiedRows(new Set(savedEditState.modifiedRows));
+            setNewRows(savedEditState.newRows);
+            setIsCustomSorted(savedEditState.isCustomSorted);
+            setSortOrders(savedEditState.sortOrders || {});
+            
+            // Set flags
+            setHasUnsavedChanges(true);
+            setEditMode(true);
+            
+            // Close dialog
+            setIncompleteEditingDialogVisible(false);
+            
+            // Show success message
+            setTimeout(() => {
+                alert('✅ Your previous editing session has been restored!\n\n📝 Please review your changes and click Save when ready.');
+            }, 500);
+            
+            console.log('✅ Restored incomplete editing session');
+        } catch (error) {
+            console.error('Failed to restore editing session:', error);
+            alert('❌ Failed to restore editing session. Starting fresh.');
+            handleDiscardEditing();
+        }
+    };
+    
+    // Handle discarding incomplete editing
+    const handleDiscardEditing = () => {
+        try {
+            // Clear incomplete edit state
+            localStorage.removeItem('incompleteEditState');
+            
+            // Reset state
+            setSavedEditState(null);
+            setIncompleteEditingDialogVisible(false);
+            setHasUnsavedChanges(false);
+            
+            console.log('🗑️ Discarded incomplete editing session');
+        } catch (error) {
+            console.error('Failed to discard editing session:', error);
+        }
+    };
+    
     const handleToggleCustomSort = () => {
         if (customSortMode) {
             // Exiting custom sort mode
             setSortOrders({});
+            setCustomSortMode(false);
         } else {
             // Entering custom sort mode - initialize with empty values
             const initialOrders = {};
@@ -2408,8 +2548,8 @@ export default function FlexibleScrollDemo() {
                 initialOrders[row.id] = '';
             });
             setSortOrders(initialOrders);
+            setCustomSortMode(true);
         }
-        setCustomSortMode(!customSortMode);
     };
     
     const handleSortOrderChange = (rowId, value) => {
@@ -2604,8 +2744,8 @@ export default function FlexibleScrollDemo() {
             routeId: currentRouteId,
             isNew: true
         };
-        // Add new row at the top
-        const updatedData = [newRow, ...dialogData];
+        // Add new row and sort by code (same as route table behavior)
+        const updatedData = sortDialogData([...dialogData, newRow]);
         setDialogData(updatedData);
         setNewRows([...newRows, tempId]);
         setHasUnsavedChanges(true);
@@ -3229,12 +3369,15 @@ export default function FlexibleScrollDemo() {
         if (newValue !== rowData[field]) {
             handleUpdateDialogData(rowData.id, field, newValue);
             
-            // If editing frozen row, also update frozenRowData
+            // If editing frozen row, also update frozenRowData and mark as changed
             if (rowData.id === frozenRowData.id) {
                 setFrozenRowData(prev => ({
                     ...prev,
                     [field]: newValue
                 }));
+                // Mark that we have unsaved changes
+                setHasUnsavedChanges(true);
+                console.log('💾 Frozen row edited, unsaved changes marked');
             }
         }
     };
@@ -3482,6 +3625,106 @@ export default function FlexibleScrollDemo() {
             animation: 'fadeIn 0.6s ease-out'
         }}>
             <style>{tableStyles}</style>
+            
+            {/* Incomplete Editing Dialog */}
+            <Dialog
+                header={
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem',
+                        padding: '0.5rem 0'
+                    }}>
+                        <i className="pi pi-exclamation-triangle" style={{ 
+                            fontSize: '1.5rem', 
+                            color: '#f59e0b' 
+                        }}></i>
+                        <span style={{ 
+                            fontSize: '1.25rem', 
+                            fontWeight: '700',
+                            color: isDark ? '#f1f5f9' : '#1e293b'
+                        }}>
+                            You Have Incomplete Editing
+                        </span>
+                    </div>
+                }
+                visible={incompleteEditingDialogVisible}
+                style={{ width: deviceInfo.isMobile ? '95vw' : '500px' }}
+                modal
+                closable={false}
+                dismissableMask={false}
+                closeOnEscape={false}
+            >
+                <div style={{ 
+                    padding: '1rem 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                }}>
+                    <p style={{ 
+                        fontSize: '1rem',
+                        lineHeight: '1.6',
+                        color: isDark ? '#cbd5e1' : '#475569',
+                        margin: 0
+                    }}>
+                        We detected that you have unsaved changes from a previous editing session. 
+                        Would you like to continue where you left off?
+                    </p>
+                    
+                    {savedEditState && (
+                        <div style={{
+                            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`
+                        }}>
+                            <p style={{ 
+                                fontSize: '0.875rem',
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                margin: '0 0 0.5rem 0',
+                                fontWeight: '600'
+                            }}>
+                                Session Details:
+                            </p>
+                            <ul style={{ 
+                                margin: 0,
+                                paddingLeft: '1.5rem',
+                                fontSize: '0.875rem',
+                                color: isDark ? '#cbd5e1' : '#475569'
+                            }}>
+                                <li>Modified rows: {savedEditState.modifiedRows?.length || 0}</li>
+                                <li>New rows: {savedEditState.newRows?.length || 0}</li>
+                                <li>Deleted locations: {savedEditState.deletedLocationIds?.length || 0}</li>
+                                <li>Last saved: {new Date(savedEditState.timestamp).toLocaleString()}</li>
+                            </ul>
+                        </div>
+                    )}
+                    
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: '0.75rem',
+                        justifyContent: 'flex-end',
+                        paddingTop: '0.5rem'
+                    }}>
+                        <Button
+                            label="Discard"
+                            icon="pi pi-trash"
+                            onClick={handleDiscardEditing}
+                            severity="danger"
+                            outlined
+                            style={{ flex: 1 }}
+                        />
+                        <Button
+                            label="Continue Editing"
+                            icon="pi pi-pencil"
+                            onClick={handleContinueEditing}
+                            severity="success"
+                            style={{ flex: 1 }}
+                        />
+                    </div>
+                </div>
+            </Dialog>
+            
             {/* Navigation Header */}
             <div style={{
                 background: isDark ? '#0f172a' : '#e5e7eb',
@@ -3821,6 +4064,140 @@ export default function FlexibleScrollDemo() {
                                             margin: '0.75rem 0'
                                         }} />
                                         
+                                        {/* Save Changes Button - Always visible in edit mode */}
+                                        <div
+                                            onClick={() => {
+                                                if (!saving) {
+                                                    handleSaveChanges();
+                                                    setCustomMenuVisible(false);
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '1rem 1.25rem',
+                                                borderRadius: '12px',
+                                                cursor: saving ? 'not-allowed' : 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '1rem',
+                                                backgroundColor: hasUnsavedChanges ? (isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)') : 'transparent',
+                                                marginBottom: '0.5rem',
+                                                border: hasUnsavedChanges ? '2px solid #10b981' : 'none',
+                                                opacity: saving ? 0.7 : 1,
+                                                position: 'relative',
+                                                overflow: 'hidden'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!saving) {
+                                                    e.currentTarget.style.backgroundColor = hasUnsavedChanges 
+                                                        ? (isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)') 
+                                                        : (isDark ? '#334155' : '#f3f4f6');
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = hasUnsavedChanges 
+                                                    ? (isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)') 
+                                                    : 'transparent';
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '10px',
+                                                background: hasUnsavedChanges ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <i className={saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'} style={{
+                                                    color: '#10b981',
+                                                    fontSize: '1.1rem'
+                                                }}></i>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ 
+                                                    margin: 0, 
+                                                    fontWeight: '600', 
+                                                    fontSize: '0.95rem', 
+                                                    color: hasUnsavedChanges ? '#10b981' : (isDark ? '#f1f5f9' : '#1e293b')
+                                                }}>
+                                                    {saving ? 'Saving Changes...' : 'Save Changes'}
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                                    {hasUnsavedChanges ? 'Click to save all changes' : 'No changes to save'}
+                                                </p>
+                                            </div>
+                                            {hasUnsavedChanges && !saving && (
+                                                <div style={{
+                                                    backgroundColor: '#10b981',
+                                                    color: '#ffffff',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '700',
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: '12px',
+                                                    minWidth: '20px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    !
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Cancel Changes Button - Only visible when there are unsaved changes */}
+                                        {hasUnsavedChanges && (
+                                            <div
+                                                onClick={() => {
+                                                    if (!saving) {
+                                                        handleCancelChanges();
+                                                        setCustomMenuVisible(false);
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '1rem 1.25rem',
+                                                    borderRadius: '12px',
+                                                    cursor: saving ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '1rem',
+                                                    backgroundColor: 'transparent',
+                                                    marginBottom: '0.5rem',
+                                                    opacity: saving ? 0.5 : 1
+                                                }}
+                                                onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '10px',
+                                                    background: 'transparent',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}>
+                                                    <i className="pi pi-times" style={{
+                                                        color: '#ef4444',
+                                                        fontSize: '1.1rem'
+                                                    }}></i>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem', color: '#ef4444' }}>
+                                                        Cancel Changes
+                                                    </p>
+                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
+                                                        Discard all changes
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        <div style={{
+                                            height: '1px',
+                                            background: isDark ? '#334155' : '#e5e7eb',
+                                            margin: '0.75rem 0'
+                                        }} />
+                                        
                                         {/* Change Password */}
                                         <div
                                             onClick={() => {
@@ -3906,75 +4283,6 @@ export default function FlexibleScrollDemo() {
                                                 <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '0.15rem' }}>
                                                     Delete everything
                                                 </p>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                                
-                                {/* Save/Cancel Actions */}
-                                {editMode && hasUnsavedChanges && (
-                                    <>
-                                        <div style={{
-                                            height: '1px',
-                                            background: isDark ? '#334155' : '#e5e7eb',
-                                            margin: '0.75rem 0'
-                                        }} />
-                                        
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {/* Save Button */}
-                                            <div
-                                                onClick={() => {
-                                                    handleSaveChanges();
-                                                    setCustomMenuVisible(false);
-                                                }}
-                                                style={{
-                                                    flex: 1,
-                                                    padding: '1rem',
-                                                    borderRadius: '12px',
-                                                    cursor: saving ? 'not-allowed' : 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    background: saving ? (isDark ? '#1e3a2e' : '#d1fae5') : 'transparent',
-                                                    border: 'none',
-                                                    color: '#10b981',
-                                                    fontWeight: '700',
-                                                    fontSize: '0.95rem',
-                                                    opacity: saving ? 0.7 : 1
-                                                }}
-                                            >
-                                                <i className={saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'} style={{ color: '#10b981' }} />
-                                                {saving ? 'Saving...' : 'Save'}
-                                            </div>
-                                            
-                                            {/* Cancel Button */}
-                                            <div
-                                                onClick={() => {
-                                                    handleCancelChanges();
-                                                    setCustomMenuVisible(false);
-                                                }}
-                                                style={{
-                                                    flex: 1,
-                                                    padding: '1rem',
-                                                    borderRadius: '12px',
-                                                    cursor: saving ? 'not-allowed' : 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    background: isDark ? '#1e293b' : '#f1f5f9',
-                                                    border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
-                                                    color: isDark ? '#f1f5f9' : '#1e293b',
-                                                    fontWeight: '600',
-                                                    fontSize: '0.95rem',
-                                                    opacity: saving ? 0.5 : 1
-                                                }}
-                                            >
-                                                <i className="pi pi-times" />
-                                                Cancel
                                             </div>
                                         </div>
                                     </>
@@ -4365,98 +4673,125 @@ export default function FlexibleScrollDemo() {
                                                         zIndex: 1000,
                                                         animation: 'slideDown 0.2s ease'
                                                     }}>
-                                                        <Button 
-                                                            label="Set Order" 
-                                                            icon="pi pi-sort-numeric-up"
-                                                            text
-                                                            style={{ 
-                                                                width: '100%', 
-                                                                justifyContent: 'flex-start', 
-                                                                marginBottom: '0.5rem',
-                                                                color: isDark ? '#f1f5f9' : '#0f172a'
-                                                            }}
-                                                            onClick={() => {
-                                                                setActiveFunction('setOrder');
-                                                                setCustomSortMode(true);
-                                                                setApplyingPreset(null); // Clear applying preset mode
-                                                                const initialOrders = {};
-                                                                dialogData.forEach((row) => {
-                                                                    initialOrders[row.id] = '';
-                                                                });
-                                                                setSortOrders(initialOrders);
-                                                                setFunctionMenuVisible(false);
-                                                                toast.current?.show({ severity: 'info', summary: 'Set Order', detail: 'Order mode activated' });
-                                                            }}
-                                                        />
-                                                        {editMode && (
-                                                            <Button 
-                                                                label="Add New Row" 
-                                                                icon="pi pi-plus"
-                                                                text
-                                                                style={{ 
-                                                                    width: '100%', 
-                                                                    justifyContent: 'flex-start', 
-                                                                    marginBottom: '0.5rem',
-                                                                    color: isDark ? '#f1f5f9' : '#0f172a'
-                                                                }}
-                                                                onClick={() => {
-                                                                    handleAddDialogRow();
-                                                                    setFunctionMenuVisible(false);
-                                                                }}
-                                                            />
+                                                        {customSortMode ? (
+                                                            // Set Order Mode Menu - Only Exit and Fullscreen
+                                                            <>
+                                                                <Button 
+                                                                    label="Exit Set Order" 
+                                                                    icon="pi pi-times"
+                                                                    text
+                                                                    severity="danger"
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start', 
+                                                                        marginBottom: '0.5rem',
+                                                                        color: '#ef4444'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        handleToggleCustomSort();
+                                                                        setActiveFunction(null);
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    label={dialogMaximized ? 'Exit Full View' : 'Full View'}
+                                                                    icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start',
+                                                                        color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        setDialogMaximized(!dialogMaximized);
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        ) : (
+                                                            // Normal Menu - All options
+                                                            <>
+                                                                <Button 
+                                                                    label="Set Order" 
+                                                                    icon="pi pi-sort-numeric-up"
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start', 
+                                                                        marginBottom: '0.5rem',
+                                                                        color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        handleToggleCustomSort();
+                                                                        setActiveFunction('setOrder');
+                                                                        setApplyingPreset(null); // Clear applying preset mode
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                                {editMode && (
+                                                                    <Button 
+                                                                        label="Add New Row" 
+                                                                        icon="pi pi-plus"
+                                                                        text
+                                                                        style={{ 
+                                                                            width: '100%', 
+                                                                            justifyContent: 'flex-start', 
+                                                                            marginBottom: '0.5rem',
+                                                                            color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                        }}
+                                                                        onClick={() => {
+                                                                            handleAddDialogRow();
+                                                                            setFunctionMenuVisible(false);
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                                <Button 
+                                                                    label="View Presets" 
+                                                                    icon="pi pi-bookmark"
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start', 
+                                                                        marginBottom: '0.5rem',
+                                                                        color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        setPresetsListVisible(true);
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    label="Columns" 
+                                                                    icon="pi pi-th-large"
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start', 
+                                                                        marginBottom: '0.5rem',
+                                                                        color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        setTempVisibleColumns({...visibleColumns});
+                                                                        setColumnModalVisible(true);
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    label={dialogMaximized ? 'Exit Full View' : 'Full View'}
+                                                                    icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
+                                                                    text
+                                                                    style={{ 
+                                                                        width: '100%', 
+                                                                        justifyContent: 'flex-start',
+                                                                        color: isDark ? '#f1f5f9' : '#0f172a'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        setDialogMaximized(!dialogMaximized);
+                                                                        setFunctionMenuVisible(false);
+                                                                    }}
+                                                                />
+                                                            </>
                                                         )}
-                                                        <Button 
-                                                            label="View Presets" 
-                                                            icon="pi pi-bookmark"
-                                                            text
-                                                            style={{ 
-                                                                width: '100%', 
-                                                                justifyContent: 'flex-start', 
-                                                                marginBottom: '0.5rem',
-                                                                color: isDark ? '#f1f5f9' : '#0f172a'
-                                                            }}
-                                                            onClick={() => {
-                                                                setPresetsListVisible(true);
-                                                                setFunctionMenuVisible(false);
-                                                                toast.current?.show({ severity: 'info', summary: 'Presets', detail: 'Opening saved presets' });
-                                                            }}
-                                                        />
-                                                        <Button 
-                                                            label="Columns" 
-                                                            icon="pi pi-th-large"
-                                                            text
-                                                            style={{ 
-                                                                width: '100%', 
-                                                                justifyContent: 'flex-start', 
-                                                                marginBottom: '0.5rem',
-                                                                color: isDark ? '#f1f5f9' : '#0f172a'
-                                                            }}
-                                                            onClick={() => {
-                                                                setTempVisibleColumns({...visibleColumns});
-                                                                setColumnModalVisible(true);
-                                                                setFunctionMenuVisible(false);
-                                                                toast.current?.show({ severity: 'info', summary: 'Columns', detail: 'Opening column settings' });
-                                                            }}
-                                                        />
-                                                        <Button 
-                                                            label={dialogMaximized ? 'Exit Full View' : 'Full View'}
-                                                            icon={dialogMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'}
-                                                            text
-                                                            style={{ 
-                                                                width: '100%', 
-                                                                justifyContent: 'flex-start',
-                                                                color: isDark ? '#f1f5f9' : '#0f172a'
-                                                            }}
-                                                            onClick={() => {
-                                                                setDialogMaximized(!dialogMaximized);
-                                                                setFunctionMenuVisible(false);
-                                                                toast.current?.show({ 
-                                                                    severity: 'info', 
-                                                                    summary: dialogMaximized ? 'Normal View' : 'Full View', 
-                                                                    detail: dialogMaximized ? 'Exited full screen' : 'Entered full screen'
-                                                                });
-                                                            }}
-                                                        />
                                                     </div>
                                                 </>
                                             )}
@@ -4467,15 +4802,25 @@ export default function FlexibleScrollDemo() {
                         })()
                     }
                     visible={dialogVisible} 
-                    style={{ width: dialogMaximized ? '95vw' : deviceInfo.dialogWidth }} 
+                    style={{ 
+                        width: dialogMaximized ? '98vw' : deviceInfo.dialogWidth,
+                        height: dialogMaximized ? '98vh' : 'auto'
+                    }} 
                     modal
                     closable={false}
-                    closeOnEscape
-                    dismissableMask 
-                    contentStyle={{ height: dialogMaximized ? '90vh' : (deviceInfo.isMobile ? '400px' : '500px') }} 
+                    closeOnEscape={!customSortMode}
+                    dismissableMask={!customSortMode} 
+                    contentStyle={{ 
+                        height: dialogMaximized ? 'calc(98vh - 140px)' : (deviceInfo.isMobile ? '400px' : '500px'),
+                        padding: dialogMaximized ? '0.5rem' : '1rem',
+                        overflow: 'auto'
+                    }} 
                     onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
-                    headerStyle={{ color: isDark ? '#fff' : '#000' }}
+                    headerStyle={{ 
+                        color: isDark ? '#fff' : '#000',
+                        padding: dialogMaximized ? '0.75rem 1rem' : '1rem 1.5rem'
+                    }}
                     headerClassName={isDark ? '' : 'light-mode-dialog-header'}
                     transitionOptions={{ timeout: 300 }}
                 >
@@ -4486,14 +4831,14 @@ export default function FlexibleScrollDemo() {
                             backgroundColor: isDark ? '#854d0e' : '#fef3c7',
                             border: `2px solid ${isDark ? '#f59e0b' : '#f59e0b'}`,
                             borderRadius: '8px',
-                            padding: '0.75rem 1rem',
-                            marginBottom: '1rem',
+                            padding: dialogMaximized ? '0.5rem 0.75rem' : '0.75rem 1rem',
+                            marginBottom: dialogMaximized ? '0.5rem' : '1rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             color: isDark ? '#fbbf24' : '#92400e',
                             fontWeight: 'bold',
-                            fontSize: '0.875rem'
+                            fontSize: dialogMaximized ? '0.8rem' : '0.875rem'
                         }}>
                             <i className="pi pi-exclamation-triangle"></i>
                             <span>You have unsaved changes</span>
@@ -4506,14 +4851,14 @@ export default function FlexibleScrollDemo() {
                             backgroundColor: isDark ? '#1e3a5f' : '#dbeafe',
                             border: '2px solid #3b82f6',
                             borderRadius: '8px',
-                            padding: '0.75rem 1rem',
+                            padding: dialogMaximized ? '0.5rem 0.75rem' : '0.75rem 1rem',
                             color: isDark ? '#93c5fd' : '#1e40af',
                             fontWeight: 'bold',
-                            fontSize: '0.875rem',
+                            fontSize: dialogMaximized ? '0.8rem' : '0.875rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            marginBottom: '1rem'
+                            marginBottom: dialogMaximized ? '0.5rem' : '1rem'
                         }}>
                             <i className="pi pi-info-circle"></i>
                             <span>Enter numbers for rows you want to reorder. Remaining rows will be sorted by code.</span>
@@ -4526,10 +4871,14 @@ export default function FlexibleScrollDemo() {
                             border: isDark ? 'none' : '1px solid #ddd', 
                             borderRadius: '8px', 
                             overflow: 'auto',
-                            maxHeight: '600px',
+                            maxHeight: dialogMaximized ? 'calc(98vh - 250px)' : '600px',
                             backgroundColor: isDark ? '#1a1a1a' : '#ffffff'
                         }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <table style={{ 
+                                width: '100%', 
+                                borderCollapse: 'collapse',
+                                fontSize: dialogMaximized ? '0.875rem' : '1rem'
+                            }}>
                                 <thead style={{ 
                                     position: 'sticky', 
                                     top: 0, 
@@ -4537,11 +4886,46 @@ export default function FlexibleScrollDemo() {
                                     zIndex: 10
                                 }}>
                                     <tr>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Order</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>No</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Code</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Location</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center', border: 'none', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px' }}>Delivery</th>
+                                        <th style={{ 
+                                            padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                            textAlign: 'center', 
+                                            border: 'none', 
+                                            fontSize: dialogMaximized ? '12px' : '13px', 
+                                            fontWeight: '600', 
+                                            letterSpacing: '0.5px' 
+                                        }}>Order</th>
+                                        <th style={{ 
+                                            padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                            textAlign: 'center', 
+                                            border: 'none', 
+                                            fontSize: dialogMaximized ? '12px' : '13px', 
+                                            fontWeight: '600', 
+                                            letterSpacing: '0.5px' 
+                                        }}>No</th>
+                                        <th style={{ 
+                                            padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                            textAlign: 'center', 
+                                            border: 'none', 
+                                            fontSize: dialogMaximized ? '12px' : '13px', 
+                                            fontWeight: '600', 
+                                            letterSpacing: '0.5px' 
+                                        }}>Code</th>
+                                        <th style={{ 
+                                            padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                            textAlign: 'center', 
+                                            border: 'none', 
+                                            fontSize: dialogMaximized ? '12px' : '13px', 
+                                            fontWeight: '600', 
+                                            letterSpacing: '0.5px' 
+                                        }}>Location</th>
+                                        <th style={{ 
+                                            padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                            textAlign: 'center', 
+                                            border: 'none', 
+                                            fontSize: dialogMaximized ? '12px' : '13px', 
+                                            fontWeight: '600', 
+                                            letterSpacing: '0.5px' 
+                                        }}>Delivery</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -4550,7 +4934,11 @@ export default function FlexibleScrollDemo() {
                                         const isDuplicate = isOrderDuplicate(rowData.id, order);
                                         return (
                                             <tr key={rowData.id} style={{ border: 'none' }}>
-                                                <td style={{ padding: '1rem', textAlign: 'center', border: 'none' }}>
+                                                <td style={{ 
+                                                    padding: dialogMaximized ? '0.75rem' : '1rem', 
+                                                    textAlign: 'center', 
+                                                    border: 'none' 
+                                                }}>
                                                     <input
                                                         type="text"
                                                         value={order === '' || order === undefined ? '' : order}
@@ -4568,7 +4956,7 @@ export default function FlexibleScrollDemo() {
                                                             border: isDuplicate ? '2px solid #ef4444' : '1px solid #ced4da',
                                                             backgroundColor: isDuplicate ? '#fee2e2' : '#ffffff',
                                                             color: isDark ? '#000000' : '#000000',
-                                                            padding: '0.5rem',
+                                                            padding: dialogMaximized ? '0.4rem' : '0.5rem',
                                                             borderRadius: '6px',
                                                             fontSize: '1rem'
                                                         }}
@@ -4579,10 +4967,34 @@ export default function FlexibleScrollDemo() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.no}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.code}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.location}</td>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '11px', fontWeight: '600', border: 'none' }}>{rowData.delivery}</td>
+                                                <td style={{ 
+                                                    padding: dialogMaximized ? '0.5rem' : '0.75rem', 
+                                                    textAlign: 'center', 
+                                                    fontSize: dialogMaximized ? '10px' : '11px', 
+                                                    fontWeight: '600', 
+                                                    border: 'none' 
+                                                }}>{rowData.no}</td>
+                                                <td style={{ 
+                                                    padding: dialogMaximized ? '0.5rem' : '0.75rem', 
+                                                    textAlign: 'center', 
+                                                    fontSize: dialogMaximized ? '10px' : '11px', 
+                                                    fontWeight: '600', 
+                                                    border: 'none' 
+                                                }}>{rowData.code}</td>
+                                                <td style={{ 
+                                                    padding: dialogMaximized ? '0.5rem' : '0.75rem', 
+                                                    textAlign: 'center', 
+                                                    fontSize: dialogMaximized ? '10px' : '11px', 
+                                                    fontWeight: '600', 
+                                                    border: 'none' 
+                                                }}>{rowData.location}</td>
+                                                <td style={{ 
+                                                    padding: dialogMaximized ? '0.5rem' : '0.75rem', 
+                                                    textAlign: 'center', 
+                                                    fontSize: dialogMaximized ? '10px' : '11px', 
+                                                    fontWeight: '600', 
+                                                    border: 'none' 
+                                                }}>{rowData.delivery}</td>
                                             </tr>
                                         );
                                     })}
@@ -4594,8 +5006,11 @@ export default function FlexibleScrollDemo() {
                         value={displayedDialogData}
                         frozenValue={frozenRow}
                         scrollable 
-                        scrollHeight="flex" 
-                        tableStyle={{ minWidth: calculateTableWidth() }}
+                        scrollHeight={dialogMaximized ? "calc(98vh - 200px)" : "flex"} 
+                        tableStyle={{ 
+                            minWidth: calculateTableWidth(),
+                            fontSize: dialogMaximized ? '0.875rem' : '1rem'
+                        }}
                         editMode={editMode ? "cell" : null}
                         globalFilter={globalFilterValue}
                         resizableColumns
