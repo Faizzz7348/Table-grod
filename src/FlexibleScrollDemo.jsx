@@ -1608,16 +1608,40 @@ export default function FlexibleScrollDemo() {
                 setDialogData(updatedDialogData);
                 setSelectedRowInfo({ ...selectedRowInfo, description: tempInfoData.description });
                 
-                // If this is the frozen row, also update frozenRowData
+                // If this is the frozen row, SAVE TO DATABASE
                 if (selectedRowInfo.id === frozenRowData.id) {
-                    setFrozenRowData(prev => ({
-                        ...prev,
+                    const updatedFrozenRow = {
+                        ...frozenRowData,
                         description: tempInfoData.description
-                    }));
+                    };
+                    
+                    try {
+                        console.log('🔄 Saving frozen row description to database...');
+                        await CustomerService.saveLocations([updatedFrozenRow]);
+                        console.log('✅ Frozen row description saved to database successfully');
+                        
+                        setFrozenRowData(updatedFrozenRow);
+                        
+                        toast.current?.show({
+                            severity: 'success',
+                            summary: 'Success',
+                            detail: 'Description saved to database!',
+                            life: 3000
+                        });
+                    } catch (saveError) {
+                        console.error('❌ Failed to save frozen row description:', saveError);
+                        toast.current?.show({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Failed to save description to database',
+                            life: 3000
+                        });
+                    }
+                } else {
+                    setHasUnsavedChanges(true);
                 }
             }
             
-            setHasUnsavedChanges(true);
             setInfoModalHasChanges(false);
             setSavingInfo(false);
             
@@ -1756,14 +1780,37 @@ export default function FlexibleScrollDemo() {
                 address: infoEditData.address
             });
             
-            // If this is the frozen row, also update frozenRowData
+            // If this is the frozen row, also update frozenRowData and SAVE TO DATABASE
             if (selectedRowInfo.id === frozenRowData.id) {
-                setFrozenRowData(prev => ({
-                    ...prev,
+                const updatedFrozenRow = {
+                    ...frozenRowData,
                     latitude: infoEditData.latitude,
                     longitude: infoEditData.longitude,
                     address: infoEditData.address
-                }));
+                };
+                
+                try {
+                    console.log('🔄 Saving frozen row location info to database...');
+                    await CustomerService.saveLocations([updatedFrozenRow]);
+                    console.log('✅ Frozen row location info saved to database successfully');
+                    
+                    setFrozenRowData(updatedFrozenRow);
+                    
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: 'Location info saved to database!',
+                        life: 3000
+                    });
+                } catch (saveError) {
+                    console.error('❌ Failed to save frozen row location info:', saveError);
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to save location info to database',
+                        life: 3000
+                    });
+                }
             }
             
             setInfoEditMode(false);
@@ -1824,7 +1871,39 @@ export default function FlexibleScrollDemo() {
                 });
             }
             
-            setHasUnsavedChanges(true);
+            // If this is the frozen row, SAVE TO DATABASE
+            if (currentEditingRowId === frozenRowData.id) {
+                const updatedFrozenRow = {
+                    ...frozenRowData,
+                    websiteLink: websiteLinkInput
+                };
+                
+                try {
+                    console.log('🔄 Saving frozen row website link to database...');
+                    await CustomerService.saveLocations([updatedFrozenRow]);
+                    console.log('✅ Frozen row website link saved to database successfully');
+                    
+                    setFrozenRowData(updatedFrozenRow);
+                    
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: 'Website link saved to database!',
+                        life: 3000
+                    });
+                } catch (saveError) {
+                    console.error('❌ Failed to save frozen row website link:', saveError);
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to save website link to database',
+                        life: 3000
+                    });
+                }
+            } else {
+                setHasUnsavedChanges(true);
+            }
+            
             setWebsiteLinkDialogVisible(false);
             setWebsiteLinkInput('');
             setCurrentEditingRowId(null);
@@ -1946,15 +2025,53 @@ export default function FlexibleScrollDemo() {
                 });
             }
             
-            setHasUnsavedChanges(true);
+            // If this is the frozen row, SAVE TO DATABASE
+            if (currentEditingRowId === frozenRowData.id) {
+                const updatedFrozenRow = {
+                    ...frozenRowData,
+                    qrCodeImageUrl: qrCodeImageUrl || null,
+                    qrCodeDestinationUrl: qrCodeDestinationUrl || null
+                };
+                
+                try {
+                    const actionMessage = (!qrCodeImageUrl && !qrCodeDestinationUrl) 
+                        ? 'Removing QR code from database...' 
+                        : 'Saving QR code to database...';
+                    console.log(`🔄 ${actionMessage}`);
+                    
+                    await CustomerService.saveLocations([updatedFrozenRow]);
+                    console.log('✅ Frozen row QR code saved to database successfully');
+                    
+                    setFrozenRowData(updatedFrozenRow);
+                    
+                    const successMsg = (!qrCodeImageUrl && !qrCodeDestinationUrl) 
+                        ? 'QR code removed from database!' 
+                        : 'QR code saved to database!';
+                    
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: successMsg,
+                        life: 3000
+                    });
+                } catch (saveError) {
+                    console.error('❌ Failed to save frozen row QR code:', saveError);
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Failed to save QR code to database',
+                        life: 3000
+                    });
+                }
+            } else {
+                setHasUnsavedChanges(true);
+            }
+            
             setQrCodeDialogVisible(false);
             setQrCodeImageUrl('');
             setQrCodeDestinationUrl('');
             setCurrentEditingRowId(null);
             
-            const actionMessage = (!qrCodeImageUrl && !qrCodeDestinationUrl) 
-                ? '✅ QR code removed successfully' 
-                : '✅ QR code updated successfully';
             // QR code saved
         } catch (error) {
             console.error('❌ Error saving QR code:', error);
@@ -2786,11 +2903,26 @@ export default function FlexibleScrollDemo() {
                 
                 // Auto-save images to dialogData immediately
                 if (selectedRowId === frozenRowData.id) {
-                    setFrozenRowData(prev => ({
-                        ...prev,
+                    // FROZEN ROW - Save to database too!
+                    const updatedFrozenRow = {
+                        ...frozenRowData,
                         images: newImages
-                    }));
-                    alert('✅ Image uploaded and saved!');
+                    };
+                    
+                    try {
+                        console.log('🔄 Auto-saving frozen row image to database...');
+                        // Save frozen row as a location
+                        await CustomerService.saveLocations([updatedFrozenRow]);
+                        console.log('✅ Frozen row image saved to database successfully');
+                        
+                        // Update state after successful save
+                        setFrozenRowData(updatedFrozenRow);
+                        
+                        alert('✅ Image uploaded and saved to database!');
+                    } catch (saveError) {
+                        console.error('❌ Failed to save frozen row image:', saveError);
+                        alert('⚠️ Image uploaded but failed to save to database.\nPlease try again or contact support.');
+                    }
                 } else {
                     const updatedData = dialogData.map(data => 
                         data.id === selectedRowId ? { ...data, images: newImages } : data
@@ -2849,10 +2981,29 @@ export default function FlexibleScrollDemo() {
         // Frozen row is now treated as a regular location in database
         // Update dialogData and frozen row state if editing frozen row
         if (selectedRowId === frozenRowData.id) {
-            setFrozenRowData(prev => ({
-                ...prev,
+            // FROZEN ROW - Save to database!
+            const updatedFrozenRow = {
+                ...frozenRowData,
                 images: currentRowImages
-            }));
+            };
+            
+            try {
+                console.log('🔄 Saving frozen row images to database...');
+                await CustomerService.saveLocations([updatedFrozenRow]);
+                console.log('✅ Frozen row images saved to database successfully');
+                
+                // Update state after successful save
+                setFrozenRowData(updatedFrozenRow);
+                
+                setImageDialogVisible(false);
+                alert('✅ Images saved to database successfully!');
+                return;
+            } catch (saveError) {
+                console.error('❌ Failed to save frozen row images:', saveError);
+                setImageDialogVisible(false);
+                alert('⚠️ Failed to save images to database.\nPlease try again or contact support.');
+                return;
+            }
         }
         
         const updatedData = dialogData.map(data => 
@@ -2894,14 +3045,43 @@ export default function FlexibleScrollDemo() {
         setPowerModeDialogVisible(true);
     };
     
-    const handleSavePowerMode = () => {
+    const handleSavePowerMode = async () => {
         // Frozen row is now treated as a regular location in database
         // Update dialogData and frozen row state if editing frozen row
         if (powerModeRowId === frozenRowData.id) {
-            setFrozenRowData(prev => ({
-                ...prev,
+            // FROZEN ROW - Save to database!
+            const updatedFrozenRow = {
+                ...frozenRowData,
                 powerMode: selectedPowerMode
-            }));
+            };
+            
+            try {
+                console.log('🔄 Saving frozen row power mode to database...');
+                await CustomerService.saveLocations([updatedFrozenRow]);
+                console.log('✅ Frozen row power mode saved to database successfully');
+                
+                // Update state after successful save
+                setFrozenRowData(updatedFrozenRow);
+                
+                setPowerModeDialogVisible(false);
+                toast.current?.show({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'Power mode saved to database!',
+                    life: 3000
+                });
+                return;
+            } catch (saveError) {
+                console.error('❌ Failed to save frozen row power mode:', saveError);
+                setPowerModeDialogVisible(false);
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to save power mode to database',
+                    life: 3000
+                });
+                return;
+            }
         }
         
         const updatedData = dialogData.map(data => 
