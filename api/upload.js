@@ -1,3 +1,4 @@
+import { put } from '@vercel/blob';
 import formidable from 'formidable';
 import fs from 'fs/promises';
 
@@ -119,14 +120,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check for ImgBB API key
-    const imgbbApiKey = process.env.IMGBB_API_KEY;
+    // Check for Vercel Blob token
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
     
-    if (!imgbbApiKey) {
-      console.error('IMGBB_API_KEY not configured');
+    if (!blobToken) {
+      console.error('BLOB_READ_WRITE_TOKEN not configured');
       return res.status(500).json({ 
         error: 'Upload service not configured',
-        message: 'ImgBB API key is missing. Please configure IMGBB_API_KEY environment variable in your Vercel project settings.'
+        message: 'Vercel Blob token is missing. Please configure BLOB_READ_WRITE_TOKEN environment variable in your Vercel project settings.'
       });
     }
 
@@ -155,60 +156,49 @@ export default async function handler(req, res) {
       });
     }
     
-    // Convert to base64 for ImgBB
-    const base64Image = fileData.toString('base64');
-    console.log('File converted to base64, length:', base64Image.length);
+    // Upload to Vercel Blob Storage
+    console.log('Uploading to Vercel Blob Storage...');
+    const originalFilename = file.originalFilename || file.name || 'image.jpg';
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${originalFilename}`;
     
-    // Upload to ImgBB using URLSearchParams (simpler and more reliable)
-    // Set expiration to 0 = NEVER EXPIRE (permanent storage)
-    console.log('Uploading to ImgBB with permanent storage...');
-    const formBody = new URLSearchParams();
-    formBody.append('image', base64Image);
-    formBody.append('expiration', '0'); // 0 = Never expire (permanent)
-    
-    const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formBody.toString()
-    });
+    try {
+      const blob = await put(filename, fileData, {
+        access: 'public',
+        contentType: mimeType,
+        token: blobToken
+      });
+      
+      console.log('Vercel Blob upload successful:', blob.url);
 
-    const imgbbData = await imgbbResponse.json();
-    console.log('ImgBB response:', imgbbData);
-    
-    if (!imgbbResponse.ok || !imgbbData.success) {
-      console.error('ImgBB upload failed:', imgbbData);
+      // Clean up temporary file
+      try {
+        console.log('Attempting to delete temporary file:', filePath);
+        await fs.unlink(filePath);
+        console.log('Temporary file deleted successfully');
+      } catch (unlinkError) {
+        // Log but don't fail - file might be auto-cleaned by Vercel
+        console.warn('Could not delete temp file (this is usually fine on serverless):', unlinkError.message);
+      }
+
+      // Return the uploaded image URL
+      return res.status(200).json({
+        success: true,
+        data: {
+          url: blob.url,
+          displayUrl: blob.url,
+          downloadUrl: blob.downloadUrl,
+          pathname: blob.pathname,
+          size: file.size
+        }
+      });
+    } catch (blobError) {
+      console.error('Vercel Blob upload failed:', blobError);
       return res.status(500).json({ 
         error: 'Upload failed',
-        message: imgbbData.error?.message || 'Failed to upload to ImgBB'
+        message: blobError.message || 'Failed to upload to Vercel Blob Storage'
       });
     }
-
-    console.log('ImgBB upload successful:', imgbbData.data.url);
-
-    // Clean up temporary file - use try-catch to avoid blocking on cleanup errors
-    try {
-      console.log('Attempting to delete temporary file:', filePath);
-      await fs.unlink(filePath);
-      console.log('Temporary file deleted successfully');
-    } catch (unlinkError) {
-      // Log but don't fail - file might be auto-cleaned by Vercel
-      console.warn('Could not delete temp file (this is usually fine on serverless):', unlinkError.message);
-    }
-
-    // Return the uploaded image URL
-    return res.status(200).json({
-      success: true,
-      data: {
-        url: imgbbData.data.url,
-        displayUrl: imgbbData.data.display_url,
-        deleteUrl: imgbbData.data.delete_url,
-        thumb: imgbbData.data.thumb?.url,
-        medium: imgbbData.data.medium?.url,
-        size: file.size
-      }
-    });
 
   } catch (error) {
     console.error('Upload error:', error);
