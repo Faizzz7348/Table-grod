@@ -767,6 +767,10 @@ export default function FlexibleScrollDemo() {
     const [addRowMode, setAddRowMode] = useState(false);
     const [newRows, setNewRows] = useState([]);
     
+    // Dialog Changes Tracking
+    const [dialogHasChanges, setDialogHasChanges] = useState(false);
+    const [closeConfirmDialogVisible, setCloseConfirmDialogVisible] = useState(false);
+    
     // Link Confirmation Dialog State
     const [linkConfirmVisible, setLinkConfirmVisible] = useState(false);
     const [pendingLinkData, setPendingLinkData] = useState({ url: '', type: '' });
@@ -1146,6 +1150,24 @@ export default function FlexibleScrollDemo() {
                 
                 setRoutes(sortedRoutes);
                 setLoading(false);
+                
+                // Monitor cache performance
+                const cacheStats = CustomerService.getCacheStats();
+                console.log('📊 Cache Performance:', cacheStats);
+                
+                // Make cache stats available globally for debugging
+                if (typeof window !== 'undefined') {
+                    window.__cacheStats = () => CustomerService.getCacheStats();
+                    window.__clearCache = () => {
+                        CustomerService.clearAllCache();
+                        console.log('✅ Cache cleared');
+                    };
+                    window.__preloadCache = () => {
+                        CustomerService.preloadCache();
+                        console.log('✅ Cache preloading started');
+                    };
+                    console.log('💡 Use window.__cacheStats() to monitor cache performance');
+                }
             } catch (error) {
                 console.error('Error loading data:', error);
                 setLoading(false);
@@ -1263,6 +1285,29 @@ export default function FlexibleScrollDemo() {
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         if (newWorker) {
+
+    // Track dialog data changes when dialog opens
+    useEffect(() => {
+        if (dialogVisible && editMode) {
+            // Store original data when dialog opens
+            if (originalDialogData.length === 0 || dialogData.length !== originalDialogData.length) {
+                setOriginalDialogData(JSON.parse(JSON.stringify(dialogData)));
+                setDialogHasChanges(false);
+            }
+        }
+    }, [dialogVisible, editMode]);
+    
+    // Check for changes in dialogData
+    useEffect(() => {
+        if (!editMode || !dialogVisible || originalDialogData.length === 0) {
+            setDialogHasChanges(false);
+            return;
+        }
+        
+        // Compare current dialogData with original
+        const hasChanges = JSON.stringify(dialogData) !== JSON.stringify(originalDialogData);
+        setDialogHasChanges(hasChanges);
+    }, [dialogData, originalDialogData, editMode, dialogVisible]);
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // New service worker available
@@ -1303,6 +1348,21 @@ export default function FlexibleScrollDemo() {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {editMode && dialogHasChanges && !customSortMode && (
+                        <Button 
+                            label="Save" 
+                            icon="pi pi-save" 
+                            onClick={handleSaveDialogData}
+                            loading={saving}
+                            size="small"
+                            severity="success"
+                            style={{ 
+                                padding: '0.4rem 0.8rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '600'
+                            }}
+                        />
+                    )}
                     {customSortMode && !applyingPreset && (
                         <Button 
                             label="Save Preset" 
@@ -1410,7 +1470,12 @@ export default function FlexibleScrollDemo() {
                                 setSortOrders({});
                                 setApplyingPreset(null); // Clear applying preset mode
                             } else {
-                                setDialogVisible(false);
+                                // Check if there are unsaved changes
+                                if (editMode && dialogHasChanges) {
+                                    setCloseConfirmDialogVisible(true);
+                                } else {
+                                    setDialogVisible(false);
+                                }
                             }
                         }} 
                         size="small"
@@ -2439,6 +2504,64 @@ export default function FlexibleScrollDemo() {
             console.error('❌ Error saving changes:', error);
             setSaving(false);
             alert('❌ Error saving changes. Please try again.\n\n' + error.message + '\n\nCheck browser console for details.');
+        }
+    };
+
+    // Handle save for dialog data only
+    const handleSaveDialogData = async () => {
+        setSaving(true);
+        
+        try {
+            console.log('💾 Saving dialog data to database...');
+            
+            // Save only locations from current dialog
+            await CustomerService.saveLocations(dialogData);
+            
+            // Update routes with new location data
+            const updatedRoutes = routes.map(route => {
+                if (route.id === currentRouteId) {
+                    return {
+                        ...route,
+                        locations: dialogData.filter(loc => loc.routeId === route.id)
+                    };
+                }
+                return route;
+            });
+            
+            setRoutes(updatedRoutes);
+            
+            // Reset tracking
+            setDialogHasChanges(false);
+            setOriginalDialogData(JSON.parse(JSON.stringify(dialogData)));
+            setModifiedRows(new Set());
+            setNewRows([]);
+            
+            // Update cache
+            if (currentRouteId) {
+                setDialogDataCache(prev => ({
+                    ...prev,
+                    [currentRouteId]: dialogData
+                }));
+            }
+            
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Saved',
+                detail: 'Changes saved successfully!',
+                life: 3000
+            });
+            
+            console.log('✅ Dialog data saved successfully');
+        } catch (error) {
+            console.error('❌ Error saving dialog data:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Failed to save changes. Please try again.',
+                life: 3000
+            });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -4948,8 +5071,8 @@ export default function FlexibleScrollDemo() {
                     }} 
                     modal
                     closable={false}
-                    closeOnEscape={!customSortMode}
-                    dismissableMask={!customSortMode} 
+                    closeOnEscape={!customSortMode && !(editMode && dialogHasChanges)}
+                    dismissableMask={!customSortMode && !(editMode && dialogHasChanges)} 
                     contentStyle={{ 
                         height: dialogMaximized ? 'calc(98vh - 140px)' : (deviceInfo.isMobile ? '400px' : '500px'),
                         padding: dialogMaximized ? '0.5rem' : '1rem',
@@ -4971,7 +5094,7 @@ export default function FlexibleScrollDemo() {
                         padding: dialogMaximized ? '0.75rem 1rem' : '1rem 1.5rem'
                     }}
                     headerClassName={isDark ? '' : 'light-mode-dialog-header'}
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400, classNameEnter: 'p-dialog-enter', classNameExit: 'p-dialog-exit' }}
                 >
                     
                     {/* Unsaved Changes Indicator - Above table */}
@@ -5173,12 +5296,8 @@ export default function FlexibleScrollDemo() {
                                 return 'frozen-row-highlight';
                             }
                             
-                            // Highlight new rows with light yellow background
-                            if (newRows.includes(rowData.id)) {
-                                classes += isDark ? 'new-row-dark' : 'new-row-light';
-                            }
                             // Highlight modified rows with light yellow background
-                            else if (modifiedRows.has(rowData.id)) {
+                            if (modifiedRows.has(rowData.id)) {
                                 classes += isDark ? 'modified-row-dark' : 'modified-row-light';
                             }
                             
@@ -5639,7 +5758,7 @@ export default function FlexibleScrollDemo() {
                     dismissableMask
                     closeOnEscape
                     closable={false}
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         if (infoModalHasChanges) {
                             const confirmed = window.confirm('⚠️ You have unsaved changes in this modal. Close anyway?');
@@ -6243,7 +6362,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: deviceInfo.isMobile ? '95vw' : '650px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         setViewDialogVisible(false);
                         setSelectedViewRoute(null);
@@ -6660,7 +6779,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         setChangePasswordDialogVisible(false);
                         setChangePasswordData({
@@ -7007,7 +7126,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '450px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={cancelDelete}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -7095,7 +7214,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '600px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => setImageDialogVisible(false)}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -7413,7 +7532,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '500px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => setPowerModeDialogVisible(false)}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -7589,7 +7708,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: '400px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                 >
                     <div style={{ padding: '1rem 0' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -8487,7 +8606,7 @@ export default function FlexibleScrollDemo() {
                     modal
                     dismissableMask
                     closable={false}
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={cancelOpenLink}
                     footer={
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -8544,6 +8663,71 @@ export default function FlexibleScrollDemo() {
                     </div>
                 </Dialog>
 
+                {/* Close Dialog Confirmation */}
+                <Dialog
+                    header={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="pi pi-exclamation-triangle" style={{ color: '#f59e0b', fontSize: '1.5rem' }}></i>
+                            <span style={{ fontSize: '14px' }}>Unsaved Changes</span>
+                        </div>
+                    }
+                    visible={closeConfirmDialogVisible}
+                    style={{ width: '450px' }}
+                    modal
+                    dismissableMask={false}
+                    closable={false}
+                    transitionOptions={{ timeout: 400 }}
+                    onHide={() => setCloseConfirmDialogVisible(false)}
+                    footer={
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button
+                                label="Keep Editing"
+                                icon="pi pi-arrow-left"
+                                onClick={() => setCloseConfirmDialogVisible(false)}
+                                severity="success"
+                                size="small"
+                            />
+                            <Button
+                                label="Discard Changes"
+                                icon="pi pi-trash"
+                                onClick={() => {
+                                    setCloseConfirmDialogVisible(false);
+                                    setDialogVisible(false);
+                                    // Restore original data
+                                    setDialogData([...originalDialogData]);
+                                    setDialogHasChanges(false);
+                                }}
+                                severity="danger"
+                                size="small"
+                            />
+                        </div>
+                    }
+                >
+                    <div style={{ 
+                        padding: '1rem',
+                        color: isDark ? '#e5e7eb' : '#1f2937'
+                    }}>
+                        <p style={{ 
+                            fontSize: '15px',
+                            marginBottom: '1rem',
+                            lineHeight: '1.6'
+                        }}>
+                            You have unsaved changes in this dialog. What would you like to do?
+                        </p>
+                        <div style={{
+                            backgroundColor: isDark ? '#854d0e' : '#fef3c7',
+                            padding: '0.75rem',
+                            borderRadius: '8px',
+                            border: `1px solid ${isDark ? '#f59e0b' : '#f59e0b'}`,
+                            fontSize: '13px',
+                            color: isDark ? '#fbbf24' : '#92400e'
+                        }}>
+                            <i className="pi pi-info-circle" style={{ marginRight: '0.5rem' }}></i>
+                            Clicking "Discard Changes" will remove all unsaved modifications.
+                        </div>
+                    </div>
+                </Dialog>
+
                 {/* QR Code Result Dialog - Simple */}
                 <Dialog
                     header={
@@ -8556,7 +8740,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         setQrResultDialogVisible(false);
                         setScannedUrl('');
@@ -8648,7 +8832,7 @@ export default function FlexibleScrollDemo() {
                     style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
                     modal
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         setSavePresetDialogVisible(false);
                         setPresetName('');
@@ -8729,7 +8913,7 @@ export default function FlexibleScrollDemo() {
                     modal
                     closable={false}
                     dismissableMask
-                    transitionOptions={{ timeout: 300 }}
+                    transitionOptions={{ timeout: 400 }}
                     onHide={() => setPresetsListVisible(false)}
                 >
                     <div style={{ padding: '1rem' }}>

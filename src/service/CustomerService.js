@@ -31,6 +31,44 @@ const PERSISTENT_CACHE_DURATION = {
 // Request deduplication - prevent multiple simultaneous requests
 const pendingRequests = new Map();
 
+// Cache statistics for monitoring performance
+const cacheStats = {
+    hits: 0,
+    misses: 0,
+    invalidations: 0,
+    size: 0
+};
+
+// Reset stats daily
+setInterval(() => {
+    if (cacheStats.hits + cacheStats.misses > 0) {
+        const hitRate = ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(2);
+        console.log(`📊 Daily Cache Stats - Hit Rate: ${hitRate}% (Hits: ${cacheStats.hits}, Misses: ${cacheStats.misses})`);
+    }
+    cacheStats.hits = 0;
+    cacheStats.misses = 0;
+    cacheStats.invalidations = 0;
+}, 24 * 60 * 60 * 1000);
+
+// Simple compression functions for localStorage optimization
+const compressData = (data) => {
+    try {
+        const json = JSON.stringify(data);
+        // Use base64 encoding as simple compression alternative
+        return btoa(json);
+    } catch (e) {
+        return JSON.stringify(data);
+    }
+};
+
+const decompressData = (compressed) => {
+    try {
+        return JSON.parse(atob(compressed));
+    } catch (e) {
+        return JSON.parse(compressed);
+    }
+};
+
 // Persistent cache helper functions
 const getPersistentCache = (key, type = 'locations') => {
     if (!USE_PERSISTENT_CACHE) return null;
@@ -38,21 +76,30 @@ const getPersistentCache = (key, type = 'locations') => {
     try {
         const cacheKey = `${PERSISTENT_CACHE_KEY_PREFIX}${key}`;
         const cached = localStorage.getItem(cacheKey);
-        if (!cached) return null;
+        if (!cached) {
+            cacheStats.misses++;
+            return null;
+        }
         
-        const { data, timestamp } = JSON.parse(cached);
+        const cacheEntry = JSON.parse(cached);
+        const { data: compressedData, timestamp, size } = cacheEntry;
         const duration = PERSISTENT_CACHE_DURATION[type] || PERSISTENT_CACHE_DURATION.locations;
         
         if (Date.now() - timestamp < duration) {
-            console.log(`💾 Using persistent cache for ${key} (age: ${Math.round((Date.now() - timestamp) / 1000)}s)`);
-            return data;
+            const decompressed = decompressData(compressedData);
+            cacheStats.hits++;
+            const ageSeconds = Math.round((Date.now() - timestamp) / 1000);
+            console.log(`💾 Using persistent cache for ${key} (age: ${ageSeconds}s, size: ${size}B)`);
+            return decompressed;
         }
         
         // Cache expired, remove it
         localStorage.removeItem(cacheKey);
+        cacheStats.invalidations++;
         return null;
     } catch (error) {
         console.error('Error reading persistent cache:', error);
+        cacheStats.misses++;
         return null;
     }
 };
@@ -62,14 +109,18 @@ const setPersistentCache = (key, data) => {
     
     try {
         const cacheKey = `${PERSISTENT_CACHE_KEY_PREFIX}${key}`;
-        localStorage.setItem(cacheKey, JSON.stringify({
-            data,
-            timestamp: Date.now()
-        }));
+        const compressed = compressData(data);
+        const cacheEntry = {
+            data: compressed,
+            timestamp: Date.now(),
+            size: compressed.length
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+        cacheStats.size += compressed.length;
     } catch (error) {
         // Quota exceeded or other localStorage error
         console.warn('Failed to set persistent cache:', error);
-        // Try to clear old caches
+        // Try to clear old caches to free space
         clearOldPersistentCaches();
     }
 };
@@ -133,13 +184,46 @@ const setCache = (key, data, etag = null) => {
     }
     // Also persist to localStorage for faster cold starts
     setPersistentCache(key, data);
+    
+    // Smart cache invalidation - invalidate related caches when data changes
+    invalidateRelatedCaches(key);
+};
+
+// Smart cache invalidation - invalidate related caches
+const invalidateRelatedCaches = (key) => {
+    if (key === 'routes') {
+        // When routes change, invalidate all route locations caches
+        Object.keys(cache.routeLocations).forEach(routeKey => {
+            delete cache.routeLocations[routeKey];
+            clearPersistentCache(routeKey);
+            cacheStats.invalidations++;
+        });
+        console.log('🔄 Invalidated all related route locations caches');
+    } else if (key === 'locations') {
+        // When locations change, invalidate all route-specific caches
+        Object.keys(cache.routeLocations).forEach(routeKey => {
+            delete cache.routeLocations[routeKey];
+            clearPersistentCache(routeKey);
+            cacheStats.invalidations++;
+        });
+        console.log('🔄 Invalidated all related route locations caches');
+    } else if (key.startsWith('route-')) {
+        // When a specific route's locations change, also invalidate the global locations cache
+        cache.locations = { data: null, timestamp: null, etag: null };
+        clearPersistentCache('locations');
+        cacheStats.invalidations++;
+        console.log('🔄 Invalidated global locations cache due to route change');
+    }
 };
 
 const getCache = (key, type = 'locations') => {
     // Try memory cache first (fastest)
     if (key.startsWith('route-')) {
         const entry = cache.routeLocations[key];
-        if (isCacheValid(entry, 'routeLocations')) return entry.data;
+        if (isCacheValid(entry, 'routeLocations')) {
+            cacheStats.hits++;
+            return entry.data;
+        }
         
         // Try persistent cache (slower but still fast)
         const persistentData = getPersistentCache(key, 'routeLocations');
@@ -148,10 +232,14 @@ const getCache = (key, type = 'locations') => {
             cache.routeLocations[key] = { data: persistentData, timestamp: Date.now(), etag: null };
             return persistentData;
         }
+        cacheStats.misses++;
         return null;
     }
     
-    if (isCacheValid(cache[key], type)) return cache[key].data;
+    if (isCacheValid(cache[key], type)) {
+        cacheStats.hits++;
+        return cache[key].data;
+    }
     
     // Try persistent cache
     const persistentData = getPersistentCache(key, type);
@@ -160,6 +248,7 @@ const getCache = (key, type = 'locations') => {
         cache[key] = { data: persistentData, timestamp: Date.now(), etag: null };
         return persistentData;
     }
+    cacheStats.misses++;
     return null;
 };
 
@@ -180,21 +269,38 @@ const clearCache = (key = null) => {
     }
 };
 
-// Preload cache in background
+// Preload cache in background with better error handling
 const preloadCache = async () => {
     try {
+        console.log('⏳ Starting cache preload...');
         if (!USE_LOCALSTORAGE) {
-            // Preload routes and locations in parallel
-            const [routes, locations] = await Promise.all([
-                fetch(`${API_BASE_URL}/routes`).then(r => r.ok ? r.json() : null),
-                fetch(`${API_BASE_URL}/locations`).then(r => r.ok ? r.json() : null)
+            // Preload routes and locations in parallel with timeout
+            const timeout = 5000; // 5 second timeout
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Preload timeout')), timeout)
+            );
+            
+            const [routes, locations] = await Promise.race([
+                Promise.all([
+                    fetch(`${API_BASE_URL}/routes`).then(r => r.ok ? r.json() : null),
+                    fetch(`${API_BASE_URL}/locations`).then(r => r.ok ? r.json() : null)
+                ]),
+                timeoutPromise
             ]);
-            if (routes) setCache('routes', routes);
-            if (locations) setCache('locations', locations);
+            
+            if (routes) {
+                setCache('routes', routes);
+                console.log(`✅ Preloaded ${routes.length} routes`);
+            }
+            if (locations) {
+                setCache('locations', locations);
+                console.log(`✅ Preloaded ${locations.length} locations`);
+            }
             console.log('⚡ Cache preloaded successfully');
         }
     } catch (error) {
         console.log('⚠️ Cache preload failed (non-critical):', error.message);
+        // Continue without preload - fallback will be used
     }
 };
 
@@ -548,22 +654,55 @@ export const CustomerService = {
     },
     
     getCacheStats() {
+        const totalRequests = cacheStats.hits + cacheStats.misses;
+        const hitRate = totalRequests > 0 ? ((cacheStats.hits / totalRequests) * 100).toFixed(2) : 0;
+        
+        // Calculate localStorage usage
+        let localStorageSize = 0;
+        let cacheEntriesCount = 0;
+        try {
+            const keys = Object.keys(localStorage);
+            keys.forEach(k => {
+                if (k.startsWith(PERSISTENT_CACHE_KEY_PREFIX)) {
+                    localStorageSize += localStorage.getItem(k).length;
+                    cacheEntriesCount++;
+                }
+            });
+        } catch (e) {
+            // Ignore errors
+        }
+        
         const stats = {
-            routes: {
-                cached: !!cache.routes?.data,
-                age: cache.routes?.timestamp ? Date.now() - cache.routes.timestamp : null,
-                valid: isCacheValid(cache.routes, 'routes')
+            memory: {
+                routes: {
+                    cached: !!cache.routes?.data,
+                    age: cache.routes?.timestamp ? Date.now() - cache.routes.timestamp : null,
+                    valid: isCacheValid(cache.routes, 'routes')
+                },
+                locations: {
+                    cached: !!cache.locations?.data,
+                    age: cache.locations?.timestamp ? Date.now() - cache.locations.timestamp : null,
+                    valid: isCacheValid(cache.locations, 'locations')
+                },
+                routeLocations: {
+                    count: Object.keys(cache.routeLocations).length,
+                    keys: Object.keys(cache.routeLocations)
+                }
             },
-            locations: {
-                cached: !!cache.locations?.data,
-                age: cache.locations?.timestamp ? Date.now() - cache.locations.timestamp : null,
-                valid: isCacheValid(cache.locations, 'locations')
+            network: {
+                pendingRequests: pendingRequests.size
             },
-            routeLocations: {
-                count: Object.keys(cache.routeLocations).length,
-                keys: Object.keys(cache.routeLocations)
+            performance: {
+                hitRate: `${hitRate}%`,
+                hits: cacheStats.hits,
+                misses: cacheStats.misses,
+                totalRequests,
+                invalidations: cacheStats.invalidations
             },
-            pendingRequests: pendingRequests.size
+            storage: {
+                localStorageSizeKB: (localStorageSize / 1024).toFixed(2),
+                cacheEntries: cacheEntriesCount
+            }
         };
         return stats;
     }

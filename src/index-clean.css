@@ -7,7 +7,7 @@ body {
   font-size: 14px;
   background-color: #f5f5f5;
   color: #000000;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.35s ease, color 0.35s ease, opacity 0.35s ease;
   --text-color: #555555;
 }
 
@@ -18,27 +18,46 @@ body.dark {
   --text-color: #e5e5e5;
 }
 
-/* Smooth transitions - excluding borders to prevent flickering */
+/* Smooth fade transitions - excluding borders to prevent flickering */
 * {
-  transition: background-color 0.3s ease, 
-              color 0.3s ease;
+  transition: background-color 0.35s ease, 
+              color 0.35s ease,
+              opacity 0.35s ease;
 }
 
 .card {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes smoothFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes smoothFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -133,7 +152,7 @@ body.dark .p-datatable .p-datatable-thead > tr > th {
 /* Table Body */
 .p-datatable .p-datatable-tbody > tr {
   border: none !important;
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.5s ease-in-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out, color 0.5s ease-in-out;
   cursor: pointer;
 }
 
@@ -154,7 +173,7 @@ body.dark .p-datatable .p-datatable-tbody > tr:hover {
   font-weight: 600;
   padding: 0.75rem;
   border: none !important;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr > td {
@@ -186,11 +205,13 @@ body.dark .p-datatable .p-datatable-tbody > tr:hover > td {
   opacity: 0.5;
   background-color: #f3f4f6;
   color: #9ca3af;
+  transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out, color 0.5s ease-in-out;
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr.row-disabled {
   background-color: #0a0a0a;
   color: #4a4a4a;
+  transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out, color 0.5s ease-in-out;
 }
 
 /* Pinned Row Styling - Color text and icon */
@@ -209,18 +230,7 @@ body.dark .p-datatable .p-datatable-tbody > tr.pinned-row > td {
   color: #fbbf24 !important; /* Lighter orange for dark mode */
 }
 
-/* New/Modified Row Highlight */
-.p-datatable .p-datatable-tbody > tr.new-row-light {
-  background-color: #fef3c7 !important;
-  animation: highlightFadeIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 0 2px #fbbf24, 0 4px 12px rgba(251, 191, 36, 0.3);
-}
-
-.p-datatable .p-datatable-tbody > tr.new-row-light > td {
-  background-color: #fef3c7 !important;
-  border-bottom: 1px solid transparent !important;
-}
-
+/* Modified Row Highlight */
 .p-datatable .p-datatable-tbody > tr.modified-row-light {
   background-color: #fefce8 !important;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -228,17 +238,6 @@ body.dark .p-datatable .p-datatable-tbody > tr.pinned-row > td {
 
 .p-datatable .p-datatable-tbody > tr.modified-row-light > td {
   background-color: #fefce8 !important;
-}
-
-body.dark .p-datatable .p-datatable-tbody > tr.new-row-dark {
-  background-color: #854d0e !important;
-  animation: highlightFadeInDark 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 0 2px #ca8a04, 0 4px 12px rgba(202, 138, 4, 0.4);
-}
-
-body.dark .p-datatable .p-datatable-tbody > tr.new-row-dark > td {
-  background-color: #854d0e !important;
-  border-bottom: 1px solid transparent !important;
 }
 
 body.dark .p-datatable .p-datatable-tbody > tr.modified-row-dark {
@@ -343,13 +342,23 @@ body.dark .p-dialog {
   animation: dialogFadeIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dialog transition for smooth closing */
+/* Dialog transition for smooth fade closing */
 .p-dialog {
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .p-dialog-mask {
-  transition: opacity 0.3s ease-out;
+  transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: fadeInMask 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes fadeInMask {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .p-dialog .p-dialog-header {
@@ -382,13 +391,13 @@ body.dark .p-dialog .p-dialog-content {
 
 /* Dialog Content Transitions */
 .p-dialog .p-dialog-content {
-  animation: contentFadeIn 0.3s ease-out 0.1s backwards;
+  animation: contentFadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s backwards;
 }
 
 @keyframes contentFadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
