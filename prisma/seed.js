@@ -128,7 +128,25 @@ async function main() {
     ]
   });
 
+  // Create frozen row - QL Kitchen (independent location, no route)
+  await prisma.location.create({
+    data: {
+      no: 0,
+      code: 'QLK',
+      location: 'QL Kitchen',
+      delivery: 'Available',
+      powerMode: 'Daily',
+      images: [],
+      latitude: 3.0738,
+      longitude: 101.5183,
+      address: 'QL Kitchen, Shah Alam',
+      description: 'Main kitchen location for QL Resources',
+      routeId: null // Independent location, not assigned to any route
+    }
+  });
+
   console.log('✅ Database seeded successfully!');
+  console.log('✅ Frozen row (QL Kitchen) created with code: QLK');
 }
 
 main()
