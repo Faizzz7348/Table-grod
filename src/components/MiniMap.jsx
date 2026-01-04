@@ -135,7 +135,7 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
     return (
         <>
             {/* Mini Map Container */}
-            <div style={{ position: 'relative', ...style }}>
+            <div style={{ position: 'relative', overflow: 'visible', ...style }}>
                 <MapContainer
                     center={center}
                     zoom={zoom}
@@ -205,26 +205,34 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
                     )}
                 </MapContainer>
                 
-                {/* Fullscreen Button */}
-                <Button
-                    icon="pi pi-window-maximize"
-                    className="p-button-rounded p-button-info"
-                    style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        zIndex: 1000,
-                        width: '40px',
-                        height: '40px',
-                        backgroundColor: '#000000',
-                        borderColor: '#000000',
-                        color: isDark ? '#c0c0c0' : '#ffffff',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                    }}
-                    onClick={() => setFullscreenVisible(true)}
-                    tooltip="Open Fullscreen Map"
-                    tooltipOptions={{ position: 'left' }}
-                />
+                {/* Fullscreen Button - Top Right of Map */}
+                <div style={{
+                    position: 'absolute',
+                    top: '5px',
+                    right: '5px',
+                    zIndex: 1001
+                }}>
+                    <Button
+                        icon="pi pi-window-maximize"
+                        className="p-button-rounded p-button-info"
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: '#000000',
+                            borderColor: '#000000',
+                            color: isDark ? '#c0c0c0' : '#ffffff',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            border: 'none',
+                            padding: '0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                        onClick={() => setFullscreenVisible(true)}
+                        tooltip="Open Fullscreen Map"
+                        tooltipOptions={{ position: 'left' }}
+                    />
+                </div>
                 
                 {/* Address Caption */}
                 {!isMultipleMarkers && address && (

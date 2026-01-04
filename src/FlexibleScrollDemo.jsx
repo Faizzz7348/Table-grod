@@ -36,12 +36,39 @@ const tableStyles = `
         height: 56px !important;
         line-height: 1.5 !important;
         transition: background-color 0.3s ease, color 0.3s ease !important;
+        outline: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Prevent focus outline on table headers - no color change */
+    .p-datatable .p-datatable-thead > tr > th:focus {
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: #e5e7eb !important;
+    }
+
+    .p-datatable .p-datatable-thead > tr > th:focus-visible {
+        outline: none !important;
+        background-color: #e5e7eb !important;
     }
     
     body.dark .p-datatable .p-datatable-thead > tr > th {
         background-color: #0f172a !important;
         color: #f1f5f9 !important;
         border: none !important;
+        outline: none !important;
+    }
+
+    body.dark .p-datatable .p-datatable-thead > tr > th:focus {
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: #0f172a !important;
+    }
+
+    body.dark .p-datatable .p-datatable-thead > tr > th:focus-visible {
+        outline: none !important;
+        background-color: #0f172a !important;
     }
     
     /* Table body row text size - NO BORDER */
@@ -121,8 +148,11 @@ const tableStyles = `
     /* Add subtle animation for edit mode activation */
     @keyframes editModeActivate {
         0% {
-            transform: scale(0.98);
+            transform: scale(0.95);
             opacity: 0.8;
+        }
+        50% {
+            transform: scale(1.02);
         }
         100% {
             transform: scale(1);
@@ -131,13 +161,24 @@ const tableStyles = `
     }
     
     .p-datatable .p-datatable-tbody > tr.p-row-editing {
-        animation: editModeActivate 0.3s ease !important;
+        animation: editModeActivate 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     }
     
     @keyframes slideDown {
         from {
             opacity: 0;
             transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
         }
         to {
             opacity: 1;
@@ -171,9 +212,11 @@ const tableStyles = `
     @keyframes pulse {
         0%, 100% {
             opacity: 1;
+            transform: scale(1);
         }
         50% {
-            opacity: 0.5;
+            opacity: 0.6;
+            transform: scale(1.05);
         }
     }
     
@@ -216,24 +259,91 @@ const tableStyles = `
             transform: translateY(0);
         }
     }
-    
-    /* Smooth fade transitions for all elements */
-    * {
-        transition: opacity 0.3s ease, transform 0.3s ease;
+
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
     }
     
-    /* Dialog fade transitions */
+    /* Enhanced smooth transitions for interactive elements - Exclude table headers */
+    *:not(.p-datatable-thead th) {
+        transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
+    }
+
+    /* Specific transitions for buttons and inputs only */
+    .p-button,
+    .p-inputtext,
+    .p-dropdown,
+    .p-checkbox,
+    .p-radiobutton {
+        transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
+    }
+    
+    /* Dialog fade transitions with scale */
     .p-dialog {
-        animation: fadeIn 0.3s ease !important;
+        animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        z-index: 1000 !important;
     }
     
     .p-dialog-mask {
-        animation: fadeIn 0.2s ease !important;
+        animation: fadeIn 0.25s ease-out !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        pointer-events: auto !important;
+        z-index: 999 !important;
+    }
+
+    .p-dialog-content {
+        animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        pointer-events: auto !important;
     }
     
-    /* Table row fade */
+    /* Table row fade with stagger - disable in modal dialogs */
     .p-datatable .p-datatable-tbody > tr {
-        animation: fadeInUp 0.4s ease;
+        animation: none !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr:nth-child(1) {
+        animation-delay: 0s !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr:nth-child(2) {
+        animation-delay: 0.05s !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr:nth-child(3) {
+        animation-delay: 0.1s !important;
+    }
+
+    .p-datatable .p-datatable-tbody > tr:nth-child(n+4) {
+        animation-delay: 0.15s !important;
     }
     
     .qr-scan-container {
@@ -342,7 +452,7 @@ const tableStyles = `
         background-color: rgba(0, 0, 0, 0.4) !important;
         backdrop-filter: blur(8px) !important;
         -webkit-backdrop-filter: blur(8px) !important;
-        transition: all 0.3s ease !important;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     
     body.dark .p-speeddial-mask {
@@ -356,18 +466,18 @@ const tableStyles = `
     
     /* SpeedDial Main Button Styling */
     .p-speeddial-button {
-        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
     }
     
     .p-speeddial-button:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        transform: scale(1.1) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25) !important;
     }
     
     .p-speeddial-opened .p-speeddial-button {
         transform: rotate(135deg) !important;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
     }
     
     body.dark .p-speeddial-button {
@@ -375,11 +485,11 @@ const tableStyles = `
     }
     
     body.dark .p-speeddial-button:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6) !important;
     }
     
     body.dark .p-speeddial-opened .p-speeddial-button {
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8) !important;
     }
     
     /* Hide SpeedDial items initially */
@@ -390,48 +500,48 @@ const tableStyles = `
     /* SpeedDial Action Items Animation */
     .p-speeddial-opened .p-speeddial-item {
         display: block !important;
-        animation: speedDialItemFadeIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards !important;
+        animation: speedDialItemFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
         opacity: 0;
     }
     
     .p-speeddial-opened .p-speeddial-item:nth-child(1) {
-        animation-delay: 0.05s !important;
+        animation-delay: 0.08s !important;
     }
     
     .p-speeddial-opened .p-speeddial-item:nth-child(2) {
-        animation-delay: 0.1s !important;
+        animation-delay: 0.14s !important;
     }
     
     .p-speeddial-opened .p-speeddial-item:nth-child(3) {
-        animation-delay: 0.15s !important;
+        animation-delay: 0.2s !important;
     }
     
     @keyframes speedDialItemFadeIn {
         0% {
             opacity: 0;
-            transform: scale(0.3) translateX(15px);
+            transform: scale(0.2) translateX(20px) rotate(-45deg);
         }
         100% {
             opacity: 1;
-            transform: scale(1) translateX(0);
+            transform: scale(1) translateX(0) rotate(0deg);
         }
     }
     
     /* SpeedDial Action Button Base Styling */
     .p-speeddial-action {
-        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
         position: relative !important;
     }
     
     .p-speeddial-action:hover {
-        transform: scale(1.15) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        transform: scale(1.2) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35) !important;
         z-index: 10 !important;
     }
     
     .p-speeddial-action:active {
-        transform: scale(1.05) !important;
+        transform: scale(1.08) !important;
     }
     
     body.dark .p-speeddial-action {
@@ -497,11 +607,114 @@ const tableStyles = `
         padding: 0.4rem 0.6rem !important;
         border-radius: 6px !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        animation: fadeIn 0.25s ease-out !important;
     }
     
     body.dark .p-tooltip .p-tooltip-text {
         background-color: rgba(255, 255, 255, 0.95) !important;
         color: #1f2937 !important;
+    }
+
+    /* Enhanced Button Transitions */
+    .p-button {
+        transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        position: relative !important;
+    }
+
+    .p-button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .p-button:active {
+        transform: translateY(0) !important;
+    }
+
+    /* Toast Animations */
+    .p-toast {
+        animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+
+    .p-toast-message {
+        animation: fadeIn 0.3s ease-out !important;
+    }
+
+    /* Dropdown & Menu Transitions */
+    .p-dropdown-panel {
+        animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+
+    .p-menu {
+        animation: fadeIn 0.25s ease-out !important;
+    }
+
+    /* Input Focus Enhancement */
+    .p-inputtext:focus,
+    .p-inputtextarea:focus,
+    .p-dropdown:focus {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+    }
+
+    body.dark .p-inputtext:focus,
+    body.dark .p-inputtextarea:focus,
+    body.dark .p-dropdown:focus {
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15), 0 4px 12px rgba(96, 165, 250, 0.2) !important;
+    }
+
+    /* Checkbox & Radio Smooth Transitions */
+    .p-checkbox,
+    .p-radiobutton {
+        transition: all 0.25s ease !important;
+    }
+
+    .p-checkbox:hover .p-checkbox-box,
+    .p-radiobutton:hover .p-radiobutton-box {
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15) !important;
+    }
+
+    /* Calendar Enhancements */
+    .p-calendar-panel {
+        animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+
+    /* Modal Backdrop Smooth Transition */
+    .p-modal-mask {
+        animation: fadeIn 0.25s ease-out !important;
+    }
+
+    .p-modal-content {
+        animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+
+    /* Confirm Dialog Enhancements */
+    .p-confirm-dialog {
+        animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+
+    /* Loading/Spinner Enhancement */
+    .p-progress-spinner {
+        animation: fadeIn 0.3s ease-out !important;
+    }
+
+    /* Table Header Hover */
+    .p-datatable .p-datatable-thead > tr > th:hover {
+        background-color: #dbeafe !important;
+        transition: background-color 0.25s ease !important;
+    }
+
+    body.dark .p-datatable .p-datatable-thead > tr > th:hover {
+        background-color: #1e3a5f !important;
+    }
+
+    /* Row Hover Enhancement */
+    .p-datatable .p-datatable-tbody > tr:hover {
+        background-color: #f9fafb !important;
+        transition: background-color 0.2s ease !important;
+    }
+
+    body.dark .p-datatable .p-datatable-tbody > tr:hover {
+        background-color: #1f2937 !important;
     }
 `;
 
@@ -3663,7 +3876,11 @@ export default function FlexibleScrollDemo() {
                                     setIsCustomSorted(false);
                                     calculateColumnWidths(cachedData);
                                 } else {
-                                    // Load fresh data from database
+                                    // Open dialog immediately with empty/loading state
+                                    setDialogVisible(true);
+                                    setDialogData([]);
+                                    
+                                    // Then load fresh data from database
                                     CustomerService.getDetailData(rowData.id).then((data) => {
                                         const sortedData = sortDialogData(data);
                                         setDialogData(sortedData);
@@ -3677,7 +3894,6 @@ export default function FlexibleScrollDemo() {
                                             }));
                                         }
                                         
-                                        setDialogVisible(true);
                                         setIsCustomSorted(false);
                                         calculateColumnWidths(sortedData);
                                     });
@@ -5070,6 +5286,7 @@ export default function FlexibleScrollDemo() {
                         height: dialogMaximized ? '98vh' : 'auto'
                     }} 
                     modal
+                    blockScroll
                     closable={false}
                     closeOnEscape={!customSortMode && !(editMode && dialogHasChanges)}
                     dismissableMask={!customSortMode && !(editMode && dialogHasChanges)} 
@@ -5077,7 +5294,17 @@ export default function FlexibleScrollDemo() {
                         height: dialogMaximized ? 'calc(98vh - 140px)' : (deviceInfo.isMobile ? '400px' : '500px'),
                         padding: dialogMaximized ? '0.5rem' : '1rem',
                         overflow: 'auto'
-                    }} 
+                    }}
+                    onShow={() => {
+                        // Prevent auto-focus on table elements
+                        setTimeout(() => {
+                            // Blur any focused element in main table
+                            const focusedElement = document.activeElement;
+                            if (focusedElement && focusedElement.closest('.p-datatable')) {
+                                focusedElement.blur();
+                            }
+                        }, 0);
+                    }}
                     onHide={() => {
                         // Save current dialogData to cache before closing if in edit mode
                         if (editMode && currentRouteId && dialogData.length > 0) {
