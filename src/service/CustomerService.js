@@ -313,10 +313,25 @@ const dedupedFetch = async (url, key) => {
     }
 
     // Create new request
-    const requestPromise = fetch(url)
+    const requestPromise = fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
         .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             return response.json();
+        })
+        .then(data => {
+            // Validate data is an array
+            if (!Array.isArray(data)) {
+                throw new Error(`Invalid data format: expected array, got ${typeof data}`);
+            }
+            return data;
+        })
+        .catch(error => {
+            console.error(`❌ Fetch failed for ${key}:`, error.message);
+            throw error;
         })
         .finally(() => {
             // Clean up pending request
@@ -360,17 +375,22 @@ export const CustomerService = {
 
         try {
             const routes = await dedupedFetch(`${API_BASE_URL}/routes`, 'routes');
+            if (!routes || !Array.isArray(routes)) {
+                throw new Error('Invalid routes data received');
+            }
             setCache('routes', routes);
             console.log('✅ Routes fetched from API');
             return routes;
         } catch (error) {
-            console.error('❌ Error fetching routes:', error);
+            console.error('❌ Error fetching routes:', error.message || error);
             // Try to return stale cache if available
             const staleCache = cache.routes?.data;
-            if (staleCache) {
+            if (staleCache && Array.isArray(staleCache)) {
                 console.log('⚠️ Using stale cache due to error');
                 return staleCache;
             }
+            // Fallback to dummy data
+            console.log('⚠️ Using dummy routes data (API unavailable)');
             const dummyRoutes = this.getDummyRoutes();
             setCache('routes', dummyRoutes);
             return dummyRoutes;
@@ -405,18 +425,22 @@ export const CustomerService = {
         try {
             const url = routeId ? `${API_BASE_URL}/locations?routeId=${routeId}` : `${API_BASE_URL}/locations`;
             const locations = await dedupedFetch(url, cacheKey);
+            if (!locations || !Array.isArray(locations)) {
+                throw new Error('Invalid locations data received');
+            }
             setCache(cacheKey, locations);
             console.log(`✅ Locations fetched from API (${cacheKey})`);
             return locations;
         } catch (error) {
-            console.error('❌ Error fetching locations:', error);
+            console.error('❌ Error fetching locations:', error.message || error);
             // Try to return stale cache if available
             const staleCache = routeId ? cache.routeLocations[cacheKey]?.data : cache.locations?.data;
-            if (staleCache) {
+            if (staleCache && Array.isArray(staleCache)) {
                 console.log('⚠️ Using stale cache due to error');
                 return staleCache;
             }
             // Fallback to dummy data and filter by routeId
+            console.log(`⚠️ Using dummy locations data (API unavailable)`);
             const dummyLocations = this.getDummyLocations();
             const filteredLocations = routeId ? dummyLocations.filter(loc => loc.routeId === routeId) : dummyLocations;
             setCache(cacheKey, filteredLocations);
