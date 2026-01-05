@@ -6627,6 +6627,8 @@ export default function FlexibleScrollDemo() {
                     }}
                     modal
                     closable={!passwordLoading}
+                    dismissableMask={false}
+                    closeOnEscape={false}
                     onHide={() => {
                         if (!passwordLoading) {
                             setPasswordDialogVisible(false);
@@ -6786,7 +6788,8 @@ export default function FlexibleScrollDemo() {
                     visible={changePasswordDialogVisible}
                     style={{ width: deviceInfo.isMobile ? '95vw' : '450px' }}
                     modal
-                    dismissableMask
+                    dismissableMask={false}
+                    closeOnEscape={false}
                     transitionOptions={{ timeout: 400 }}
                     onHide={() => {
                         setChangePasswordDialogVisible(false);

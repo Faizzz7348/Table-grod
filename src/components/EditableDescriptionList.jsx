@@ -156,3 +156,4 @@ export const EditableDescriptionList = memo(function EditableDescriptionList({ v
     </div>
   );
 });
+export default EditableDescriptionList;
