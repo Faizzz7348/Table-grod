@@ -22,11 +22,26 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Dummy data fallback when database is not configured
+  const getDummyRoutes = () => [
+    { id: 1, route: 'KL 7', shift: 'PM', warehouse: '3AVK04', locations: [] },
+    { id: 2, route: 'KL 8', shift: 'AM', warehouse: '3AVK05', locations: [] },
+    { id: 3, route: 'SG 1', shift: 'PM', warehouse: '2BVK01', locations: [] }
+  ];
+
   // Check if database is configured
   if (!process.env.DATABASE_URL) {
-    return res.status(500).json({ 
-      error: 'Database not configured',
-      message: 'Please set up Vercel Postgres database in your project settings'
+    console.warn('⚠️ Database not configured, using dummy data');
+    
+    if (req.method === 'GET') {
+      return res.status(200).json(getDummyRoutes());
+    }
+    
+    // For write operations, return success but don't persist
+    return res.status(200).json({ 
+      success: true,
+      message: 'Demo mode: Changes not persisted (database not configured)',
+      demoMode: true
     });
   }
 
