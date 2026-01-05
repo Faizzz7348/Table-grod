@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Diagnostic</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-result {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .loading { border-left: 4px solid #f59e0b; }
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Diagnostic Tool</h1>
+    <p>Check if your APIs are working correctly on Vercel</p>
+    
+    <button onclick="runTests()">🚀 Run All Tests</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="test-result loading"><h3>⏳ Running tests...</h3></div>';
+            
+            const tests = [
+                { name: 'Routes API', url: '/api/routes' },
+                { name: 'Locations API', url: '/api/locations' }
+            ];
+            
+            let html = '';
+            
+            for (const test of tests) {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(test.url);
+                    const duration = Date.now() - startTime;
+                    const data = await response.json();
+                    
+                    if (response.ok && data.length > 0) {
+                        html += `
+                            <div class="test-result success">
+                                <h3>✅ ${test.name} - WORKING</h3>
+                                <p><strong>Status:</strong> ${response.status}</p>
+                                <p><strong>Response Time:</strong> ${duration}ms</p>
+                                <p><strong>Data Count:</strong> ${data.length} items</p>
+                                <details>
+                                    <summary>View Response</summary>
+                                    <pre>${JSON.stringify(data.slice(0, 2), null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="test-result error">
+                                <h3>❌ ${test.name} - FAILED</h3>
+                                <p><strong>Status:</strong> ${response.status}</p>
+                                <p><strong>Error:</strong> Empty response or invalid data</p>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    html += `
+                        <div class="test-result error">
+                            <h3>❌ ${test.name} - ERROR</h3>
+                            <p><strong>Error:</strong> ${error.message}</p>
+                            <pre>${error.stack}</pre>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Environment check
+            html += `
+                <div class="test-result">
+                    <h3>📋 Environment Info</h3>
+                    <p><strong>URL:</strong> ${window.location.origin}</p>
+                    <p><strong>Environment:</strong> ${window.location.hostname.includes('localhost') ? 'Local' : 'Production (Vercel)'}</p>
+                    <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
