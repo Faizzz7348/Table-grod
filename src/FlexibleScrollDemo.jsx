@@ -223,132 +223,6 @@ const tableStyles = `
         }
     }
     
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-    
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-        }
-        to {
-            opacity: 0;
-        }
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes fadeInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes scaleIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    @keyframes slideInRight {
-        from {
-            opacity: 0;
-            transform: translateX(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    /* Enhanced smooth transitions for interactive elements - Exclude table headers */
-    *:not(.p-datatable-thead th) {
-        transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
-    }
-
-    /* Specific transitions for buttons and inputs only */
-    .p-button,
-    .p-inputtext,
-    .p-dropdown,
-    .p-checkbox,
-    .p-radiobutton {
-        transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
-    }
-    
-    /* Dialog fade transitions with scale */
-    .p-dialog {
-        animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-        z-index: 1000 !important;
-    }
-    
-    .p-dialog-mask {
-        animation: fadeIn 0.25s ease-out !important;
-        background: rgba(0, 0, 0, 0.5) !important;
-        pointer-events: auto !important;
-        z-index: 999 !important;
-    }
-
-    .p-dialog-content {
-        animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-        pointer-events: auto !important;
-    }
-    
-    /* Table row fade with stagger - disable in modal dialogs */
-    .p-datatable .p-datatable-tbody > tr {
-        animation: none !important;
-    }
-
-    .p-datatable .p-datatable-tbody > tr:nth-child(1) {
-        animation-delay: 0s !important;
-    }
-
-    .p-datatable .p-datatable-tbody > tr:nth-child(2) {
-        animation-delay: 0.05s !important;
-    }
-
-    .p-datatable .p-datatable-tbody > tr:nth-child(3) {
-        animation-delay: 0.1s !important;
-    }
-
-    .p-datatable .p-datatable-tbody > tr:nth-child(n+4) {
-        animation-delay: 0.15s !important;
-    }
-    
     .qr-scan-container {
         position: relative;
         overflow: hidden;
@@ -801,9 +675,6 @@ export default function FlexibleScrollDemo() {
     const [dialogData, setDialogData] = useState([]);
     const [currentRouteId, setCurrentRouteId] = useState(null);
     const [currentRouteName, setCurrentRouteName] = useState('');
-    
-    // Store dialog data per route to prevent data loss when switching dialogs
-    const [dialogDataCache, setDialogDataCache] = useState({});
     
     // Global frozen row data - fetched from database (PUBLIC/SHARED)
     // This will be loaded from database with a special ID or flag
@@ -1736,23 +1607,10 @@ export default function FlexibleScrollDemo() {
         const location = dialogData.find(d => d.id === rowId);
         const oldValue = location ? location[field] : '';
         
-        // Only sort if code field changes (impacts order)
-        const mapped = dialogData.map(data => 
+        const updatedData = dialogData.map(data => 
             data.id === rowId ? { ...data, [field]: value } : data
         );
-        const updatedData = field === 'code' ? sortDialogData(mapped) : mapped;
-        setDialogData(updatedData);
-        
-        // Batch cache update - don't block UI
-        if (editMode && currentRouteId) {
-            setTimeout(() => {
-                setDialogDataCache(prev => ({
-                    ...prev,
-                    [currentRouteId]: updatedData
-                }));
-            }, 0);
-        }
-        
+        setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
         
         // Mark row as modified
@@ -1788,18 +1646,7 @@ export default function FlexibleScrollDemo() {
         const updatedData = dialogData.map(data => 
             data.id === rowId ? { ...data, powerMode: mode } : data
         );
-        setDialogData(updatedData);
-        
-        // Batch cache update
-        if (editMode && currentRouteId) {
-            setTimeout(() => {
-                setDialogDataCache(prev => ({
-                    ...prev,
-                    [currentRouteId]: updatedData
-                }));
-            }, 0);
-        }
-        
+        setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
         
         // Mark row as modified
@@ -1816,18 +1663,7 @@ export default function FlexibleScrollDemo() {
         const updatedData = dialogData.map(data => 
             data.id === colorPickerRowId ? { ...data, markerColor: color } : data
         );
-        setDialogData(updatedData);
-        
-        // Batch cache update
-        if (editMode && currentRouteId) {
-            setTimeout(() => {
-                setDialogDataCache(prev => ({
-                    ...prev,
-                    [currentRouteId]: updatedData
-                }));
-            }, 0);
-        }
-        
+        setDialogData(sortDialogData(updatedData));
         setHasUnsavedChanges(true);
         
         // Mark row as modified
@@ -1973,6 +1809,11 @@ export default function FlexibleScrollDemo() {
     };
     
     // Get latest changes for display
+    const getLatestChanges = () => {
+        const active = getActiveChangelog();
+        return active.length > 0 ? active.slice(0, 5) : [];
+    };
+    
     // Export changelog to JSON
     const exportChangelog = () => {
         const filtered = getFilteredChangelog();
@@ -2696,9 +2537,6 @@ export default function FlexibleScrollDemo() {
             setModifiedRows(new Set());
             setNewRows([]);
             
-            // Clear dialog data cache
-            setDialogDataCache({});
-            
             // Clear incomplete edit state from localStorage after successful save
             localStorage.removeItem('incompleteEditState');
             console.log('✅ Cleared incomplete edit state from localStorage');
@@ -2804,16 +2642,7 @@ export default function FlexibleScrollDemo() {
                 const confirmed = window.confirm('⚠️ You have unsaved changes. Do you want to save before exiting edit mode?');
                 if (confirmed) {
                     handleSaveChanges();
-                    return; // Don't proceed with exit until save is done
                 } else {
-                    // Revert all changes back to original data
-                    console.log('🔄 Reverting all unsaved changes...');
-                    setRoutes([...originalData]);
-                    setDialogData([...originalDialogData]);
-                    
-                    // Clear dialog data cache
-                    setDialogDataCache({});
-                    
                     // Clear incomplete edit state if user exits without saving
                     localStorage.removeItem('incompleteEditState');
                     console.log('🗑️ User exited edit mode without saving, cleared incomplete state');
@@ -2838,7 +2667,12 @@ export default function FlexibleScrollDemo() {
                 setModifiedRows(new Set());
                 setDeletedLocationIds([]);
                 setDeletedRouteIds([]);
-                setHasUnsavedChanges(false);
+                
+                // Cancel any new unsaved rows
+                const filteredData = dialogData.filter(row => !newRows.includes(row.id));
+                if (filteredData.length !== dialogData.length) {
+                    setDialogData(filteredData);
+                }
             }, 600);
         } else {
             // Entering edit mode - show password dialog
@@ -3188,17 +3022,6 @@ export default function FlexibleScrollDemo() {
         // Add new row and sort by code (same as route table behavior)
         const updatedData = sortDialogData([...dialogData, newRow]);
         setDialogData(updatedData);
-        
-        // Batch cache update
-        if (editMode && currentRouteId) {
-            setTimeout(() => {
-                setDialogDataCache(prev => ({
-                    ...prev,
-                    [currentRouteId]: updatedData
-                }));
-            }, 0);
-        }
-        
         setNewRows([...newRows, tempId]);
         setHasUnsavedChanges(true);
         
@@ -3234,19 +3057,8 @@ export default function FlexibleScrollDemo() {
     const confirmDelete = () => {
         if (deleteType === 'location') {
             const locationToDelete = deleteTarget.data;
-            const updatedData = sortDialogData(dialogData.filter(data => data.id !== deleteTarget.id));
-            setDialogData(updatedData);
-            
-            // Batch cache update
-            if (editMode && currentRouteId) {
-                setTimeout(() => {
-                    setDialogDataCache(prev => ({
-                        ...prev,
-                        [currentRouteId]: updatedData
-                    }));
-                }, 0);
-            }
-            
+            const updatedData = dialogData.filter(data => data.id !== deleteTarget.id);
+            setDialogData(sortDialogData(updatedData));
             setHasUnsavedChanges(true);
             
             // Track deleted location ID (only if it's an existing location, not a new one)
@@ -3873,37 +3685,15 @@ export default function FlexibleScrollDemo() {
                             onClick={() => {
                                 setCurrentRouteId(rowData.id);
                                 setCurrentRouteName(rowData.route);
-                                
-                                // In edit mode, check if we have cached data for this route
-                                if (editMode && dialogDataCache[rowData.id]) {
-                                    const cachedData = dialogDataCache[rowData.id];
-                                    setDialogData(cachedData);
+                                CustomerService.getDetailData(rowData.id).then((data) => {
+                                    const sortedData = sortDialogData(data);
+                                    setDialogData(sortedData);
+                                    setOriginalDialogData(sortedData);
                                     setDialogVisible(true);
                                     setIsCustomSorted(false);
-                                    calculateColumnWidths(cachedData);
-                                } else {
-                                    // Open dialog immediately with empty/loading state
-                                    setDialogVisible(true);
-                                    setDialogData([]);
-                                    
-                                    // Then load fresh data from database
-                                    CustomerService.getDetailData(rowData.id).then((data) => {
-                                        const sortedData = sortDialogData(data);
-                                        setDialogData(sortedData);
-                                        setOriginalDialogData(sortedData);
-                                        
-                                        // Cache the data if in edit mode
-                                        if (editMode) {
-                                            setDialogDataCache(prev => ({
-                                                ...prev,
-                                                [rowData.id]: sortedData
-                                            }));
-                                        }
-                                        
-                                        setIsCustomSorted(false);
-                                        calculateColumnWidths(sortedData);
-                                    });
-                                }
+                                    // Calculate column widths for new data
+                                    calculateColumnWidths(sortedData);
+                                });
                             }} 
                         />
                         <Button 
@@ -4106,8 +3896,8 @@ export default function FlexibleScrollDemo() {
                 ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' 
                 : 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)',
             color: isDark ? '#e5e5e5' : '#1f2937',
-            transition: 'background 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease',
-            animation: 'fadeIn 0.8s ease-out'
+            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: 'fadeIn 0.6s ease-out'
         }}>
             <style>{tableStyles}</style>
             
@@ -5300,27 +5090,8 @@ export default function FlexibleScrollDemo() {
                         height: dialogMaximized ? 'calc(98vh - 140px)' : (deviceInfo.isMobile ? '400px' : '500px'),
                         padding: dialogMaximized ? '0.5rem' : '1rem',
                         overflow: 'auto'
-                    }}
-                    onShow={() => {
-                        // Prevent auto-focus on table elements
-                        setTimeout(() => {
-                            // Blur any focused element in main table
-                            const focusedElement = document.activeElement;
-                            if (focusedElement && focusedElement.closest('.p-datatable')) {
-                                focusedElement.blur();
-                            }
-                        }, 0);
-                    }}
-                    onHide={() => {
-                        // Save current dialogData to cache before closing if in edit mode
-                        if (editMode && currentRouteId && dialogData.length > 0) {
-                            setDialogDataCache(prev => ({
-                                ...prev,
-                                [currentRouteId]: dialogData
-                            }));
-                        }
-                        setDialogVisible(false);
                     }} 
+                    onHide={() => setDialogVisible(false)} 
                     footer={dialogFooterTemplate}
                     headerStyle={{ 
                         color: isDark ? '#fff' : '#000',
@@ -8110,6 +7881,58 @@ export default function FlexibleScrollDemo() {
                         </div>
                     ) : (
                         <>
+                            {/* Latest Changes Summary - Show if no filters applied */}
+                            {!changelogDateRange && !changelogSearchText && changelogFilterAction === 'all' && changelogFilterType === 'all' && getLatestChanges().length > 0 && (
+                                <div style={{
+                                    padding: '1rem',
+                                    marginBottom: '1.5rem',
+                                    backgroundColor: isDark ? '#064e3b' : '#d1fae5',
+                                    borderLeft: '4px solid #10b981',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${isDark ? '#047857' : '#a7f3d0'}`
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        marginBottom: '1rem',
+                                        color: isDark ? '#a7f3d0' : '#047857',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        <i className="pi pi-star-fill" style={{ fontSize: '1rem' }}></i>
+                                        Latest Changes (Last 24 Hours)
+                                    </div>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: deviceInfo.isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
+                                        gap: '0.5rem'
+                                    }}>
+                                        {getLatestChanges().map((entry) => (
+                                            <div key={entry.id} style={{
+                                                padding: '0.75rem',
+                                                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                                                borderRadius: '6px',
+                                                fontSize: '0.75rem',
+                                                color: isDark ? '#e5e7eb' : '#374151'
+                                            }}>
+                                                <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                                                    {entry.action.toUpperCase()} {entry.type}
+                                                </div>
+                                                <div style={{ opacity: 0.8 }}>
+                                                    {entry.type === 'route' 
+                                                        ? `Route: ${entry.details.route || 'N/A'}`
+                                                        : `Location: ${entry.details.code || 'N/A'}`
+                                                    }
+                                                </div>
+                                                <div style={{ opacity: 0.6, marginTop: '0.25rem' }}>
+                                                    {entry.timestamp}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Filter Controls */}
                             <div style={{
                                 display: 'flex',
