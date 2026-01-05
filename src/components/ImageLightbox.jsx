@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, memo } from "react";
 
 // Add keyframes for spin animation
 if (typeof document !== 'undefined') {
@@ -19,11 +19,11 @@ if (typeof document !== 'undefined') {
 let currentOpenGallery = null;
 
 /**
- * ImageLightbox Component
+ * ImageLightbox Component (Optimized with React.memo)
  * A modern lightbox gallery using LightGallery library
  * Features: thumbnails, zoom, fullscreen, lazy loading
  */
-export function ImageLightbox({ images, rowId }) {
+export const ImageLightbox = memo(function ImageLightbox({ images, rowId }) {
   const galleryRef = useRef(null);
   const containerRef = useRef(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -243,6 +243,6 @@ export function ImageLightbox({ images, rowId }) {
       </div>
     </div>
   );
-}
+});
 
 export default ImageLightbox;

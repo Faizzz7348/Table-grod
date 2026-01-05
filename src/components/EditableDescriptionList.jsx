@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 
-export function EditableDescriptionList({ value, onSave, isEditable = true }) {
+export const EditableDescriptionList = memo(function EditableDescriptionList({ value, onSave, isEditable = true }) {
   const [items, setItems] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -28,7 +28,7 @@ export function EditableDescriptionList({ value, onSave, isEditable = true }) {
     setItems(parsedItems);
   }, [value]);
 
-  const handleItemChange = (index, field, newValue) => {
+  const handleItemChange = useCallback((index, field, newValue) => {
     const updatedItems = [...items];
     updatedItems[index][field] = newValue;
     setItems(updatedItems);
@@ -39,13 +39,13 @@ export function EditableDescriptionList({ value, onSave, isEditable = true }) {
       .map(item => `${item.term}: ${item.definition}`)
       .join('\n');
     onSave(serialized);
-  };
+  }, [items, onSave]);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     setItems([...items, { term: '', definition: '' }]);
-  };
+  }, [items]);
 
-  const handleRemoveItem = (index) => {
+  const handleRemoveItem = useCallback((index) => {
     const updatedItems = items.filter((_, i) => i !== index);
     setItems(updatedItems);
     
@@ -54,7 +54,7 @@ export function EditableDescriptionList({ value, onSave, isEditable = true }) {
       .map(item => `${item.term}: ${item.definition}`)
       .join('\n');
     onSave(serialized);
-  };
+  }, [items, onSave]);
 
   // Display only mode
   if (!isEditable) {
@@ -155,4 +155,4 @@ export function EditableDescriptionList({ value, onSave, isEditable = true }) {
       />
     </div>
   );
-}
+});

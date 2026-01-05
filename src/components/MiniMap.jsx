@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, ZoomControl } from 'react-leaflet';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
@@ -79,7 +79,7 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MiniMap({ latitude, longitude, address, locations = [], style = {}, isDark = false }) {
+const MiniMap = memo(function MiniMap({ latitude, longitude, address, locations = [], style = {}, isDark = false }) {
     const [fullscreenVisible, setFullscreenVisible] = useState(false);
     const [addressExpanded, setAddressExpanded] = useState(false);
     
@@ -432,4 +432,6 @@ export default function MiniMap({ latitude, longitude, address, locations = [], 
             </Dialog>
         </>
     );
-}
+});
+
+export default MiniMap;

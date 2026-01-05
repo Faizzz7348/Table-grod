@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
@@ -10,13 +10,16 @@ import { Calendar } from 'primereact/calendar';
 import { Toast } from 'primereact/toast';
 import { SpeedDial } from 'primereact/speeddial';
 import { CustomerService } from './service/CustomerService';
-import { ImageLightbox } from './components/ImageLightbox';
-import MiniMap from './components/MiniMap';
-import MarkerColorPicker from './components/MarkerColorPicker';
-import { EditableDescriptionList } from './components/EditableDescriptionList';
 import { useDeviceDetect, getResponsiveStyles } from './hooks/useDeviceDetect';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { useDebounce } from './hooks/useDebounce';
 import QrScanner from 'qr-scanner';
+
+// Lazy load heavy components untuk performa lebih baik
+const ImageLightbox = lazy(() => import('./components/ImageLightbox'));
+const MiniMap = lazy(() => import('./components/MiniMap'));
+const MarkerColorPicker = lazy(() => import('./components/MarkerColorPicker'));
+const EditableDescriptionList = lazy(() => import('./components/EditableDescriptionList'));
 
 // CSS untuk remove border dari table header
 const tableStyles = `
@@ -839,6 +842,9 @@ export default function FlexibleScrollDemo() {
     const [selectedRowInfo, setSelectedRowInfo] = useState(null);
     const [isRouteInfo, setIsRouteInfo] = useState(false);
     const [globalFilterValue, setGlobalFilterValue] = useState('');
+    
+    // Debounced filter value untuk performa lebih baik
+    const debouncedFilterValue = useDebounce(globalFilterValue, 300);
     
     // Column Visibility State (INDIVIDUAL - localStorage)
     // Each user can customize their own column view
@@ -5511,7 +5517,7 @@ export default function FlexibleScrollDemo() {
                             fontSize: dialogMaximized ? '0.875rem' : '1rem'
                         }}
                         editMode={editMode ? "cell" : null}
-                        globalFilter={globalFilterValue}
+                        globalFilter={debouncedFilterValue}
                         resizableColumns
                         columnResizeMode="expand"
                         className="no-header-border"
@@ -5859,12 +5865,14 @@ export default function FlexibleScrollDemo() {
                                         );
                                     }
                                     
-                                    // Use the new ImageLightbox component
+                                    // Use the new ImageLightbox component with Suspense
                                     return (
-                                        <ImageLightbox 
-                                            images={rowData.images} 
-                                            rowId={rowData.id}
-                                        />
+                                        <Suspense fallback={<div style={{ textAlign: 'center', padding: '10px' }}><i className="pi pi-spin pi-spinner" style={{ fontSize: '1.5rem' }}></i></div>}>
+                                            <ImageLightbox 
+                                                images={rowData.images} 
+                                                rowId={rowData.id}
+                                            />
+                                        </Suspense>
                                     );
                                 }}
                                 style={{ width: '100px' }}
@@ -6057,16 +6065,18 @@ export default function FlexibleScrollDemo() {
                 >
                     {selectedRowInfo && (
                         <div style={{ padding: '0' }}>
-                            {/* Mini Map Section */}
+                            {/* Mini Map Section with Suspense */}
                             {!infoEditMode ? (
-                                <MiniMap 
-                                    latitude={!isRouteInfo ? selectedRowInfo.latitude : null}
-                                    longitude={!isRouteInfo ? selectedRowInfo.longitude : null}
-                                    address={!isRouteInfo ? selectedRowInfo.address : null}
-                                    locations={isRouteInfo ? selectedRowInfo.locations : []}
-                                    style={{ marginBottom: '20px' }}
-                                    isDark={isDark}
-                                />
+                                <Suspense fallback={<div style={{ textAlign: 'center', padding: '20px' }}><i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem' }}></i></div>}>
+                                    <MiniMap 
+                                        latitude={!isRouteInfo ? selectedRowInfo.latitude : null}
+                                        longitude={!isRouteInfo ? selectedRowInfo.longitude : null}
+                                        address={!isRouteInfo ? selectedRowInfo.address : null}
+                                        locations={isRouteInfo ? selectedRowInfo.locations : []}
+                                        style={{ marginBottom: '20px' }}
+                                        isDark={isDark}
+                                    />
+                                </Suspense>
                             ) : (
                                 <div style={{ 
                                     marginBottom: '20px',
