@@ -9,6 +9,7 @@ export default defineConfig({
       fastRefresh: true
     })
   ],
+  base: '/',
   build: {
     chunkSizeWarningLimit: 1000,
     // Enable code splitting dengan chunks yang lebih optimal
