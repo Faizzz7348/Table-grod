@@ -662,12 +662,24 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 export default function FlexibleScrollDemo() {
     
-    // Hide loading screen immediately on component mount
+    // Hide loading screen ASAP - multiple attempts for reliability
     useEffect(() => {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.display = 'none';
-        }
+        const hideLoading = () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.remove(); // Remove completely
+                console.log('✅ Loading screen removed');
+            }
+        };
+        
+        // Try immediately
+        hideLoading();
+        
+        // Try again after 100ms just in case
+        setTimeout(hideLoading, 100);
+        
+        // Try one more time after 500ms
+        setTimeout(hideLoading, 500);
     }, []);
     
     // Device Detection
