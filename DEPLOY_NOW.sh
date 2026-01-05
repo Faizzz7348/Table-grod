@@ -34,15 +34,15 @@ echo ""
 echo "💾 Step 3/4: Committing changes..."
 echo "────────────────────────────────────────────────────────────"
 git add -A
-git commit -m "fix: add SPA routing to resolve blank page issue
+git commit -m "fix: add SPA routing via rewrites to resolve blank page
 
 🐛 Bug Fix:
-- Add routes configuration in vercel.json for proper SPA support
-- All requests now fallback to /index.html (React Router takes over)
+- Add catch-all rewrite in vercel.json for proper SPA support
+- All non-API requests now fallback to /index.html
 - Fix blank page issue that persisted for months
 
 🔧 Changes:
-- vercel.json: Add routes array with filesystem handler and catch-all
+- vercel.json: Add catch-all rewrite rule (not routes - Vercel requirement)
 - vite.config.js: Keep console logs for production debugging
 
 ✨ Result:
