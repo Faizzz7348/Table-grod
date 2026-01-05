@@ -762,6 +762,8 @@ export default function FlexibleScrollDemo() {
     });
     const [showColumnPanel, setShowColumnPanel] = useState(false);
     const [loading, setLoading] = useState(true);
+    
+    console.log('🔄 FlexibleScrollDemo component mounted, loading:', loading);
     const [saving, setSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [originalData, setOriginalData] = useState([]);
@@ -1255,16 +1257,18 @@ export default function FlexibleScrollDemo() {
                 // Sort routes by default (A-Z, 1-10)
                 const sortedRoutes = sortRoutes(routesWithLocationCount);
                 
-                // Smart loading delay for smooth intro
-                await new Promise(resolve => setTimeout(resolve, 800));
+                console.log('✅ Data loaded:', sortedRoutes.length, 'routes');
                 
                 setRoutes(sortedRoutes);
                 setLoading(false);
                 
+                console.log('✅ Loading state set to false, rendering table...');
+                
                 // Hide loading screen after data is loaded
                 const loadingScreen = document.getElementById('loading-screen');
                 if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
+                    loadingScreen.remove();
+                    console.log('✅ Loading screen removed from loadData');
                 }
                 
                 // Monitor cache performance
@@ -1285,12 +1289,13 @@ export default function FlexibleScrollDemo() {
                     console.log('💡 Use window.__cacheStats() to monitor cache performance');
                 }
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('❌ Error loading data:', error);
                 setLoading(false);
                 // Hide loading screen even on error
                 const loadingScreen = document.getElementById('loading-screen');
                 if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
+                    loadingScreen.remove();
+                    console.log('✅ Loading screen removed (error case)');
                 }
             }
         };
@@ -3864,6 +3869,7 @@ export default function FlexibleScrollDemo() {
 
     // Loading state with smooth animation
     if (loading) {
+        console.log('⏳ Showing loading state...');
         return (
             <div style={{ 
                 minHeight: '100vh',
