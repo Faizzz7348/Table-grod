@@ -31,6 +31,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg,jpeg}'],
+        // Avoid caching index.html to prevent stale cache on updates
+        globIgnores: ['**/index.html', '**/registerSW.js'],
         // Cache static assets
         runtimeCaching: [
           {
@@ -49,7 +51,7 @@ export default defineConfig({
             }
           },
           {
-            // Cache API routes with Network First strategy
+            // Cache API routes with Network First strategy (always try fresh first)
             urlPattern: /^.*\/api\/(routes|locations).*/i,
             handler: 'NetworkFirst',
             options: {
@@ -96,7 +98,10 @@ export default defineConfig({
           }
         ],
         // Increase cache size limits
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5 MB
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+        // Skip waiting to apply updates immediately
+        skipWaiting: true,
+        clientsClaim: true
       },
       devOptions: {
         enabled: false // Disable in dev to avoid conflicts
