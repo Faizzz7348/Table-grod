@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { sql } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -61,14 +59,25 @@ export default async function handler(req, res) {
       // Get all locations or filter by routeId
       const { routeId } = req.query;
       
-      const whereClause = routeId ? { routeId: parseInt(routeId) } : {};
-      
-      const locations = await prisma.location.findMany({
-        where: whereClause,
-        orderBy: {
-          no: 'asc'
-        }
-      });
+      let locations;
+      if (routeId) {
+        locations = await sql`
+          SELECT id, no, code, location, delivery, powerMode, images, route_id as routeId, 
+                 latitude, longitude, address, description, website_link as websiteLink,
+                 qr_code_image_url as qrCodeImageUrl, qr_code_destination_url as qrCodeDestinationUrl
+          FROM location
+          WHERE route_id = ${parseInt(routeId)}
+          ORDER BY no ASC
+        `;
+      } else {
+        locations = await sql`
+          SELECT id, no, code, location, delivery, powerMode, images, route_id as routeId, 
+                 latitude, longitude, address, description, website_link as websiteLink,
+                 qr_code_image_url as qrCodeImageUrl, qr_code_destination_url as qrCodeDestinationUrl
+          FROM location
+          ORDER BY no ASC
+        `;
+      }
       
       return res.status(200).json(locations);
     }
@@ -82,8 +91,8 @@ export default async function handler(req, res) {
       }
 
       // Separate new locations (timestamp IDs > 1000000000000) from existing ones
-      const newLocations = locations.filter(loc => loc.id > 1000000000000); // Timestamp IDs
-      const existingLocations = locations.filter(loc => loc.id <= 1000000000000); // Database IDs
+      const newLocations = locations.filter(loc => loc.id > 1000000000000);
+      const existingLocations = locations.filter(loc => loc.id <= 1000000000000);
 
       const results = {
         created: 0,
@@ -92,54 +101,46 @@ export default async function handler(req, res) {
 
       // Create new locations
       if (newLocations.length > 0) {
-        const createPromises = newLocations.map(location =>
-          prisma.location.create({
-            data: {
-              no: location.no,
-              code: location.code,
-              location: location.location,
-              delivery: location.delivery,
-              powerMode: location.powerMode,
-              images: location.images || [],
-              routeId: location.routeId || null,
-              latitude: location.latitude !== undefined ? location.latitude : null,
-              longitude: location.longitude !== undefined ? location.longitude : null,
-              address: location.address !== undefined ? location.address : null,
-              description: location.description || null,
-              websiteLink: location.websiteLink || null,
-              qrCodeImageUrl: location.qrCodeImageUrl || null,
-              qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
-            }
-          })
-        );
-        await Promise.all(createPromises);
+        for (const location of newLocations) {
+          await sql`
+            INSERT INTO location (no, code, location, delivery, power_mode, images, route_id, 
+                                 latitude, longitude, address, description, website_link,
+                                 qr_code_image_url, qr_code_destination_url)
+            VALUES (${location.no || 0}, ${location.code || ''}, ${location.location || ''}, 
+                   ${location.delivery || 'Daily'}, ${location.powerMode || 'Daily'}, 
+                   ${JSON.stringify(location.images || [])}, ${location.routeId || null},
+                   ${location.latitude !== undefined ? location.latitude : null},
+                   ${location.longitude !== undefined ? location.longitude : null},
+                   ${location.address !== undefined ? location.address : null},
+                   ${location.description || null}, ${location.websiteLink || null},
+                   ${location.qrCodeImageUrl || null}, ${location.qrCodeDestinationUrl || null})
+          `;
+        }
         results.created = newLocations.length;
       }
 
       // Update existing locations
       if (existingLocations.length > 0) {
-        const updatePromises = existingLocations.map(location =>
-          prisma.location.update({
-            where: { id: location.id },
-            data: {
-              no: location.no,
-              code: location.code,
-              location: location.location,
-              delivery: location.delivery,
-              powerMode: location.powerMode,
-              images: location.images || [],
-              latitude: location.latitude !== undefined ? location.latitude : null,
-              longitude: location.longitude !== undefined ? location.longitude : null,
-              address: location.address !== undefined ? location.address : null,
-              description: location.description || null,
-              websiteLink: location.websiteLink || null,
-              qrCodeImageUrl: location.qrCodeImageUrl || null,
-              qrCodeDestinationUrl: location.qrCodeDestinationUrl || null
-            }
-          })
-        );
-        await Promise.all(updatePromises);
-        results.updated = existingLocations.length;
+        for (const location of existingLocations) {
+          await sql`
+            UPDATE location
+            SET no = ${location.no},
+                code = ${location.code},
+                location = ${location.location},
+                delivery = ${location.delivery},
+                power_mode = ${location.powerMode},
+                images = ${JSON.stringify(location.images || [])},
+                latitude = ${location.latitude !== undefined ? location.latitude : null},
+                longitude = ${location.longitude !== undefined ? location.longitude : null},
+                address = ${location.address !== undefined ? location.address : null},
+                description = ${location.description || null},
+                website_link = ${location.websiteLink || null},
+                qr_code_image_url = ${location.qrCodeImageUrl || null},
+                qr_code_destination_url = ${location.qrCodeDestinationUrl || null}
+            WHERE id = ${location.id}
+          `;
+          results.updated++;
+        }
       }
 
       return res.status(200).json({ 
@@ -155,23 +156,18 @@ export default async function handler(req, res) {
       // Create new location
       const { no, code, location, delivery, powerMode, images, routeId, latitude, longitude, address, description } = req.body;
 
-      const newLocation = await prisma.location.create({
-        data: {
-          no: no || 0,
-          code: code || '',
-          location: location || '',
-          delivery: delivery || 'Daily',
-          powerMode: powerMode || 'Daily',
-          images: images || [],
-          routeId: routeId || null,
-          latitude: latitude !== undefined ? latitude : null,
-          longitude: longitude !== undefined ? longitude : null,
-          address: address !== undefined ? address : null,
-          description: description || null
-        }
-      });
+      const result = await sql`
+        INSERT INTO location (no, code, location, delivery, power_mode, images, route_id,
+                             latitude, longitude, address, description)
+        VALUES (${no || 0}, ${code || ''}, ${location || ''}, ${delivery || 'Daily'}, 
+               ${powerMode || 'Daily'}, ${JSON.stringify(images || [])}, ${routeId || null},
+               ${latitude !== undefined ? latitude : null}, ${longitude !== undefined ? longitude : null},
+               ${address !== undefined ? address : null}, ${description || null})
+        RETURNING id, no, code, location, delivery, power_mode as powerMode, images, 
+                 route_id as routeId, latitude, longitude, address, description
+      `;
 
-      return res.status(201).json(newLocation);
+      return res.status(201).json(result[0]);
     }
 
     if (req.method === 'DELETE') {
@@ -182,9 +178,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Location ID is required' });
       }
 
-      await prisma.location.delete({
-        where: { id: parseInt(id) }
-      });
+      const result = await sql`
+        DELETE FROM location WHERE id = ${parseInt(id)}
+        RETURNING id
+      `;
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Location not found' });
+      }
 
       return res.status(200).json({ 
         success: true, 
@@ -200,7 +201,5 @@ export default async function handler(req, res) {
       error: 'Internal server error',
       details: error.message 
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

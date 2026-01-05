@@ -11,14 +11,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist node_modules/.vite",
     "clean:all": "rm -rf dist node_modules/.vite node_modules && npm install",
-    "rebuild": "npm run clean && npm run build",
-    "db:push": "prisma db push",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
-    "db:seed": "node prisma/seed.js"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+    "rebuild": "npm run clean && npm run build"
   },
   "keywords": [
     "react",
@@ -28,7 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@neondatabase/serverless": "^0.9.4",
     "@vercel/blob": "^0.27.0",
     "chart.js": "^4.5.1",
     "dotenv": "^17.2.3",

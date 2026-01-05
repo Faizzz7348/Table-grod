@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { sql } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -47,15 +45,19 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Get all routes
-      const routes = await prisma.route.findMany({
-        include: {
-          locations: true
-        },
-        orderBy: {
-          id: 'asc'
-        }
-      });
+      // Get all routes with their locations
+      const routes = await sql`
+        SELECT r.id, r.route, r.shift, r.warehouse, r.description,
+               json_agg(json_build_object(
+                 'id', l.id, 'name', l.name, 'address', l.address, 
+                 'latitude', l.latitude, 'longitude', l.longitude,
+                 'routeId', l.route_id, 'description', l.description
+               )) FILTER (WHERE l.id IS NOT NULL) as locations
+        FROM route r
+        LEFT JOIN location l ON r.id = l.route_id
+        GROUP BY r.id, r.route, r.shift, r.warehouse, r.description
+        ORDER BY r.id ASC
+      `;
       
       return res.status(200).json(routes);
     }
@@ -69,8 +71,8 @@ export default async function handler(req, res) {
       }
 
       // Separate new routes (timestamp IDs > 1000000000000) from existing ones
-      const newRoutes = routes.filter(r => r.id > 1000000000000); // Timestamp IDs
-      const existingRoutes = routes.filter(r => r.id <= 1000000000000); // Database IDs
+      const newRoutes = routes.filter(r => r.id > 1000000000000);
+      const existingRoutes = routes.filter(r => r.id <= 1000000000000);
 
       const results = {
         created: 0,
@@ -79,51 +81,29 @@ export default async function handler(req, res) {
 
       // Create new routes
       if (newRoutes.length > 0) {
-        const createPromises = newRoutes.map(route =>
-          prisma.route.create({
-            data: {
-              route: route.route,
-              shift: route.shift,
-              warehouse: route.warehouse,
-              description: route.description || null
-            }
-          })
-        );
-        await Promise.all(createPromises);
+        for (const route of newRoutes) {
+          await sql`
+            INSERT INTO route (route, shift, warehouse, description)
+            VALUES (${route.route || ''}, ${route.shift || ''}, ${route.warehouse || ''}, ${route.description || null})
+          `;
+        }
         results.created = newRoutes.length;
       }
 
       // Update existing routes
       if (existingRoutes.length > 0) {
-        const updatePromises = existingRoutes.map(async route => {
-          try {
-            // Check if route exists first
-            const existingRoute = await prisma.route.findUnique({
-              where: { id: route.id }
-            });
-
-            if (!existingRoute) {
-              console.warn(`Route with id ${route.id} not found, skipping`);
-              return null;
-            }
-
-            return await prisma.route.update({
-              where: { id: route.id },
-              data: {
-                route: route.route,
-                shift: route.shift,
-                warehouse: route.warehouse,
-                description: route.description || null
-              }
-            });
-          } catch (err) {
-            console.error(`Error updating route ${route.id}:`, err);
-            throw err;
-          }
-        });
-
-        const updateResults = await Promise.all(updatePromises);
-        results.updated = updateResults.filter(r => r !== null).length;
+        for (const route of existingRoutes) {
+          const result = await sql`
+            UPDATE route 
+            SET route = ${route.route}, 
+                shift = ${route.shift}, 
+                warehouse = ${route.warehouse},
+                description = ${route.description || null}
+            WHERE id = ${route.id}
+            RETURNING id
+          `;
+          if (result.length > 0) results.updated++;
+        }
       }
 
       return res.status(200).json({ 
@@ -139,16 +119,13 @@ export default async function handler(req, res) {
       // Create new route
       const { route, shift, warehouse, description } = req.body;
 
-      const newRoute = await prisma.route.create({
-        data: {
-          route: route || '',
-          shift: shift || '',
-          warehouse: warehouse || '',
-          description: description || null
-        }
-      });
+      const result = await sql`
+        INSERT INTO route (route, shift, warehouse, description)
+        VALUES (${route || ''}, ${shift || ''}, ${warehouse || ''}, ${description || null})
+        RETURNING id, route, shift, warehouse, description
+      `;
 
-      return res.status(201).json(newRoute);
+      return res.status(201).json(result[0]);
     }
 
     if (req.method === 'DELETE') {
@@ -159,9 +136,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Route ID is required' });
       }
 
-      await prisma.route.delete({
-        where: { id: parseInt(id) }
-      });
+      const result = await sql`
+        DELETE FROM route WHERE id = ${parseInt(id)}
+        RETURNING id
+      `;
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'Route not found' });
+      }
 
       return res.status(200).json({ 
         success: true, 
@@ -173,35 +155,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('API Error:', error);
-    
-    // Handle Prisma specific errors
-    if (error.code === 'P2025') {
-      return res.status(404).json({ 
-        error: 'Record not found',
-        details: error.message 
-      });
-    }
-    
-    if (error.code === 'P2002') {
-      return res.status(409).json({ 
-        error: 'Unique constraint violation',
-        details: error.message 
-      });
-    }
-    
-    if (error.code === 'P2003') {
-      return res.status(400).json({ 
-        error: 'Foreign key constraint violation',
-        details: error.message 
-      });
-    }
-    
     return res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message,
-      code: error.code || 'UNKNOWN'
+      details: error.message
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
