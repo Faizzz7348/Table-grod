@@ -133,10 +133,10 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.logs in production
+        drop_console: false, // Keep logs visible for debugging
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.trace'],
-        passes: 2 // Run terser twice for better compression
+        passes: 2
       },
       mangle: {
         safari10: true
