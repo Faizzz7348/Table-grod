@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+// import { VitePWA } from 'vite-plugin-pwa' // ⚠️ DISABLED SEMENTARA
 
 export default defineConfig({
   plugins: [
@@ -8,6 +8,7 @@ export default defineConfig({
       // Enable Fast Refresh untuk development yang lebih cepat
       fastRefresh: true
     }),
+    /* ⚠️ PWA/WORKBOX DISABLED SEMENTARA
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', '*.png', '*.svg'],
@@ -107,6 +108,7 @@ export default defineConfig({
         enabled: false // Disable in dev to avoid conflicts
       }
     })
+    */ // ⚠️ END PWA DISABLED
   ],
   build: {
     chunkSizeWarningLimit: 1000,
