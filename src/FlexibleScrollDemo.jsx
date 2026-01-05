@@ -662,6 +662,14 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 export default function FlexibleScrollDemo() {
     
+    // Hide loading screen immediately on component mount
+    useEffect(() => {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+    }, []);
+    
     // Device Detection
     const deviceInfo = useDeviceDetect();
     const responsiveStyles = getResponsiveStyles(deviceInfo);
@@ -1241,6 +1249,12 @@ export default function FlexibleScrollDemo() {
                 setRoutes(sortedRoutes);
                 setLoading(false);
                 
+                // Hide loading screen after data is loaded
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+                
                 // Monitor cache performance
                 const cacheStats = CustomerService.getCacheStats();
                 console.log('📊 Cache Performance:', cacheStats);
@@ -1261,6 +1275,11 @@ export default function FlexibleScrollDemo() {
             } catch (error) {
                 console.error('Error loading data:', error);
                 setLoading(false);
+                // Hide loading screen even on error
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
             }
         };
         
